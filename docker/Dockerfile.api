@@ -1,0 +1,34 @@
+# ============================================
+# API Dockerfile — Multi-stage build
+# ============================================
+
+# --- Base ---
+FROM oven/bun:1-alpine AS base
+WORKDIR /app
+
+# --- Dependencies ---
+FROM base AS deps
+COPY package.json bun.lock ./
+COPY apps/api/package.json apps/api/
+COPY packages/shared/package.json packages/shared/
+RUN bun install --frozen-lockfile
+
+# --- Development ---
+FROM base AS development
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY . .
+WORKDIR /app/apps/api
+EXPOSE 3001
+CMD ["bun", "run", "dev"]
+
+# --- Production ---
+FROM base AS production
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+WORKDIR /app/apps/api
+RUN bun run build
+EXPOSE 3001
+CMD ["bun", "run", "start"]

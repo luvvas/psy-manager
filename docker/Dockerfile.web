@@ -1,0 +1,38 @@
+# ============================================
+# Web Dockerfile — Multi-stage build
+# ============================================
+
+# --- Base ---
+FROM oven/bun:1-alpine AS base
+WORKDIR /app
+
+# --- Dependencies ---
+FROM base AS deps
+COPY package.json bun.lock ./
+COPY apps/web/package.json apps/web/
+COPY packages/shared/package.json packages/shared/
+RUN bun install --frozen-lockfile
+
+# --- Development ---
+FROM base AS development
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+COPY . .
+WORKDIR /app/apps/web
+EXPOSE 5173
+CMD ["bun", "run", "dev", "--host"]
+
+# --- Production Build ---
+FROM base AS build
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+WORKDIR /app/apps/web
+RUN bun run build
+
+# --- Production Serve ---
+FROM nginx:alpine AS production
+COPY --from=build /app/apps/web/dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

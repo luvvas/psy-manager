@@ -1,0 +1,24 @@
+{
+  "name": "psy-manager",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "concurrently --names web,api --prefix-colors cyan,magenta \"bun run --filter @psy-manager/web dev\" \"bun run --filter @psy-manager/api dev\"",
+    "dev:web": "bun run --filter @psy-manager/web dev",
+    "dev:api": "bun run --filter @psy-manager/api dev",
+    "build": "bun run --filter @psy-manager/web build && bun run --filter @psy-manager/api build",
+    "build:web": "bun run --filter @psy-manager/web build",
+    "build:api": "bun run --filter @psy-manager/api build",
+    "db:generate": "bun run --filter @psy-manager/api db:generate",
+    "db:migrate": "bun run --filter @psy-manager/api db:migrate",
+    "db:push": "bun run --filter @psy-manager/api db:push",
+    "db:studio": "bun run --filter @psy-manager/api db:studio",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:db": "docker compose up -d db"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.8.3"
+  }
+}
