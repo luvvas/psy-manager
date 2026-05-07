@@ -13,10 +13,12 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@better-auth/drizzle-adapter": "^1.6.9",
     "@hono/node-server": "^1.14.1",
     "@hono/trpc-server": "^0.3.4",
     "@psy-manager/shared": "workspace:*",
     "@trpc/server": "^11.1.2",
+    "better-auth": "^1.6.9",
     "dotenv": "^16.5.0",
     "drizzle-orm": "^0.44.1",
     "hono": "^4.7.7",
