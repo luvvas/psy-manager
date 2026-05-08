@@ -30,7 +30,7 @@ jobs:
             
             # Pull latest changes
             git fetch --all
-            git reset --hard origin/main
+            git reset --hard origin/master
             
             # Ensure .env file exists on the server with production values
             # You should configure this once manually on your EC2 instance
