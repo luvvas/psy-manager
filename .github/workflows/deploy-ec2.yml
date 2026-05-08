@@ -39,5 +39,5 @@ jobs:
             docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml up -d --build
             
-            # (Optional) Run migrations
-            # docker compose -f docker-compose.prod.yml exec -T api bun run db:migrate
+            # Run migrations
+            docker compose -f docker-compose.prod.yml exec -T api bun run db:migrate
