@@ -15,6 +15,13 @@
       "when": 1778197079150,
       "tag": "0001_gray_talos",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778274211812,
+      "tag": "0002_broad_jazinda",
+      "breakpoints": true
     }
   ]
 }
