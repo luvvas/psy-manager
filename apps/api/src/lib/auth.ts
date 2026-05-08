@@ -37,4 +37,7 @@ export const auth = betterAuth({
     advanced: {
         useSecureCookies: false, // Required for HTTP testing on public domains
     },
+    defaultCookieAttributes: {
+        sameSite: "lax", // Allows cookies to be sent back during Google GET callback on HTTP
+    },
 });
