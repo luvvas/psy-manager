@@ -34,3 +34,7 @@ npm-debug.log*
 
 # TypeScript
 *.tsbuildinfo
+
+# Private Keys
+*.pem
+

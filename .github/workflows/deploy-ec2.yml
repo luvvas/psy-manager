@@ -1,0 +1,43 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main # Or your default branch
+
+jobs:
+  deploy:
+    name: Deploy to EC2 via SSH
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2 Instance
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }} # e.g. ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }} # Private key (.pem content)
+          port: 22
+          script: |
+            # Navigate to project folder
+            cd ~/psy-manager || {
+              git clone https://github.com/${{ github.repository }}.git ~/psy-manager
+              cd ~/psy-manager
+            }
+            
+            # Pull latest changes
+            git fetch --all
+            git reset --hard origin/main
+            
+            # Ensure .env file exists on the server with production values
+            # You should configure this once manually on your EC2 instance
+            
+            # Run Docker Compose build & start
+            docker compose -f docker-compose.prod.yml down
+            docker compose -f docker-compose.prod.yml up -d --build
+            
+            # (Optional) Run migrations
+            # docker compose -f docker-compose.prod.yml exec -T api bun run db:migrate

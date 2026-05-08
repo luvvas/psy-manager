@@ -1,0 +1,1 @@
+export { AgendamentoPage } from "./page";

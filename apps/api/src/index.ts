@@ -1,64 +1,53 @@
-import { config } from "dotenv";
-import path from "path";
-import { fileURLToPath } from "url";
+import "./load-env";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-config({ path: path.resolve(__dirname, "../../../.env") });
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { trpcServer } from "@hono/trpc-server";
-import { appRouter } from "./trpc/router";
+import { appRouter } from "./routes/router";
 import { createContext } from "./trpc/context";
+import { auth } from "./lib/auth";
+import { patientProjections } from "./cqrs/patient/patient.projections";
+import { appointmentProjections } from "./cqrs/appointment/appointment.projections";
+
+// Initialize CQRS Projections/Subscribers
+patientProjections.init();
+appointmentProjections.init();
 
 const app = new Hono();
 
-// ============================================
-// Middleware
-// ============================================
 app.use("*", logger());
 app.use(
-  "*",
-  cors({
-    origin: ["http://localhost:5173"], // Vite dev server
-    credentials: true,
-  })
+    "*",
+    cors({
+        origin: ["http://localhost:5173"],
+        allowHeaders: ["Content-Type", "Authorization"],
+        allowMethods: ["POST", "GET", "OPTIONS", "PUT", "DELETE"],
+        credentials: true,
+    })
 );
 
-// ============================================
-// tRPC handler — all tRPC routes under /trpc/*
-// ============================================
-app.use(
-  "/trpc/*",
-  trpcServer({
-    router: appRouter,
-    createContext: () => createContext(),
-  })
-);
-
-// ============================================
-// Non-tRPC routes (optional)
-// ============================================
-app.get("/", (c) => {
-  return c.json({
-    name: "psy-manager API",
-    version: "0.0.1",
-    trpc: "/trpc",
-  });
+app.on(["POST", "GET"], "/api/auth/*", (c) => {
+    return auth.handler(c.req.raw);
 });
 
-// ============================================
-// Start server
-// ============================================
+app.use(
+    "/trpc/*",
+    trpcServer({
+        router: appRouter,
+        createContext: (_opts, c) =>
+            createContext({ headers: c.req.raw.headers }),
+    })
+);
+
 const port = Number(process.env.API_PORT) || 3001;
 
 console.log(`🚀 psy-manager API running on http://localhost:${port}`);
 console.log(`📡 tRPC endpoint: http://localhost:${port}/trpc`);
+console.log(`🔐 Auth endpoint: http://localhost:${port}/api/auth`);
 
 serve({
-  fetch: app.fetch,
-  port,
+    fetch: app.fetch,
+    port,
 });

@@ -1,15 +1,22 @@
 import { db } from "../db";
+import { auth } from "../lib/auth";
 
 /**
  * tRPC context — available in every procedure.
- * Add session, auth, or other request-scoped data here.
+ * Includes the database and the current authenticated session.
  */
 export type Context = {
-  db: typeof db;
+    db: typeof db;
+    session: typeof auth.$Infer.Session | null;
 };
 
-export function createContext(): Context {
-  return {
-    db,
-  };
+export async function createContext(opts: { headers: Headers }): Promise<Context> {
+    const session = await auth.api.getSession({
+        headers: opts.headers,
+    });
+
+    return {
+        db,
+        session,
+    };
 }

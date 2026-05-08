@@ -31,4 +31,4 @@ COPY . .
 WORKDIR /app/apps/api
 RUN bun run build
 EXPOSE 3001
-CMD ["bun", "run", "start"]
+CMD ["bun", "dist/index.js"]
