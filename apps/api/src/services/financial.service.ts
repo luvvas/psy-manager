@@ -55,8 +55,8 @@ export const financialService = {
                 description: data.description,
                 amount: String(data.amount),
                 date: data.date,
-                category: data.category,
-                patientId: data.patientId,
+                category: data.category || null,
+                patientId: data.patientId || null,
                 status: data.status || "paid",
             })
             .returning();
@@ -81,6 +81,8 @@ export const financialService = {
             .set({
                 ...data,
                 amount: data.amount !== undefined ? String(data.amount) : undefined,
+                category: data.category === undefined ? undefined : (data.category || null),
+                patientId: data.patientId === undefined ? undefined : (data.patientId || null),
                 updatedAt: new Date(),
             })
             .where(
