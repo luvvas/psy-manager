@@ -9,6 +9,8 @@ export interface CreatePatientCommand {
     cidade: string;
     cpf: string;
     psychologistId: string;
+    valorSessao?: number | string | null;
+    modeloCobranca?: string | null;
 }
 
 export interface UpdatePatientCommand {
@@ -20,6 +22,8 @@ export interface UpdatePatientCommand {
     cidade: string;
     cpf: string;
     psychologistId: string;
+    valorSessao?: number | string | null;
+    modeloCobranca?: string | null;
 }
 
 export interface DeletePatientCommand {
@@ -45,6 +49,8 @@ export const patientCommands = {
             cidade: command.cidade,
             cpf: command.cpf,
             psychologistId: command.psychologistId,
+            valorSessao: command.valorSessao,
+            modeloCobranca: command.modeloCobranca,
         });
 
         // 2. Save raised events to the Event Store (expected version is 0 for new aggregate)
@@ -89,6 +95,8 @@ export const patientCommands = {
             dataNascimento: command.dataNascimento,
             cidade: command.cidade,
             cpf: command.cpf,
+            valorSessao: command.valorSessao,
+            modeloCobranca: command.modeloCobranca,
         });
 
         // 4. Save events with optimistic concurrency check

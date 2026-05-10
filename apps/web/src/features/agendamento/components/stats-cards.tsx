@@ -1,6 +1,6 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { CalendarDays, Clock, UserCheck, AlertCircle } from "lucide-react";
 import type { Appointment } from "../types";
+import { StatsCards as GenericStatsCards } from "@/components/stats-cards";
 
 interface StatsCardsProps {
     appointments: Appointment[];
@@ -47,25 +47,5 @@ export function StatsCards({ appointments }: StatsCardsProps) {
         },
     ];
 
-    return (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {stats.map((stat) => (
-                <Card key={stat.label} className="py-0 overflow-hidden">
-                    <CardContent className="flex items-center gap-3 p-4">
-                        <div
-                            className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${stat.color}`}
-                        >
-                            <stat.icon className="size-5" />
-                        </div>
-                        <div className="min-w-0">
-                            <p className="text-2xl font-bold tracking-tight">{stat.value}</p>
-                            <p className="text-xs text-muted-foreground truncate">
-                                {stat.label}
-                            </p>
-                        </div>
-                    </CardContent>
-                </Card>
-            ))}
-        </div>
-    );
+    return <GenericStatsCards items={stats} />;
 }

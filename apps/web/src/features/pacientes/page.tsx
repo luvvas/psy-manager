@@ -2,9 +2,9 @@ import { useState } from "react";
 import { AppHeader } from "@/components/layout/app-header";
 import { Button } from "@/components/ui/button";
 import { Users, Plus, Mail, Phone, Calendar, MapPin, CreditCard, Pencil, Trash2 } from "lucide-react";
-import { NewPatientForm } from "./components/new-patient-form";
+import { NewPatientForm } from "./components/patient-form";
 import { AppSheet } from "@/components/layout/app-sheet";
-import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -16,6 +16,8 @@ interface DBPatient {
     dataNascimento: Date;
     cidade: string;
     cpf: string;
+    valorSessao: string | number | null;
+    modeloCobranca: string | null;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -68,6 +70,8 @@ export function PacientesPage() {
         dataNascimento: new Date(p.dataNascimento),
         cidade: p.cidade,
         cpf: p.cpf,
+        valorSessao: p.valorSessao ?? null,
+        modeloCobranca: p.modeloCobranca ?? null,
         createdAt: new Date(p.createdAt),
         updatedAt: new Date(p.updatedAt || p.createdAt),
     }));
@@ -76,9 +80,11 @@ export function PacientesPage() {
         nome: string;
         email: string;
         telefone: string;
-        dataNascimento: string;
+        dataNascimento: Date;
         cidade: string;
         cpf: string;
+        valorSessao?: string | number;
+        modeloCobranca?: string;
     }) => {
         try {
             if (editingPatient) {
@@ -87,18 +93,22 @@ export function PacientesPage() {
                     nome: newPatient.nome,
                     email: newPatient.email,
                     telefone: newPatient.telefone,
-                    dataNascimento: new Date(newPatient.dataNascimento),
+                    dataNascimento: newPatient.dataNascimento,
                     cidade: newPatient.cidade,
                     cpf: newPatient.cpf,
+                    valorSessao: newPatient.valorSessao,
+                    modeloCobranca: newPatient.modeloCobranca,
                 });
             } else {
                 await createPatientMutation.mutateAsync({
                     nome: newPatient.nome,
                     email: newPatient.email,
                     telefone: newPatient.telefone,
-                    dataNascimento: new Date(newPatient.dataNascimento),
+                    dataNascimento: newPatient.dataNascimento,
                     cidade: newPatient.cidade,
                     cpf: newPatient.cpf,
+                    valorSessao: newPatient.valorSessao,
+                    modeloCobranca: newPatient.modeloCobranca,
                 });
             }
             setSheetOpen(false);
@@ -258,14 +268,11 @@ export function PacientesPage() {
                                             nome: editingPatient.nome,
                                             email: editingPatient.email,
                                             telefone: editingPatient.telefone,
-                                            dataNascimento: new Date(
-                                                editingPatient.dataNascimento.getTime() -
-                                                editingPatient.dataNascimento.getTimezoneOffset() * 60000
-                                            )
-                                                .toISOString()
-                                                .split("T")[0],
+                                            dataNascimento: editingPatient.dataNascimento,
                                             cidade: editingPatient.cidade,
                                             cpf: editingPatient.cpf,
+                                            valorSessao: editingPatient.valorSessao ?? undefined,
+                                            modeloCobranca: editingPatient.modeloCobranca ?? undefined,
                                         }
                                         : undefined
                                 }

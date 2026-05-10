@@ -16,10 +16,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod/v3";
 import { Loader2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { DatePicker } from "@/components/date-picker";
 
 const appointmentSchema = z.object({
     patientId: z.string().min(1, "O paciente é obrigatório"),
-    date: z.string().min(1, "A data é obrigatória"),
+    date: z.date({ required_error: "A data é obrigatória" }),
     startTime: z.string().min(1, "O horário de início é obrigatório"),
     endTime: z.string().min(1, "O horário de término é obrigatório"),
     status: z.enum(["pending", "confirmed", "cancelled", "completed"]),
@@ -34,7 +35,7 @@ export type AppointmentFormValues = z.infer<typeof appointmentSchema>;
 interface NewAppointmentFormProps {
     onSave: (data: AppointmentFormValues) => Promise<void>;
     onCancel: () => void;
-    initialData?: AppointmentFormValues;
+    initialData?: any;
     onDelete?: () => Promise<void>;
     readOnly?: boolean;
 }
@@ -54,16 +55,16 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
         formState: { errors },
     } = useForm<AppointmentFormValues>({
         resolver: zodResolver(appointmentSchema),
-        defaultValues: initialData || {
-            patientId: "",
-            date: "",
-            startTime: "08:00",
-            endTime: "08:50",
-            status: "pending",
-            sessionType: "online",
-            type: "individual",
-            isRecurring: false,
-            notes: "",
+        defaultValues: {
+            patientId: initialData?.patientId || "",
+            date: initialData?.date ? new Date(initialData.date) : new Date(),
+            startTime: initialData?.startTime || "08:00",
+            endTime: initialData?.endTime || "08:50",
+            status: initialData?.status || "pending",
+            sessionType: initialData?.sessionType || "online",
+            type: initialData?.type || "individual",
+            isRecurring: initialData?.isRecurring || false,
+            notes: initialData?.notes || "",
         },
     });
 
@@ -120,7 +121,17 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
                 <div className="grid grid-cols-1 gap-3">
                     <div className="grid gap-2">
                         <Label htmlFor="date">Data</Label>
-                        <Input id="date" type="date" disabled={isSubmitting || readOnly} {...register("date")} />
+                        <Controller
+                            name="date"
+                            control={control}
+                            render={({ field }) => (
+                                <DatePicker
+                                    date={field.value as any}
+                                    setDate={field.onChange}
+                                    className={readOnly ? "pointer-events-none opacity-80" : ""}
+                                />
+                            )}
+                        />
                         {errors.date && (
                             <p className="text-xs text-destructive">{errors.date.message}</p>
                         )}

@@ -5,6 +5,7 @@ import {
     boolean,
     integer,
     jsonb,
+    numeric,
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
@@ -31,6 +32,8 @@ export const patient = pgTable("patient", {
     psychologistId: text("psychologist_id")
         .notNull()
         .references(() => user.id, { onDelete: "cascade" }),
+    valorSessao: numeric("valor_sessao", { precision: 10, scale: 2 }),
+    modeloCobranca: text("modelo_cobranca"), // sessao_avulsa, pacote_mensal, pacote_fechado, etc.
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -132,6 +135,23 @@ export const eventStore = pgTable("event_store", {
     data: jsonb("data").notNull(),
     metadata: jsonb("metadata"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const financialTransaction = pgTable("financial_transaction", {
+    id: text("id").primaryKey(),
+    psychologistId: text("psychologist_id")
+        .notNull()
+        .references(() => user.id, { onDelete: "cascade" }),
+    type: text("type").notNull(), // income (receita), expense (despesa)
+    description: text("description").notNull(),
+    amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+    date: timestamp("date").notNull(),
+    category: text("category"), // e.g., Aluguel, Sessão, Software, etc.
+    patientId: text("patient_id")
+        .references(() => patient.id, { onDelete: "set null" }),
+    status: text("status").notNull().default("paid"), // paid, pending, overdue
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 

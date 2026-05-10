@@ -24,7 +24,7 @@ export const patientProjections = {
      * Handles PATIENT_CREATED event: Inserts a new record into the read-model table.
      */
     async handlePatientCreated(event: DomainEvent): Promise<void> {
-        const { id, nome, email, telefone, dataNascimento, cidade, cpf, psychologistId } = event.data;
+        const { id, nome, email, telefone, dataNascimento, cidade, cpf, psychologistId, valorSessao, modeloCobranca } = event.data;
         
         await db.insert(patient).values({
             id,
@@ -35,6 +35,8 @@ export const patientProjections = {
             cidade,
             cpf,
             psychologistId,
+            valorSessao: valorSessao ? String(valorSessao) : null,
+            modeloCobranca,
             createdAt: event.createdAt ?? new Date(),
             updatedAt: event.createdAt ?? new Date(),
         });
@@ -46,7 +48,7 @@ export const patientProjections = {
      * Handles PATIENT_UPDATED event: Updates an existing record in the read-model table.
      */
     async handlePatientUpdated(event: DomainEvent): Promise<void> {
-        const { nome, email, telefone, dataNascimento, cidade, cpf } = event.data;
+        const { nome, email, telefone, dataNascimento, cidade, cpf, valorSessao, modeloCobranca } = event.data;
         const id = event.aggregateId;
 
         await db
@@ -58,6 +60,8 @@ export const patientProjections = {
                 dataNascimento: new Date(dataNascimento),
                 cidade,
                 cpf,
+                valorSessao: valorSessao ? String(valorSessao) : null,
+                modeloCobranca,
                 updatedAt: event.createdAt ?? new Date(),
             })
             .where(eq(patient.id, id));
