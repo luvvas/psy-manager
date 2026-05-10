@@ -143,6 +143,8 @@ export const googleCalendarService = {
                 cidade: "Google Sync",
                 cpf: "000.000.000-00",
                 psychologistId: userId,
+                valorSessao: null,
+                modeloCobranca: null,
                 createdAt: new Date(),
                 updatedAt: new Date(),
             };
@@ -186,7 +188,7 @@ export const googleCalendarService = {
 
             await appointmentCommands.schedule({
                 psychologistId: userId,
-                patientId: matchedPatient.id,
+                patientId: matchedPatient!.id,
                 date: startDate,
                 startTime,
                 endTime,
