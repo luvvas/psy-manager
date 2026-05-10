@@ -38,3 +38,5 @@ npm-debug.log*
 # Private Keys
 *.pem
 
+step-by-step.md
+next-step.md

@@ -10,6 +10,8 @@ export interface PatientState {
     cidade: string;
     cpf: string;
     psychologistId: string;
+    valorSessao?: number | string | null;
+    modeloCobranca?: string | null;
     isDeleted: boolean;
     createdAt: Date | null;
     updatedAt: Date | null;
@@ -28,6 +30,8 @@ export class PatientAggregate extends AggregateRoot<PatientState> {
             cidade: "",
             cpf: "",
             psychologistId: "",
+            valorSessao: undefined,
+            modeloCobranca: undefined,
             isDeleted: false,
             createdAt: null,
             updatedAt: null,
@@ -46,6 +50,8 @@ export class PatientAggregate extends AggregateRoot<PatientState> {
         cidade: string;
         cpf: string;
         psychologistId: string;
+        valorSessao?: number | string | null;
+        modeloCobranca?: string | null;
     }): void {
         if (this._version > 0) {
             throw new Error("Patient aggregate already initialized");
@@ -67,6 +73,8 @@ export class PatientAggregate extends AggregateRoot<PatientState> {
         dataNascimento: Date;
         cidade: string;
         cpf: string;
+        valorSessao?: number | string | null;
+        modeloCobranca?: string | null;
     }): void {
         if (this._state.isDeleted) {
             throw new Error("Cannot update a deleted patient");
@@ -103,6 +111,8 @@ export class PatientAggregate extends AggregateRoot<PatientState> {
                     cidade: event.data.cidade,
                     cpf: event.data.cpf,
                     psychologistId: event.data.psychologistId,
+                    valorSessao: event.data.valorSessao,
+                    modeloCobranca: event.data.modeloCobranca,
                     isDeleted: false,
                     createdAt: event.createdAt ?? new Date(),
                     updatedAt: event.createdAt ?? new Date(),
@@ -117,6 +127,8 @@ export class PatientAggregate extends AggregateRoot<PatientState> {
                     dataNascimento: new Date(event.data.dataNascimento),
                     cidade: event.data.cidade,
                     cpf: event.data.cpf,
+                    valorSessao: event.data.valorSessao,
+                    modeloCobranca: event.data.modeloCobranca,
                     updatedAt: event.createdAt ?? new Date(),
                 };
 

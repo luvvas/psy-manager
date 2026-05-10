@@ -22,7 +22,7 @@ import { StatsCards } from "./components/stats-cards";
 import { WeeklyView } from "./components/weekly-view";
 import { DailyView } from "./components/daily-view";
 import { MonthlyView } from "./components/monthly-view";
-import { NewAppointmentForm } from "./components/new-appointment-form";
+import { NewAppointmentForm } from "./components/appointment-form";
 import { AppSheet } from "@/components/layout/app-sheet";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -350,7 +350,7 @@ export function AgendamentoPage() {
                                     editingAppointment
                                         ? {
                                             patientId: editingAppointment.patient.id,
-                                            date: editingAppointment.date.toISOString().split("T")[0],
+                                            date: editingAppointment.date,
                                             startTime: editingAppointment.startTime,
                                             endTime: editingAppointment.endTime,
                                             status:

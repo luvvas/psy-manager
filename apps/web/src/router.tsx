@@ -3,12 +3,12 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { AgendamentoPage } from "@/features/agendamento";
 import { PacientesPage } from "@/features/pacientes";
 import { ClinicasPage } from "@/features/clinicas";
+import { FinanceiroPage } from "@/features/financeiro";
 import { ComingSoonPage } from "@/pages/coming-soon";
 import { AuthPage } from "@/features/auth/page";
 import { AuthGuard, PublicOnlyGuard } from "@/features/auth/auth-guard";
 import { GoogleCallbackPage } from "@/pages/google-callback";
 import {
-    DollarSign,
     CreditCard,
     FileText,
     ClipboardList,
@@ -58,13 +58,7 @@ export const router = createBrowserRouter([
                     },
                     {
                         path: "financeiro",
-                        element: (
-                            <ComingSoonPage
-                                title="Controle Financeiro"
-                                description="Acompanhe receitas, despesas e gere relatórios financeiros do consultório."
-                                icon={DollarSign}
-                            />
-                        ),
+                        element: <FinanceiroPage />,
                     },
                     {
                         path: "pagamentos",

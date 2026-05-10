@@ -18,6 +18,8 @@ export const patientRouter = router({
                 dataNascimento: z.string().or(z.date()).transform((val) => new Date(val)),
                 cidade: z.string().min(1),
                 cpf: z.string().min(1),
+                valorSessao: z.string().or(z.number()).optional().nullable(),
+                modeloCobranca: z.string().optional().nullable(),
             })
         )
         .mutation(async ({ ctx, input }) => {
@@ -39,6 +41,8 @@ export const patientRouter = router({
                 dataNascimento: z.string().or(z.date()).transform((val) => new Date(val)),
                 cidade: z.string().min(1),
                 cpf: z.string().min(1),
+                valorSessao: z.string().or(z.number()).optional().nullable(),
+                modeloCobranca: z.string().optional().nullable(),
             })
         )
         .mutation(async ({ ctx, input }) => {

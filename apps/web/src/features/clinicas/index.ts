@@ -1,2 +1,2 @@
 export * from "./page";
-export * from "./components/new-clinic-form";
+export * from "./components/clinic-form";
