@@ -22,6 +22,13 @@
       "when": 1778274211812,
       "tag": "0002_broad_jazinda",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1778457378157,
+      "tag": "0003_natural_landau",
+      "breakpoints": true
     }
   ]
 }
