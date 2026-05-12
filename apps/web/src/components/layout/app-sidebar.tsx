@@ -3,7 +3,6 @@ import {
     CalendarDays,
     DollarSign,
     FileText,
-    ClipboardList,
     FlaskConical,
     Search,
     Brain,
@@ -46,6 +45,12 @@ const NAV_ITEMS = [
         ready: true,
     },
     {
+        title: "Documentos",
+        url: "/documentos",
+        icon: FileText,
+        ready: true,
+    },
+    {
         title: "Pacientes",
         url: "/pacientes",
         icon: Users,
@@ -56,18 +61,6 @@ const NAV_ITEMS = [
         url: "/clinicas",
         icon: Building2,
         ready: true,
-    },
-    {
-        title: "Contratos",
-        url: "/contratos",
-        icon: FileText,
-        ready: false,
-    },
-    {
-        title: "Prontuários",
-        url: "/prontuarios",
-        icon: ClipboardList,
-        ready: false,
     },
     {
         title: "Exames",

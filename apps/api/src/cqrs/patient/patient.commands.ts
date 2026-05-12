@@ -11,6 +11,27 @@ export interface CreatePatientCommand {
     psychologistId: string;
     valorSessao?: number | string | null;
     modeloCobranca?: string | null;
+    // New optional fields passed in
+    nomeSocial?: string | null;
+    rg?: string | null;
+    profissao?: string | null;
+    endereco?: string | null;
+    cep?: string | null;
+    uf?: string | null;
+    contatoEmergencia?: string | null;
+    respLegalNome?: string | null;
+    respLegalParentesco?: string | null;
+    respLegalCpf?: string | null;
+    respLegalTelefone?: string | null;
+    respLegalEmail?: string | null;
+    servicoContratadoTipo?: string | null;
+    dataInicioAcompanhamento?: Date | null;
+    formaPagamento?: string | null;
+    formaPagamentoDetalhe?: string | null;
+    responsavelFinanceiroTipo?: string | null;
+    responsavelFinanceiroDetalhe?: string | null;
+    origemContato?: string | null;
+    origemContatoDetalhe?: string | null;
 }
 
 export interface UpdatePatientCommand {
@@ -24,6 +45,27 @@ export interface UpdatePatientCommand {
     psychologistId: string;
     valorSessao?: number | string | null;
     modeloCobranca?: string | null;
+    // New optional fields updated
+    nomeSocial?: string | null;
+    rg?: string | null;
+    profissao?: string | null;
+    endereco?: string | null;
+    cep?: string | null;
+    uf?: string | null;
+    contatoEmergencia?: string | null;
+    respLegalNome?: string | null;
+    respLegalParentesco?: string | null;
+    respLegalCpf?: string | null;
+    respLegalTelefone?: string | null;
+    respLegalEmail?: string | null;
+    servicoContratadoTipo?: string | null;
+    dataInicioAcompanhamento?: Date | null;
+    formaPagamento?: string | null;
+    formaPagamentoDetalhe?: string | null;
+    responsavelFinanceiroTipo?: string | null;
+    responsavelFinanceiroDetalhe?: string | null;
+    origemContato?: string | null;
+    origemContatoDetalhe?: string | null;
 }
 
 export interface DeletePatientCommand {
@@ -42,15 +84,7 @@ export const patientCommands = {
         // 1. Apply command business logic inside the Aggregate Root
         aggregate.create({
             id,
-            nome: command.nome,
-            email: command.email,
-            telefone: command.telefone,
-            dataNascimento: command.dataNascimento,
-            cidade: command.cidade,
-            cpf: command.cpf,
-            psychologistId: command.psychologistId,
-            valorSessao: command.valorSessao,
-            modeloCobranca: command.modeloCobranca,
+            ...command,
         });
 
         // 2. Save raised events to the Event Store (expected version is 0 for new aggregate)
@@ -89,14 +123,7 @@ export const patientCommands = {
 
         // 3. Apply the update command
         aggregate.update({
-            nome: command.nome,
-            email: command.email,
-            telefone: command.telefone,
-            dataNascimento: command.dataNascimento,
-            cidade: command.cidade,
-            cpf: command.cpf,
-            valorSessao: command.valorSessao,
-            modeloCobranca: command.modeloCobranca,
+            ...command,
         });
 
         // 4. Save events with optimistic concurrency check

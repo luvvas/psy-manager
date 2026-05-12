@@ -24,7 +24,13 @@ export const patientProjections = {
      * Handles PATIENT_CREATED event: Inserts a new record into the read-model table.
      */
     async handlePatientCreated(event: DomainEvent): Promise<void> {
-        const { id, nome, email, telefone, dataNascimento, cidade, cpf, psychologistId, valorSessao, modeloCobranca } = event.data;
+        const { 
+            id, nome, email, telefone, dataNascimento, cidade, cpf, psychologistId, valorSessao, modeloCobranca,
+            nomeSocial, rg, profissao, endereco, cep, uf, contatoEmergencia,
+            respLegalNome, respLegalParentesco, respLegalCpf, respLegalTelefone, respLegalEmail,
+            servicoContratadoTipo, dataInicioAcompanhamento, formaPagamento, formaPagamentoDetalhe,
+            responsavelFinanceiroTipo, responsavelFinanceiroDetalhe, origemContato, origemContatoDetalhe 
+        } = event.data;
         
         await db.insert(patient).values({
             id,
@@ -37,6 +43,14 @@ export const patientProjections = {
             psychologistId,
             valorSessao: valorSessao ? String(valorSessao) : null,
             modeloCobranca,
+            // Projections for extended survey fields
+            nomeSocial, rg, profissao, endereco, cep, uf, contatoEmergencia,
+            respLegalNome, respLegalParentesco, respLegalCpf, respLegalTelefone, respLegalEmail,
+            servicoContratadoTipo,
+            dataInicioAcompanhamento: dataInicioAcompanhamento ? new Date(dataInicioAcompanhamento) : null,
+            formaPagamento, formaPagamentoDetalhe,
+            responsavelFinanceiroTipo, responsavelFinanceiroDetalhe,
+            origemContato, origemContatoDetalhe,
             createdAt: event.createdAt ?? new Date(),
             updatedAt: event.createdAt ?? new Date(),
         });
@@ -48,7 +62,13 @@ export const patientProjections = {
      * Handles PATIENT_UPDATED event: Updates an existing record in the read-model table.
      */
     async handlePatientUpdated(event: DomainEvent): Promise<void> {
-        const { nome, email, telefone, dataNascimento, cidade, cpf, valorSessao, modeloCobranca } = event.data;
+        const { 
+            nome, email, telefone, dataNascimento, cidade, cpf, valorSessao, modeloCobranca,
+            nomeSocial, rg, profissao, endereco, cep, uf, contatoEmergencia,
+            respLegalNome, respLegalParentesco, respLegalCpf, respLegalTelefone, respLegalEmail,
+            servicoContratadoTipo, dataInicioAcompanhamento, formaPagamento, formaPagamentoDetalhe,
+            responsavelFinanceiroTipo, responsavelFinanceiroDetalhe, origemContato, origemContatoDetalhe 
+        } = event.data;
         const id = event.aggregateId;
 
         await db
@@ -62,6 +82,14 @@ export const patientProjections = {
                 cpf,
                 valorSessao: valorSessao ? String(valorSessao) : null,
                 modeloCobranca,
+                // Projection update for extended survey fields
+                nomeSocial, rg, profissao, endereco, cep, uf, contatoEmergencia,
+                respLegalNome, respLegalParentesco, respLegalCpf, respLegalTelefone, respLegalEmail,
+                servicoContratadoTipo,
+                dataInicioAcompanhamento: dataInicioAcompanhamento ? new Date(dataInicioAcompanhamento) : null,
+                formaPagamento, formaPagamentoDetalhe,
+                responsavelFinanceiroTipo, responsavelFinanceiroDetalhe,
+                origemContato, origemContatoDetalhe,
                 updatedAt: event.createdAt ?? new Date(),
             })
             .where(eq(patient.id, id));

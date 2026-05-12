@@ -63,6 +63,39 @@ export const financialService = {
 
         return newTx;
     },
+
+    async createMany(
+        psychologistId: string,
+        items: Array<{
+            type: string;
+            description: string;
+            amount: string | number;
+            date: Date;
+            category?: string | null;
+            status?: string;
+        }>
+    ) {
+        const values = items.map(item => ({
+            id: crypto.randomUUID(),
+            psychologistId,
+            type: item.type,
+            description: item.description,
+            amount: String(item.amount),
+            date: item.date,
+            category: item.category || null,
+            status: item.status || "paid",
+        }));
+
+        if (values.length === 0) return [];
+
+        const result = await db
+            .insert(financialTransaction)
+            .values(values)
+            .returning();
+
+        return result;
+    },
+
     async update(
         psychologistId: string,
         id: string,

@@ -1,37 +1,16 @@
 import { useState } from "react";
 import { AppHeader } from "@/components/layout/app-header";
 import { Button } from "@/components/ui/button";
-import { Building2, Plus, Mail, Phone, MapPin, Pencil, Trash2, Users } from "lucide-react";
+import { Building2, Plus } from "lucide-react";
 import { NewClinicForm, type ClinicFormValues } from "./components/clinic-form";
+import { ClinicsTable, type DBClinic } from "./components/clinics-table";
 import { AppSheet } from "@/components/layout/app-sheet";
-import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { useSession } from "@/lib/auth-client";
-
-interface DBClinic {
-    id: string;
-    name: string;
-    cnpj: string;
-    phone: string;
-    email: string;
-    address: string;
-    city: string;
-    createdById: string;
-    createdAt: Date;
-    updatedAt: Date;
-    psychologists: {
-        id: string;
-        name: string;
-        email: string;
-        phone: string | null;
-    }[];
-}
 
 export function ClinicasPage() {
     const [isSheetOpen, setSheetOpen] = useState(false);
     const [editingClinic, setEditingClinic] = useState<DBClinic | null>(null);
-    const { data: session } = useSession();
 
     // Load clinics via tRPC
     const { data: dbClinics, refetch } = trpc.clinic.list.useQuery(undefined, {
@@ -71,7 +50,6 @@ export function ClinicasPage() {
     const linkMutation = trpc.clinic.linkPsychologist.useMutation({
         onSuccess: () => {
             refetch();
-            // Trigger edit sheet reload by updating the current editing clinic
             if (editingClinic) {
                 const updated = dbClinics?.find(c => c.id === editingClinic.id);
                 if (updated) {
@@ -101,7 +79,6 @@ export function ClinicasPage() {
         },
     });
 
-    // Map DB clinics to the UI format
     const allClinics: DBClinic[] = (dbClinics || []).map((cl) => ({
         id: cl.id,
         name: cl.name,
@@ -116,7 +93,6 @@ export function ClinicasPage() {
         psychologists: cl.psychologists || [],
     }));
 
-    // Trigger update of editing state if database updates
     const activeEditingClinic = editingClinic
         ? allClinics.find((c) => c.id === editingClinic.id) || editingClinic
         : null;
@@ -163,102 +139,6 @@ export function ClinicasPage() {
             psychologistId,
         });
     };
-
-    const columns: DataTableColumn<DBClinic>[] = [
-        {
-            header: "Clínica",
-            className: "w-[25%]",
-            render: (clinic) => (
-                <div className="flex flex-col">
-                    <span className="font-semibold text-foreground text-sm block">
-                        {clinic.name}
-                    </span>
-                    <span className="text-xs text-muted-foreground font-mono">
-                        {clinic.cnpj}
-                    </span>
-                </div>
-            ),
-        },
-        {
-            header: "Contato",
-            className: "w-[25%]",
-            render: (clinic) => (
-                <div className="flex flex-col gap-0.5">
-                    <span className="flex items-center gap-1.5 text-muted-foreground text-xs md:text-sm">
-                        <Mail className="size-3.5 shrink-0" />
-                        {clinic.email}
-                    </span>
-                    <span className="flex items-center gap-1.5 text-muted-foreground text-xs">
-                        <Phone className="size-3.5 shrink-0" />
-                        {clinic.phone}
-                    </span>
-                </div>
-            ),
-        },
-        {
-            header: "Localização",
-            className: "w-[25%]",
-            render: (clinic) => (
-                <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1.5">
-                        <MapPin className="size-3.5 shrink-0" />
-                        {clinic.address}
-                    </span>
-                    <span className="font-medium text-foreground ml-5">{clinic.city}</span>
-                </div>
-            ),
-        },
-        {
-            header: "Profissionais",
-            className: "w-[17%]",
-            render: (clinic) => (
-                <div className="flex flex-col gap-1">
-                    <span className="flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full w-fit">
-                        <Users className="size-3.5 shrink-0" />
-                        {clinic.psychologists.length} profissionais
-                    </span>
-                    <p className="text-[10px] text-muted-foreground truncate max-w-[180px]">
-                        {clinic.psychologists.map((p) => p.name).join(", ")}
-                    </p>
-                </div>
-            ),
-        },
-        {
-            header: "",
-            className: "w-[8%] text-right",
-            render: (clinic) => {
-                const isOwner = clinic.createdById === session?.user?.id;
-                if (!isOwner) return null;
-                return (
-                    <div className="flex justify-end items-center gap-1">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingClinic(clinic);
-                                setSheetOpen(true);
-                            }}
-                        >
-                            <Pencil className="size-3.5 text-muted-foreground hover:text-foreground transition-colors" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteClinic(clinic.id, clinic.name);
-                            }}
-                        >
-                            <Trash2 className="size-3.5 transition-colors" />
-                        </Button>
-                    </div>
-                );
-            },
-        },
-    ];
 
     return (
         <>
@@ -318,23 +198,13 @@ export function ClinicasPage() {
             />
 
             <div className="flex flex-1 flex-col gap-4 p-4 lg:p-6">
-                <DataTable
-                    data={allClinics}
-                    columns={columns}
-                    searchPlaceholder="Buscar por nome, CNPJ ou cidade..."
-                    searchFilter={(clinic, query) => {
-                        const term = query.toLowerCase();
-                        return (
-                            clinic.name.toLowerCase().includes(term) ||
-                            clinic.cnpj.includes(term) ||
-                            clinic.city.toLowerCase().includes(term)
-                        );
+                <ClinicsTable
+                    clinics={allClinics}
+                    onEdit={(clinic) => {
+                        setEditingClinic(clinic);
+                        setSheetOpen(true);
                     }}
-                    emptyState={{
-                        title: "Nenhuma clínica encontrada",
-                        description: "Você ainda não possui clínicas cadastradas. Cadastre uma nova clínica para começar.",
-                        icon: Building2,
-                    }}
+                    onDelete={handleDeleteClinic}
                 />
             </div>
         </>

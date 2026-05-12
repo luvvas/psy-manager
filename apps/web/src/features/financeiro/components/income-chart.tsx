@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
     AreaChart,
     Area,
@@ -9,14 +9,16 @@ import {
     ResponsiveContainer,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface IncomeChartProps {
     transactions: any[];
 }
 
 export function IncomeChart({ transactions }: IncomeChartProps) {
+    const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
+
     const chartData = useMemo(() => {
-        // Group by date
         const daily: Record<string, { date: string; dateRaw: Date; income: number; expense: number }> = {};
 
         transactions.forEach((tx) => {
@@ -37,7 +39,6 @@ export function IncomeChart({ transactions }: IncomeChartProps) {
             }
         });
 
-        // Sort by dateRaw and return values
         return Object.values(daily).sort((a, b) => a.dateRaw.getTime() - b.dateRaw.getTime());
     }, [transactions]);
 
@@ -51,8 +52,21 @@ export function IncomeChart({ transactions }: IncomeChartProps) {
 
     return (
         <Card className="flex-1">
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-sm font-medium">Movimentação Financeira</CardTitle>
+                <Select
+                    value={typeFilter}
+                    onValueChange={(v: any) => setTypeFilter(v)}
+                >
+                    <SelectTrigger className="h-8 w-[130px] text-xs">
+                        <SelectValue placeholder="Filtrar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all" className="text-xs">Tudo</SelectItem>
+                        <SelectItem value="income" className="text-xs">Receitas</SelectItem>
+                        <SelectItem value="expense" className="text-xs">Despesas</SelectItem>
+                    </SelectContent>
+                </Select>
             </CardHeader>
             <CardContent className="p-0 pb-4 pt-2 h-[300px]">
                 {chartData.length === 0 ? (
@@ -99,24 +113,28 @@ export function IncomeChart({ transactions }: IncomeChartProps) {
                                 formatter={(value: any) => [formatCurrency(Number(value || 0))]}
                                 labelStyle={{ fontWeight: "bold", marginBottom: "4px" }}
                             />
-                            <Area
-                                type="monotone"
-                                dataKey="income"
-                                stroke="#10b981"
-                                strokeWidth={2}
-                                fillOpacity={1}
-                                fill="url(#colorIncome)"
-                                name="Receitas"
-                            />
-                            <Area
-                                type="monotone"
-                                dataKey="expense"
-                                stroke="#ef4444"
-                                strokeWidth={2}
-                                fillOpacity={1}
-                                fill="url(#colorExpense)"
-                                name="Despesas"
-                            />
+                            {(typeFilter === "all" || typeFilter === "income") && (
+                                <Area
+                                    type="monotone"
+                                    dataKey="income"
+                                    stroke="#10b981"
+                                    strokeWidth={2}
+                                    fillOpacity={1}
+                                    fill="url(#colorIncome)"
+                                    name="Receitas"
+                                />
+                            )}
+                            {(typeFilter === "all" || typeFilter === "expense") && (
+                                <Area
+                                    type="monotone"
+                                    dataKey="expense"
+                                    stroke="#ef4444"
+                                    strokeWidth={2}
+                                    fillOpacity={1}
+                                    fill="url(#colorExpense)"
+                                    name="Despesas"
+                                />
+                            )}
                         </AreaChart>
                     </ResponsiveContainer>
                 )}

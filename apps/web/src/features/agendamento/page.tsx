@@ -1,27 +1,12 @@
 import { useState, useMemo, useCallback } from "react";
 import { AppHeader } from "@/components/layout/app-header";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar } from "@/components/ui/calendar";
 import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-    CalendarDays,
-    ChevronLeft,
-    ChevronRight,
-    LayoutGrid,
-    List,
-    CalendarRange,
     Plus,
     RefreshCw,
+    CalendarDays
 } from "lucide-react";
 import { StatsCards } from "./components/stats-cards";
-import { WeeklyView } from "./components/weekly-view";
-import { DailyView } from "./components/daily-view";
-import { MonthlyView } from "./components/monthly-view";
 import { NewAppointmentForm } from "./components/appointment-form";
 import { AppSheet } from "@/components/layout/app-sheet";
 import { trpc } from "@/lib/trpc";
@@ -29,7 +14,7 @@ import { toast } from "sonner";
 import { type Appointment, type AppointmentStatus } from "./types";
 import { useSession } from "@/lib/auth-client";
 
-type ViewMode = "semana" | "dia" | "mes";
+import { CalendarDashboard, type ViewMode } from "./components/calendar-dashboard";
 
 function getMonday(date: Date): Date {
     const d = new Date(date);
@@ -68,6 +53,7 @@ export function AgendamentoPage() {
     const [view, setView] = useState<ViewMode>("semana");
     const [isSheetOpen, setSheetOpen] = useState(false);
     const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+    const [pendingCreationDate, setPendingCreationDate] = useState<Date | null>(null);
 
     const { data: session } = useSession();
 
@@ -274,8 +260,9 @@ export function AgendamentoPage() {
     }, []);
 
     const handleMonthDayClick = useCallback((date: Date) => {
-        setSelectedDate(date);
-        setView("dia");
+        setPendingCreationDate(date);
+        setEditingAppointment(null);
+        setSheetOpen(true);
     }, []);
 
     return (
@@ -321,6 +308,7 @@ export function AgendamentoPage() {
                             size="sm"
                             onClick={() => {
                                 setEditingAppointment(null);
+                                setPendingCreationDate(null);
                                 setSheetOpen(true);
                             }}
                             className="gap-1.5"
@@ -333,9 +321,18 @@ export function AgendamentoPage() {
                             open={isSheetOpen}
                             onOpenChange={(open) => {
                                 setSheetOpen(open);
-                                if (!open) setEditingAppointment(null);
+                                if (!open) {
+                                    setEditingAppointment(null);
+                                    setPendingCreationDate(null);
+                                }
                             }}
-                            title={editingAppointment ? "Editar Agendamento" : "Novo Agendamento"}
+                            title={
+                                editingAppointment
+                                    ? isReadOnly
+                                        ? "Ver Agendamento"
+                                        : "Editar Agendamento"
+                                    : "Novo Agendamento"
+                            }
                         >
                             <NewAppointmentForm
                                 key={editingAppointment ? editingAppointment.id : "new"}
@@ -343,6 +340,7 @@ export function AgendamentoPage() {
                                 onCancel={() => {
                                     setSheetOpen(false);
                                     setEditingAppointment(null);
+                                    setPendingCreationDate(null);
                                 }}
                                 onDelete={editingAppointment && !isReadOnly ? handleDeleteAppointment : undefined}
                                 readOnly={isReadOnly}
@@ -366,7 +364,9 @@ export function AgendamentoPage() {
                                             isRecurring: editingAppointment.isRecurring || false,
                                             notes: editingAppointment.notes || "",
                                         }
-                                        : undefined
+                                        : pendingCreationDate
+                                            ? { date: pendingCreationDate }
+                                            : undefined
                                 }
                             />
                         </AppSheet>
@@ -378,116 +378,17 @@ export function AgendamentoPage() {
                 {/* Stats */}
                 <StatsCards appointments={mappedAppointments} />
 
-                {/* Toolbar */}
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                    {/* Navigation */}
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="size-8"
-                            onClick={() => navigate(-1)}
-                            id="btn-prev"
-                        >
-                            <ChevronLeft className="size-4" />
-                        </Button>
-
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="min-w-[200px] justify-center gap-2 font-medium capitalize"
-                                    id="btn-date-picker"
-                                >
-                                    <CalendarDays className="size-4" />
-                                    {dateLabel}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                    mode="single"
-                                    selected={selectedDate}
-                                    onSelect={(date) => date && setSelectedDate(date)}
-                                    initialFocus
-                                />
-                            </PopoverContent>
-                        </Popover>
-
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="size-8"
-                            onClick={() => navigate(1)}
-                            id="btn-next"
-                        >
-                            <ChevronRight className="size-4" />
-                        </Button>
-
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={goToToday}
-                            id="btn-today"
-                        >
-                            Hoje
-                        </Button>
-                    </div>
-
-                    {/* View toggle */}
-                    <Tabs
-                        value={view}
-                        onValueChange={(v) => setView(v as ViewMode)}
-                    >
-                        <TabsList>
-                            <TabsTrigger
-                                value="mes"
-                                className="gap-1.5"
-                                id="tab-month-view"
-                            >
-                                <CalendarRange className="size-3.5" />
-                                <span className="hidden sm:inline">Mês</span>
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="semana"
-                                className="gap-1.5"
-                                id="tab-week-view"
-                            >
-                                <LayoutGrid className="size-3.5" />
-                                <span className="hidden sm:inline">Semana</span>
-                            </TabsTrigger>
-                            <TabsTrigger value="dia" className="gap-1.5" id="tab-day-view">
-                                <List className="size-3.5" />
-                                <span className="hidden sm:inline">Dia</span>
-                            </TabsTrigger>
-                        </TabsList>
-                    </Tabs>
-                </div>
-
-                {/* Content */}
-                <div className="rounded-lg border bg-card min-h-[400px] flex flex-col overflow-hidden">
-                    {view === "mes" && (
-                        <MonthlyView
-                            appointments={mappedAppointments}
-                            selectedDate={selectedDate}
-                            onDayClick={handleMonthDayClick}
-                        />
-                    )}
-                    {view === "semana" && (
-                        <WeeklyView
-                            appointments={mappedAppointments}
-                            selectedDate={selectedDate}
-                        />
-                    )}
-                    {view === "dia" && (
-                        <div className="p-4">
-                            <DailyView
-                                appointments={mappedAppointments}
-                                selectedDate={selectedDate}
-                            />
-                        </div>
-                    )}
-                </div>
+                <CalendarDashboard
+                    view={view}
+                    onViewChange={setView}
+                    selectedDate={selectedDate}
+                    onDateChange={setSelectedDate}
+                    dateLabel={dateLabel}
+                    onNavigate={navigate}
+                    onGoToToday={goToToday}
+                    appointments={mappedAppointments}
+                    onDayClick={handleMonthDayClick}
+                />
             </div>
         </>
     );

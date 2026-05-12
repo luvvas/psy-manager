@@ -30,6 +30,23 @@ export const financialRouter = router({
             return financialService.create(ctx.session.user.id, input);
         }),
 
+    createMany: protectedProcedure
+        .input(
+            z.array(
+                z.object({
+                    type: z.enum(["income", "expense"]),
+                    description: z.string().min(1),
+                    amount: z.string().or(z.number()),
+                    date: z.string().or(z.date()).transform((v) => new Date(v)),
+                    category: z.string().optional().nullable(),
+                    status: z.string().optional(),
+                })
+            )
+        )
+        .mutation(async ({ ctx, input }) => {
+            return financialService.createMany(ctx.session.user.id, input);
+        }),
+
     update: protectedProcedure
         .input(
             z.object({

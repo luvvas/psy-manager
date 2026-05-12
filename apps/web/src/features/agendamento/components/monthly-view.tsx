@@ -110,10 +110,10 @@ export function MonthlyView({ appointments, selectedDate, onDayClick }: MonthlyV
                                 <div className="flex items-center justify-between px-1">
                                     <span
                                         className={`flex size-6 items-center justify-center rounded-full text-xs transition-colors ${isToday
-                                                ? "bg-primary text-primary-foreground font-bold"
-                                                : isCurrentMonth
-                                                    ? "font-medium text-foreground"
-                                                    : "text-muted-foreground/50"
+                                            ? "bg-primary text-primary-foreground font-bold"
+                                            : isCurrentMonth
+                                                ? "font-medium text-foreground"
+                                                : "text-muted-foreground/50"
                                             }`}
                                     >
                                         {day.getDate()}
