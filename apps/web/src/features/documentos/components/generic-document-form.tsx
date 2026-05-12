@@ -13,12 +13,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 
 const genericDocumentSchema = z.object({
     title: z.string().min(3, "Título deve ter pelo menos 3 caracteres"),
     type: z.string().min(1, "Tipo é obrigatório"),
-    isTemplate: z.boolean().default(false),
+    isTemplate: z.boolean(),
 });
 
 type FormValues = z.infer<typeof genericDocumentSchema>;
@@ -146,7 +146,7 @@ export function GenericDocumentForm({ onSave, onCancel, initialData }: GenericDo
                         name="isTemplate"
                         control={control}
                         render={({ field }) => (
-                            <Checkbox
+                            <Switch
                                 id="isTemplate"
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
