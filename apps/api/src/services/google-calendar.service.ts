@@ -124,7 +124,7 @@ export const googleCalendarService = {
         let placeholderPatient = myPatients.find((p) => p.nome === "Google Calendar Import");
         if (!placeholderPatient) {
             const id = crypto.randomUUID();
-            await db.insert(patient).values({
+            const [inserted] = await db.insert(patient).values({
                 id,
                 nome: "Google Calendar Import",
                 email: "google-sync@psy-manager.com",
@@ -133,21 +133,8 @@ export const googleCalendarService = {
                 cidade: "Google Sync",
                 cpf: "000.000.000-00",
                 psychologistId: userId,
-            });
-            placeholderPatient = {
-                id,
-                nome: "Google Calendar Import",
-                email: "google-sync@psy-manager.com",
-                telefone: "00000000000",
-                dataNascimento: new Date("1970-01-01"),
-                cidade: "Google Sync",
-                cpf: "000.000.000-00",
-                psychologistId: userId,
-                valorSessao: null,
-                modeloCobranca: null,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            };
+            }).returning();
+            placeholderPatient = inserted;
         }
 
         for (const event of googleEvents) {
