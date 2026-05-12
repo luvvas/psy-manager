@@ -48,7 +48,7 @@ jobs:
       - name: Build Frontend
         env:
           # Points the browser client to your public EC2 endpoint
-          VITE_API_URL: http://${{ secrets.EC2_HOST }}:3001
+          VITE_API_URL: https://dswfc48bg9ft6.cloudfront.net
         run: bun run --filter @psy-manager/web build
 
       - name: Configure AWS Credentials
