@@ -21,7 +21,10 @@ app.use("*", logger());
 app.use(
     "*",
     cors({
-        origin: ["http://localhost:5173"],
+        origin: [
+            "http://localhost:5173",
+            "https://dswfc48bg9ft6.cloudfront.net",
+        ],
         allowHeaders: ["Content-Type", "Authorization"],
         allowMethods: ["POST", "GET", "OPTIONS", "PUT", "DELETE"],
         credentials: true,
