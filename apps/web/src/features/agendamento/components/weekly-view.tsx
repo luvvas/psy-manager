@@ -6,6 +6,7 @@ import { AppointmentCard } from "./appointment-card";
 interface WeeklyViewProps {
     appointments: Appointment[];
     selectedDate: Date;
+    onDayClick: (date: Date) => void;
 }
 
 const WEEKDAY_NAMES = [
@@ -45,7 +46,7 @@ function formatMonthShort(date: Date): string {
     return date.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
 }
 
-export function WeeklyView({ appointments, selectedDate }: WeeklyViewProps) {
+export function WeeklyView({ appointments, selectedDate, onDayClick }: WeeklyViewProps) {
     const monday = useMemo(() => getMonday(selectedDate), [selectedDate]);
     const today = useMemo(() => {
         const d = new Date();
@@ -73,7 +74,6 @@ export function WeeklyView({ appointments, selectedDate }: WeeklyViewProps) {
                 map.get(key)!.push(apt);
             }
         }
-        // Sort each day by start time
         for (const [, apts] of map) {
             apts.sort((a, b) => a.startTime.localeCompare(b.startTime));
         }
@@ -81,8 +81,8 @@ export function WeeklyView({ appointments, selectedDate }: WeeklyViewProps) {
     }, [appointments, weekDays]);
 
     return (
-        <ScrollArea className="flex-1">
-            <div className="grid grid-cols-1 gap-0 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-7">
+        <ScrollArea className="flex-1 h-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-7 gap-px bg-border min-h-[400px] h-full">
                 {weekDays.map((day, i) => {
                     const key = day.toISOString().split("T")[0];
                     const dayAppointments = groupedAppointments.get(key) || [];
@@ -92,14 +92,20 @@ export function WeeklyView({ appointments, selectedDate }: WeeklyViewProps) {
                     return (
                         <div
                             key={key}
-                            className={`flex flex-col border-r last:border-r-0 ${isWeekend ? "bg-muted/30 hidden xl:flex" : ""
+                            className={`flex flex-col bg-card transition-colors cursor-pointer ${isWeekend ? "hidden xl:flex" : ""
                                 }`}
+                            onClick={(e) => {
+                                const target = e.target as HTMLElement;
+                                if (!target.closest("[data-appointment-id]")) {
+                                    onDayClick(day);
+                                }
+                            }}
                         >
                             {/* Day header */}
                             <div
                                 className={`sticky top-0 z-10 flex items-center gap-2 border-b px-3 py-2 backdrop-blur-sm ${isToday
                                     ? "bg-primary/5 border-b-primary/30"
-                                    : "bg-background/95"
+                                    : "bg-card/95"
                                     }`}
                             >
                                 <div
@@ -131,15 +137,15 @@ export function WeeklyView({ appointments, selectedDate }: WeeklyViewProps) {
                                 )}
                             </div>
 
-                            {/* Appointments */}
-                            <div className="flex flex-col gap-2 p-2 min-h-[120px]">
+                            {/* Appointments Container - fill height so borders go to bottom */}
+                            <div className="flex-1 flex flex-col gap-2 p-2 min-h-[120px]">
                                 {dayAppointments.length > 0 ? (
                                     dayAppointments.map((apt) => (
                                         <AppointmentCard key={apt.id} appointment={apt} />
                                     ))
                                 ) : (
-                                    <div className="flex flex-1 items-center justify-center">
-                                        <p className="text-xs text-muted-foreground/50 select-none">
+                                    <div className="flex-1 flex items-center justify-center">
+                                        <p className="text-xs text-muted-foreground/40 select-none">
                                             Sem sessões
                                         </p>
                                     </div>

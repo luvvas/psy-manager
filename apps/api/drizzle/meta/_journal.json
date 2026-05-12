@@ -29,6 +29,13 @@
       "when": 1778457378157,
       "tag": "0003_natural_landau",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778542919576,
+      "tag": "0004_sour_manta",
+      "breakpoints": true
     }
   ]
 }

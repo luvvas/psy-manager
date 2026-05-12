@@ -4,6 +4,8 @@ import { patientRouter } from "./patient";
 import { appointmentRouter } from "./appointment";
 import { clinicRouter } from "./clinic";
 import { financialRouter } from "./financial";
+import { documentRouter } from "./document";
+import { clinicalRecordRouter } from "./clinical-record";
 
 export const appRouter = router({
     psychologist: psychologistRouter,
@@ -11,6 +13,8 @@ export const appRouter = router({
     appointment: appointmentRouter,
     clinic: clinicRouter,
     financial: financialRouter,
+    document: documentRouter,
+    clinicalRecord: clinicalRecordRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -1,17 +1,16 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/app-layout";
 import { AgendamentoPage } from "@/features/agendamento";
-import { PacientesPage } from "@/features/pacientes";
+import { PacientesPage, PatientDetailsPage } from "@/features/pacientes";
 import { ClinicasPage } from "@/features/clinicas";
 import { FinanceiroPage } from "@/features/financeiro";
+import { DocumentosPage } from "@/features/documentos";
 import { ComingSoonPage } from "@/pages/coming-soon";
 import { AuthPage } from "@/features/auth/page";
 import { AuthGuard, PublicOnlyGuard } from "@/features/auth/auth-guard";
 import { GoogleCallbackPage } from "@/pages/google-callback";
 import {
     CreditCard,
-    FileText,
-    ClipboardList,
     FlaskConical,
     Search,
     Settings,
@@ -53,12 +52,20 @@ export const router = createBrowserRouter([
                         element: <PacientesPage />,
                     },
                     {
+                        path: "pacientes/:id",
+                        element: <PatientDetailsPage />,
+                    },
+                    {
                         path: "clinicas",
                         element: <ClinicasPage />,
                     },
                     {
                         path: "financeiro",
                         element: <FinanceiroPage />,
+                    },
+                    {
+                        path: "documentos",
+                        element: <DocumentosPage />,
                     },
                     {
                         path: "pagamentos",
@@ -72,23 +79,11 @@ export const router = createBrowserRouter([
                     },
                     {
                         path: "contratos",
-                        element: (
-                            <ComingSoonPage
-                                title="Contratos Personalizados"
-                                description="Crie e gerencie contratos terapêuticos personalizados para seus pacientes."
-                                icon={FileText}
-                            />
-                        ),
+                        element: <Navigate to="/documentos" replace />,
                     },
                     {
                         path: "prontuarios",
-                        element: (
-                            <ComingSoonPage
-                                title="Gestão de Prontuários"
-                                description="Registre e consulte prontuários clínicos com segurança e praticidade."
-                                icon={ClipboardList}
-                            />
-                        ),
+                        element: <Navigate to="/documentos" replace />,
                     },
                     {
                         path: "exames",
