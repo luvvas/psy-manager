@@ -36,6 +36,13 @@
       "when": 1778542919576,
       "tag": "0004_sour_manta",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778627943256,
+      "tag": "0005_rainy_eternals",
+      "breakpoints": true
     }
   ]
 }

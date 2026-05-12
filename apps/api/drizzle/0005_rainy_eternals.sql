@@ -1,0 +1,20 @@
+ALTER TABLE "patient" ADD COLUMN "nome_social" text;--> statement-breakpoint
+ALTER TABLE "patient" ADD COLUMN "rg" text;--> statement-breakpoint
+ALTER TABLE "patient" ADD COLUMN "profissao" text;--> statement-breakpoint
+ALTER TABLE "patient" ADD COLUMN "endereco" text;--> statement-breakpoint
+ALTER TABLE "patient" ADD COLUMN "cep" text;--> statement-breakpoint
+ALTER TABLE "patient" ADD COLUMN "uf" text;--> statement-breakpoint
+ALTER TABLE "patient" ADD COLUMN "contato_emergencia" text;--> statement-breakpoint
+ALTER TABLE "patient" ADD COLUMN "resp_legal_nome" text;--> statement-breakpoint
+ALTER TABLE "patient" ADD COLUMN "resp_legal_parentesco" text;--> statement-breakpoint
+ALTER TABLE "patient" ADD COLUMN "resp_legal_cpf" text;--> statement-breakpoint
+ALTER TABLE "patient" ADD COLUMN "resp_legal_telefone" text;--> statement-breakpoint
+ALTER TABLE "patient" ADD COLUMN "resp_legal_email" text;--> statement-breakpoint
+ALTER TABLE "patient" ADD COLUMN "servico_contratado_tipo" text;--> statement-breakpoint
+ALTER TABLE "patient" ADD COLUMN "data_inicio_acompanhamento" timestamp;--> statement-breakpoint
+ALTER TABLE "patient" ADD COLUMN "forma_pagamento" text;--> statement-breakpoint
+ALTER TABLE "patient" ADD COLUMN "forma_pagamento_detalhe" text;--> statement-breakpoint
+ALTER TABLE "patient" ADD COLUMN "responsavel_financeiro_tipo" text;--> statement-breakpoint
+ALTER TABLE "patient" ADD COLUMN "responsavel_financeiro_detalhe" text;--> statement-breakpoint
+ALTER TABLE "patient" ADD COLUMN "origem_contato" text;--> statement-breakpoint
+ALTER TABLE "patient" ADD COLUMN "origem_contato_detalhe" text;
