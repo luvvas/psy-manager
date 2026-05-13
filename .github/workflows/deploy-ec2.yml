@@ -27,6 +27,11 @@ jobs:
             git fetch --all
             git reset --hard origin/master
             
+            # Garantir que o AWS CLI esteja instalado (o Ubuntu puro não vem com ele por padrão)
+            if ! command -v aws &> /dev/null; then
+              sudo apt-get update && sudo apt-get install -y awscli
+            fi
+
             # Buscando chaves confidenciais direto do cofre SSM usando o IAM Role do EC2
             export DATABASE_URL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/DATABASE_URL" --with-decryption --query "Parameter.Value" --output text)
             export BETTER_AUTH_SECRET=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/BETTER_AUTH_SECRET" --with-decryption --query "Parameter.Value" --output text)
