@@ -16,14 +16,3 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
 
-  web:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.web
-      target: production
-    container_name: psy-manager-web
-    restart: always
-    ports:
-      - "80:80"
-    depends_on:
-      - api
