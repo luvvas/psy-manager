@@ -29,7 +29,7 @@ jobs:
             
             # Garantir que o AWS CLI esteja instalado (o Ubuntu puro não vem com ele por padrão)
             if ! command -v aws &> /dev/null; then
-              sudo apt-get update && sudo apt-get install -y awscli
+              sudo snap install aws-cli --classic
             fi
 
             # Buscando chaves confidenciais direto do cofre SSM usando o IAM Role do EC2
