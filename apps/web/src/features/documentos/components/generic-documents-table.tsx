@@ -1,3 +1,5 @@
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
     Table,
     TableBody,
@@ -6,11 +8,9 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Trash2, FileText, Eye, Settings2, Download, CheckCircle2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { CheckCircle2, Download, Eye, FileText, Settings2, Trash2 } from "lucide-react";
 
 export interface DBGenericDocument {
     id: string;
@@ -42,7 +42,7 @@ export function GenericDocumentsTable({ documents, onViewDocument, onDownloadDoc
 
     if (documents.length === 0) {
         return (
-            <div className="flex h-[400px] items-center justify-center rounded-md border border-dashed bg-muted/5">
+            <div className="flex items-center justify-center rounded-md border border-dashed bg-muted/5">
                 <div className="flex flex-col items-center gap-2 text-muted-foreground text-center p-6">
                     <FileText className="h-12 w-12 opacity-20 mb-2" />
                     <p className="text-lg font-medium">Nenhum documento armazenado.</p>
@@ -102,7 +102,7 @@ export function GenericDocumentsTable({ documents, onViewDocument, onDownloadDoc
                                             <Eye className="h-3.5 w-3.5" />
                                             Ver
                                         </Button>
-                                        
+
                                         <Button
                                             variant="ghost"
                                             size="icon"
@@ -125,7 +125,7 @@ export function GenericDocumentsTable({ documents, onViewDocument, onDownloadDoc
                                         >
                                             <Settings2 className="h-4 w-4" />
                                         </Button>
-                                        
+
                                         <Button
                                             variant="ghost"
                                             size="icon"
