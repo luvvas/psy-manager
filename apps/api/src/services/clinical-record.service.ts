@@ -35,6 +35,10 @@ export const clinicalRecordService = {
             category?: string;
             textContent?: string;
             fileUrl?: string;
+            storageKey?: string;
+            fileName?: string;
+            mimeType?: string;
+            fileSize?: number;
             dateOfService?: Date;
             appointmentId?: string;
         }
@@ -48,6 +52,10 @@ export const clinicalRecordService = {
             category: data.category || "evolucao",
             textContent: data.textContent,
             fileUrl: data.fileUrl,
+            storageKey: data.storageKey,
+            fileName: data.fileName,
+            mimeType: data.mimeType,
+            fileSize: data.fileSize,
             dateOfService: data.dateOfService || new Date(),
             appointmentId: data.appointmentId || null,
             status: "draft",
@@ -64,6 +72,10 @@ export const clinicalRecordService = {
             category?: string;
             textContent?: string;
             fileUrl?: string;
+            storageKey?: string;
+            fileName?: string;
+            mimeType?: string;
+            fileSize?: number;
             dateOfService?: Date;
         }
     ) {

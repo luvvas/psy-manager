@@ -7,17 +7,26 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { GenericDocumentForm } from "./components/generic-document-form";
 import { GenericDocumentsTable, type DBGenericDocument } from "./components/generic-documents-table";
+import { uploadFileToTarget } from "@/utils/upload";
 
 export function DocumentosPage() {
     const [isSheetOpen, setSheetOpen] = useState(false);
     const [editingDoc, setEditingDoc] = useState<DBGenericDocument | null>(null);
     const [viewingDoc, setViewingDoc] = useState<DBGenericDocument | null>(null);
+    const utils = trpc.useUtils();
 
     // Fetches only generic documents without direct patient links as per documentService filtering rules implicitly
     const { data: dbDocs, refetch } = trpc.document.list.useQuery(
         {},
         { retry: false }
     );
+
+    const { data: downloadData } = trpc.document.getDownloadUrl.useQuery(
+        { id: viewingDoc?.id || "" },
+        { enabled: !!viewingDoc, retry: false }
+    );
+
+    const prepareUploadMutation = trpc.document.prepareUpload.useMutation();
 
     const createMutation = trpc.document.create.useMutation({
         onSuccess: () => {
@@ -60,17 +69,39 @@ export function DocumentosPage() {
         isTemplate: d.isTemplate,
         updatedAt: new Date(d.updatedAt),
         content: d.content,
+        storageKey: d.storageKey,
     }));
 
     const handleSave = async (data: any) => {
+        const { file, ...metadata } = data;
+        const uploadMetadata = file
+            ? await (async () => {
+                const target = await prepareUploadMutation.mutateAsync({
+                    fileName: file.name,
+                    contentType: file.type,
+                    fileSize: file.size,
+                });
+                await uploadFileToTarget(file, target);
+                return {
+                    storageKey: target.storageKey,
+                    fileName: file.name,
+                    mimeType: file.type,
+                    fileSize: file.size,
+                    content: undefined,
+                };
+            })()
+            : {};
+
         if (editingDoc) {
             await updateMutation.mutateAsync({
                 id: editingDoc.id,
-                ...data,
+                ...metadata,
+                ...uploadMetadata,
             });
         } else {
             await createMutation.mutateAsync({
-                ...data,
+                ...metadata,
+                ...uploadMetadata,
             });
         }
     };
@@ -85,10 +116,22 @@ export function DocumentosPage() {
     };
 
     const handleDownload = () => {
-        if (!viewingDoc?.content) return;
+        const url = downloadData?.url || viewingDoc?.content;
+        if (!url || !viewingDoc) return;
         const link = document.createElement("a");
-        link.href = viewingDoc.content;
+        link.href = url;
         link.download = `${viewingDoc.title}.pdf`;
+        link.click();
+    };
+
+    const handleDownloadDocument = async (doc: DBGenericDocument) => {
+        const data = await utils.document.getDownloadUrl.fetch({ id: doc.id });
+        const url = data?.url || doc.content;
+        if (!url) return;
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${doc.title}.pdf`;
         link.click();
     };
 
@@ -122,9 +165,9 @@ export function DocumentosPage() {
                     }
                 />
                 <div className="flex-1 flex flex-col h-[calc(100vh-120px)] rounded-lg overflow-hidden border bg-muted/5 mx-4 mb-4 lg:mx-6">
-                    {viewingDoc.content ? (
+                    {(downloadData?.url || viewingDoc.content) ? (
                         <iframe
-                            src={`${viewingDoc.content}#toolbar=0`}
+                            src={`${downloadData?.url || viewingDoc.content}#toolbar=0`}
                             className="w-full h-full border-none"
                             title={viewingDoc.title}
                         />
@@ -193,6 +236,7 @@ export function DocumentosPage() {
                     <GenericDocumentsTable
                         documents={allDocuments}
                         onViewDocument={(doc) => setViewingDoc(doc)}
+                        onDownloadDocument={handleDownloadDocument}
                         onEditMetadata={(doc) => {
                             setEditingDoc(doc);
                             setSheetOpen(true);

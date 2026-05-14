@@ -192,6 +192,10 @@ export const document = pgTable("document", {
         .references(() => patient.id, { onDelete: "cascade" }), // Opcional, pode ser um template genérico se nulo
     title: text("title").notNull(),
     content: text("content"), // Armazena o HTML ou JSON string do editor de texto
+    storageKey: text("storage_key"), // Chave do objeto no storage (S3/local)
+    fileName: text("file_name"),
+    mimeType: text("mime_type"),
+    fileSize: integer("file_size"),
     type: text("type").notNull().default("outro"), // evolucao, contrato, atestado, laudo, outro
     category: text("category"), // Para categorização extra
     isTemplate: boolean("is_template").notNull().default(false),
@@ -213,6 +217,10 @@ export const clinicalRecord = pgTable("clinical_record", {
     category: text("category").notNull().default("evolucao"), // evolucao, anamnese, documento_externo, teste_psicologico, outro
     textContent: text("text_content"), // Se for digitado no sistema
     fileUrl: text("file_url"), // Arquivo anexo/PDF (armazenando Base64 temporariamente)
+    storageKey: text("storage_key"), // Chave do objeto no storage (S3/local)
+    fileName: text("file_name"),
+    mimeType: text("mime_type"),
+    fileSize: integer("file_size"),
     dateOfService: timestamp("date_of_service").notNull().defaultNow(), // Quando o atendimento ocorreu
     status: text("status").notNull().default("draft"), // draft ou finalized
     lockedAt: timestamp("locked_at"), // Quando foi assinado

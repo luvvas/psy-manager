@@ -36,6 +36,10 @@ export const documentService = {
         data: {
             title: string;
             content?: string;
+            storageKey?: string;
+            fileName?: string;
+            mimeType?: string;
+            fileSize?: number;
             type?: string;
             category?: string;
             isTemplate?: boolean;
@@ -48,6 +52,10 @@ export const documentService = {
             psychologistId,
             title: data.title,
             content: data.content || "",
+            storageKey: data.storageKey,
+            fileName: data.fileName,
+            mimeType: data.mimeType,
+            fileSize: data.fileSize,
             type: data.type || "outro",
             category: data.category,
             isTemplate: data.isTemplate ?? false,
@@ -63,6 +71,10 @@ export const documentService = {
         data: {
             title?: string;
             content?: string;
+            storageKey?: string;
+            fileName?: string;
+            mimeType?: string;
+            fileSize?: number;
             type?: string;
             category?: string;
             isTemplate?: boolean;

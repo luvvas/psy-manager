@@ -1,8 +1,34 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc/index";
 import { documentService } from "../services/document.service";
+import { storageService } from "../services/storage.service";
 
 export const documentRouter = router({
+    prepareUpload: protectedProcedure
+        .input(
+            z.object({
+                fileName: z.string().min(1),
+                contentType: z.literal("application/pdf"),
+                fileSize: z.number().int().positive().max(10 * 1024 * 1024),
+            })
+        )
+        .mutation(async ({ ctx, input }) => {
+            return storageService.createUploadTarget(ctx.session.user.id, input);
+        }),
+
+    getDownloadUrl: protectedProcedure
+        .input(z.object({ id: z.string().min(1) }))
+        .query(async ({ ctx, input }) => {
+            const doc = await documentService.getById(ctx.session.user.id, input.id);
+            if (!doc) return null;
+
+            if (doc.storageKey) {
+                return { url: await storageService.createReadUrl(doc.storageKey) };
+            }
+
+            return { url: doc.content };
+        }),
+
     list: protectedProcedure
         .input(
             z.object({
@@ -25,6 +51,10 @@ export const documentRouter = router({
             z.object({
                 title: z.string().min(1),
                 content: z.string().optional(),
+                storageKey: z.string().optional(),
+                fileName: z.string().optional(),
+                mimeType: z.string().optional(),
+                fileSize: z.number().int().positive().optional(),
                 type: z.string().optional(),
                 category: z.string().optional(),
                 isTemplate: z.boolean().optional(),
@@ -44,6 +74,10 @@ export const documentRouter = router({
                 id: z.string().min(1),
                 title: z.string().optional(),
                 content: z.string().optional(),
+                storageKey: z.string().optional(),
+                fileName: z.string().optional(),
+                mimeType: z.string().optional(),
+                fileSize: z.number().int().positive().optional(),
                 type: z.string().optional(),
                 category: z.string().optional(),
                 isTemplate: z.boolean().optional(),

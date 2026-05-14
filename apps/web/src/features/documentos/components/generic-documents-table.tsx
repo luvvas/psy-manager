@@ -19,11 +19,13 @@ export interface DBGenericDocument {
     isTemplate: boolean;
     updatedAt: Date;
     content: string | null;
+    storageKey?: string | null;
 }
 
 interface GenericDocumentsTableProps {
     documents: DBGenericDocument[];
     onViewDocument: (doc: DBGenericDocument) => void;
+    onDownloadDocument: (doc: DBGenericDocument) => void;
     onEditMetadata: (doc: DBGenericDocument) => void;
     onDelete: (id: string, title: string) => void;
 }
@@ -36,15 +38,7 @@ const TYPE_LABELS: Record<string, string> = {
     outro: "Outro",
 };
 
-export function GenericDocumentsTable({ documents, onViewDocument, onEditMetadata, onDelete }: GenericDocumentsTableProps) {
-
-    const handleDownload = (doc: DBGenericDocument) => {
-        if (!doc.content) return;
-        const link = document.createElement("a");
-        link.href = doc.content;
-        link.download = `${doc.title}.pdf`;
-        link.click();
-    };
+export function GenericDocumentsTable({ documents, onViewDocument, onDownloadDocument, onEditMetadata, onDelete }: GenericDocumentsTableProps) {
 
     if (documents.length === 0) {
         return (
@@ -112,9 +106,9 @@ export function GenericDocumentsTable({ documents, onViewDocument, onEditMetadat
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            onClick={() => handleDownload(doc)}
+                                            onClick={() => onDownloadDocument(doc)}
                                             className="h-8 w-8 rounded-full opacity-70 hover:opacity-100 transition-opacity"
-                                            disabled={!doc.content}
+                                            disabled={!doc.content && !doc.storageKey}
                                             title="Baixar PDF"
                                         >
                                             <Download className="h-4 w-4" />

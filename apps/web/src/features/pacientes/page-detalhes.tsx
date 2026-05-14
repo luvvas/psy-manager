@@ -13,6 +13,7 @@ import { PatientTimeline } from "@/features/pacientes/components/patient-timelin
 import { AppSheet } from "@/components/layout/app-sheet";
 import { DocumentForm } from "@/features/documentos/components/document-form";
 import { toast } from "sonner";
+import { uploadFileToTarget } from "@/utils/upload";
 
 export function PatientDetailsPage() {
     const { id } = useParams<{ id: string }>();
@@ -38,10 +39,31 @@ export function PatientDetailsPage() {
             toast.error(`Erro ao criar: ${err.message}`);
         },
     });
+    const prepareUploadMutation = trpc.clinicalRecord.prepareUpload.useMutation();
 
     const handleSave = async (data: any) => {
+        const { file, ...metadata } = data;
+        const uploadMetadata = file
+            ? await (async () => {
+                const target = await prepareUploadMutation.mutateAsync({
+                    fileName: file.name,
+                    contentType: file.type,
+                    fileSize: file.size,
+                });
+                await uploadFileToTarget(file, target);
+                return {
+                    storageKey: target.storageKey,
+                    fileName: file.name,
+                    mimeType: file.type,
+                    fileSize: file.size,
+                    fileUrl: undefined,
+                };
+            })()
+            : {};
+
         await createMutation.mutateAsync({
-            ...data,
+            ...metadata,
+            ...uploadMetadata,
         });
     };
 

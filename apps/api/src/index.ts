@@ -10,6 +10,7 @@ import { createContext } from "./trpc/context";
 import { auth } from "./lib/auth";
 import { patientProjections } from "./cqrs/patient/patient.projections";
 import { appointmentProjections } from "./cqrs/appointment/appointment.projections";
+import { storageService } from "./services/storage.service";
 
 // Initialize CQRS Projections/Subscribers
 patientProjections.init();
@@ -33,6 +34,14 @@ app.use(
 
 app.on(["POST", "GET"], "/api/auth/*", (c) => {
     return auth.handler(c.req.raw);
+});
+
+app.put("/api/storage/local-upload/:token", (c) => {
+    return storageService.saveLocalUpload(c.req.param("token"), c.req.raw);
+});
+
+app.get("/api/storage/local-download/:token", (c) => {
+    return storageService.readLocalFile(c.req.param("token"));
 });
 
 app.use(

@@ -43,6 +43,13 @@
       "when": 1778627943256,
       "tag": "0005_rainy_eternals",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1778717330137,
+      "tag": "0006_cultured_spot",
+      "breakpoints": true
     }
   ]
 }

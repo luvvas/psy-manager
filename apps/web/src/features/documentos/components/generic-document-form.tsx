@@ -36,7 +36,6 @@ interface GenericDocumentFormProps {
 export function GenericDocumentForm({ onSave, onCancel, initialData }: GenericDocumentFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [pdfFile, setPdfFile] = useState<File | null>(null);
-    const [pdfBase64, setPdfBase64] = useState<string | null>(null);
     const [fileError, setFileError] = useState<string | null>(null);
 
     const {
@@ -59,35 +58,26 @@ export function GenericDocumentForm({ onSave, onCancel, initialData }: GenericDo
 
         if (!file) {
             setPdfFile(null);
-            setPdfBase64(null);
             return;
         }
 
         if (file.type !== "application/pdf") {
             setFileError("Por favor, selecione apenas arquivos PDF.");
             setPdfFile(null);
-            setPdfBase64(null);
             return;
         }
 
-        if (file.size > 5 * 1024 * 1024) {
-            setFileError("O arquivo deve ter no máximo 5MB.");
+        if (file.size > 10 * 1024 * 1024) {
+            setFileError("O arquivo deve ter no máximo 10MB.");
             setPdfFile(null);
-            setPdfBase64(null);
             return;
         }
 
         setPdfFile(file);
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const base64String = event.target?.result as string;
-            setPdfBase64(base64String);
-        };
-        reader.readAsDataURL(file);
     };
 
     const onSubmit = async (data: FormValues) => {
-        if (!initialData && !pdfBase64) {
+        if (!initialData && !pdfFile) {
             setFileError("Você precisa selecionar um arquivo PDF para armazenamento.");
             return;
         }
@@ -96,7 +86,7 @@ export function GenericDocumentForm({ onSave, onCancel, initialData }: GenericDo
         try {
             await onSave({
                 ...data,
-                content: pdfBase64 || undefined, // Uses old content field from document table
+                file: pdfFile || undefined,
             });
         } catch (error) {
             console.error("Erro ao salvar documento:", error);

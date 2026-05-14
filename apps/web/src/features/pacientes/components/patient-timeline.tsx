@@ -28,6 +28,10 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
         { patientId },
         { retry: false }
     );
+    const { data: downloadData } = trpc.clinicalRecord.getDownloadUrl.useQuery(
+        { id: viewingDoc?.id || "" },
+        { enabled: !!viewingDoc, retry: false }
+    );
 
     const finalizeMutation = trpc.clinicalRecord.finalize.useMutation({
         onSuccess: () => {
@@ -45,7 +49,7 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
         }
     };
 
-    const handleDownload = (content: string, title: string) => {
+    const handleDownload = (content: string | null | undefined, title: string) => {
         if (!content) return;
         const link = document.createElement("a");
         link.href = content;
@@ -58,6 +62,8 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
     }
 
     if (viewingDoc) {
+        const documentUrl = downloadData?.url || viewingDoc.fileUrl;
+
         return (
             <div className="flex flex-col h-full relative">
                 <div className="flex items-center justify-between mb-4 pb-4 border-b">
@@ -67,14 +73,14 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
                         </Button>
                         <h3 className="font-medium text-lg">{viewingDoc.title}</h3>
                     </div>
-                    <Button size="sm" onClick={() => handleDownload(viewingDoc.fileUrl, viewingDoc.title)} className="gap-1.5">
+                    <Button size="sm" onClick={() => handleDownload(documentUrl, viewingDoc.title)} className="gap-1.5">
                         <Download className="size-4" /> Baixar PDF
                     </Button>
                 </div>
                 <div className="flex-1 rounded-md overflow-hidden border bg-muted/20">
-                    {viewingDoc.fileUrl ? (
+                    {documentUrl ? (
                         <iframe
-                            src={`${viewingDoc.fileUrl}#toolbar=0`}
+                            src={`${documentUrl}#toolbar=0`}
                             className="w-full h-full border-none"
                             title={viewingDoc.title}
                         />
@@ -138,7 +144,7 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
                                             </div>
 
                                             <div className="flex items-center gap-2">
-                                                {record.fileUrl && (
+                                                {(record.fileUrl || record.storageKey) && (
                                                     <Button variant="secondary" size="sm" className="gap-1.5" onClick={() => setViewingDoc(record)}>
                                                         <Eye className="w-4 h-4" /> Ver Anexo
                                                     </Button>

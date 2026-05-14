@@ -36,6 +36,9 @@ jobs:
             export DATABASE_URL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/DATABASE_URL" --with-decryption --query "Parameter.Value" --output text)
             export BETTER_AUTH_SECRET=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/BETTER_AUTH_SECRET" --with-decryption --query "Parameter.Value" --output text)
             export GOOGLE_CLIENT_SECRET=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/GOOGLE_CLIENT_SECRET" --with-decryption --query "Parameter.Value" --output text)
+            export STORAGE_DRIVER=s3
+            export AWS_REGION=sa-east-1
+            export AWS_DOCUMENTS_BUCKET=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/AWS_DOCUMENTS_BUCKET" --query "Parameter.Value" --output text)
 
             docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml up -d --build
@@ -60,7 +63,7 @@ jobs:
         env:
           # Points the browser client to your public EC2 endpoint
           VITE_API_URL: https://dswfc48bg9ft6.cloudfront.net
-        run: bun run --filter @psy-manager/web build
+        run: bun run --cwd apps/web build
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
