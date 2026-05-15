@@ -12,6 +12,7 @@
     "build": "bun run --filter @psy-manager/web build && bun run --filter @psy-manager/api build",
     "build:web": "bun run --filter @psy-manager/web build",
     "build:api": "bun run --filter @psy-manager/api build",
+    "test": "bun run --filter @psy-manager/api test",
     "db:generate": "bun run --filter @psy-manager/api db:generate",
     "db:migrate": "bun run --filter @psy-manager/api db:migrate",
     "db:push": "bun run --filter @psy-manager/api db:push",

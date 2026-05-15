@@ -374,7 +374,7 @@ export function AgendamentoPage() {
                 }
             />
 
-            <div className="flex flex-col gap-4 p-4 lg:p-6" onClick={handleCalendarClick}>
+            <div className="flex flex-col flex-1 min-h-0 gap-4 p-4 lg:p-6 overflow-hidden" onClick={handleCalendarClick}>
                 {/* Stats */}
                 <StatsCards appointments={mappedAppointments} />
 

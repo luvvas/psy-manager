@@ -42,7 +42,7 @@ export function GenericDocumentsTable({ documents, onViewDocument, onDownloadDoc
 
     if (documents.length === 0) {
         return (
-            <div className="flex items-center justify-center rounded-md border border-dashed bg-muted/5">
+            <div className="flex h-[400px] items-center justify-center rounded-md border border-dashed bg-muted/5">
                 <div className="flex flex-col items-center gap-2 text-muted-foreground text-center p-6">
                     <FileText className="h-12 w-12 opacity-20 mb-2" />
                     <p className="text-lg font-medium">Nenhum documento armazenado.</p>

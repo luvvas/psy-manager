@@ -1,19 +1,19 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
 import { AppHeader } from "@/components/layout/app-header";
+import { AppSheet } from "@/components/layout/app-sheet";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, User, Activity, CreditCard, Plus, MapPin, Users, FileSignature } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { trpc } from "@/lib/trpc";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DocumentForm } from "@/features/documentos/components/document-form";
+import { PatientTimeline } from "@/features/pacientes/components/patient-timeline";
+import { trpc } from "@/lib/trpc";
+import { uploadFileToTarget } from "@/utils/upload";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { PatientTimeline } from "@/features/pacientes/components/patient-timeline";
-import { AppSheet } from "@/components/layout/app-sheet";
-import { DocumentForm } from "@/features/documentos/components/document-form";
+import { Activity, ArrowLeft, CreditCard, FileSignature, MapPin, Plus, User, Users } from "lucide-react";
+import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { uploadFileToTarget } from "@/utils/upload";
 
 export function PatientDetailsPage() {
     const { id } = useParams<{ id: string }>();

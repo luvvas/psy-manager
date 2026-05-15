@@ -17,6 +17,7 @@ export const user = pgTable("user", {
     phone: text("phone"),
     crp: text("crp"),
     city: text("city"),
+    themeConfig: jsonb("theme_config").$type<{ primary?: string; sidebar?: string; button?: string }>(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

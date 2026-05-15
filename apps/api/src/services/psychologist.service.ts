@@ -3,7 +3,10 @@ import { db } from "../db";
 import { user } from "../db/schema";
 
 export type Psychologist = typeof user.$inferSelect;
-export type PsychologistUpdate = Partial<Pick<Psychologist, "name" | "phone" | "crp" | "city" | "image">>;
+export type ThemeConfig = { primary?: string; sidebar?: string; button?: string };
+export type PsychologistUpdate = Partial<Pick<Psychologist, "name" | "phone" | "crp" | "city" | "image">> & {
+    themeConfig?: ThemeConfig | null;
+};
 
 /**
  * Psychologist service — business logic for psychologist profiles.

@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
@@ -33,8 +34,12 @@ export function CalendarDashboard({
     appointments,
     onDayClick
 }: CalendarViewProps) {
+    const fillHeight = view !== "mes";
+
     return (
-        <>
+        /* In week/day mode the dashboard fills whatever space the parent gives it.
+           In month mode it sizes to content so the month calendar isn't stretched. */
+        <div className={cn("flex flex-col gap-4", fillHeight && "flex-1 min-h-0")}>
             {/* Toolbar */}
             <div className="flex flex-wrap items-center justify-between gap-3">
                 {/* Navigation */}
@@ -54,7 +59,7 @@ export function CalendarDashboard({
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="min-w-[200px] justify-center gap-2 font-medium capitalize"
+                                className="min-w-50 justify-center gap-2 font-medium capitalize"
                                 id="btn-date-picker"
                             >
                                 <CalendarDays className="size-4" />
@@ -92,24 +97,13 @@ export function CalendarDashboard({
                 </div>
 
                 {/* View toggle */}
-                <Tabs
-                    value={view}
-                    onValueChange={(v) => onViewChange(v as ViewMode)}
-                >
+                <Tabs value={view} onValueChange={(v) => onViewChange(v as ViewMode)}>
                     <TabsList>
-                        <TabsTrigger
-                            value="mes"
-                            className="gap-1.5"
-                            id="tab-month-view"
-                        >
+                        <TabsTrigger value="mes" className="gap-1.5" id="tab-month-view">
                             <CalendarRange className="size-3.5" />
                             <span className="hidden sm:inline">Mês</span>
                         </TabsTrigger>
-                        <TabsTrigger
-                            value="semana"
-                            className="gap-1.5"
-                            id="tab-week-view"
-                        >
+                        <TabsTrigger value="semana" className="gap-1.5" id="tab-week-view">
                             <LayoutGrid className="size-3.5" />
                             <span className="hidden sm:inline">Semana</span>
                         </TabsTrigger>
@@ -122,7 +116,12 @@ export function CalendarDashboard({
             </div>
 
             {/* Content */}
-            <div className="rounded-lg border bg-card min-h-[400px] flex flex-col overflow-hidden">
+            <div
+                className={cn(
+                    "rounded-lg border bg-card flex flex-col overflow-hidden",
+                    fillHeight ? "flex-1 min-h-0" : "min-h-100"
+                )}
+            >
                 {view === "mes" && (
                     <MonthlyView
                         appointments={appointments}
@@ -138,7 +137,8 @@ export function CalendarDashboard({
                     />
                 )}
                 {view === "dia" && (
-                    <div className="p-4">
+                    /* Wrapper must be flex-col + flex-1 so DailyView's ScrollArea can fill height */
+                    <div className="flex flex-col flex-1 min-h-0 p-4">
                         <DailyView
                             appointments={appointments}
                             selectedDate={selectedDate}
@@ -146,6 +146,6 @@ export function CalendarDashboard({
                     </div>
                 )}
             </div>
-        </>
+        </div>
     );
 }

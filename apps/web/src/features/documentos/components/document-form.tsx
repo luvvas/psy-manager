@@ -1,11 +1,6 @@
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod/v3";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, FileUp, FileText } from "lucide-react";
-import { useState, type ChangeEvent } from "react";
 import {
     Select,
     SelectContent,
@@ -13,6 +8,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { FileUp, Loader2 } from "lucide-react";
+import { useState, type ChangeEvent } from "react";
+import { Controller, useForm } from "react-hook-form";
+import * as z from "zod/v3";
 
 const documentSchema = z.object({
     title: z.string().min(3, "Título deve ter pelo menos 3 caracteres"),
@@ -156,37 +156,29 @@ export function DocumentForm({ onSave, onCancel, patients, initialData }: Docume
                     {errors.patientId && <p className="text-xs text-destructive">{errors.patientId.message}</p>}
                 </div>
 
-                <div className="space-y-2 border rounded-lg p-4 bg-muted/10">
-                    <Label htmlFor="pdfFile" className="text-base font-semibold flex items-center gap-2">
-                        <FileUp className="w-4 h-4" /> Arquivo PDF
-                    </Label>
+                <Label htmlFor="pdfFile" className="flex items-center">
+                    <FileUp className="w-3 h-3" /> Arquivo PDF
+                </Label>
 
-                    <div className="grid w-full max-w-sm items-center gap-1.5 pt-2">
-                        <Input
-                            id="pdfFile"
-                            type="file"
-                            accept="application/pdf"
-                            onChange={handleFileChange}
-                            className="cursor-pointer"
-                        />
-                    </div>
-
-                    {initialData && !pdfFile && (
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-2">
-                            <FileText className="w-3 h-3" /> Deixe em branco para manter o arquivo atual.
-                        </p>
-                    )}
-
-                    {pdfFile && (
-                        <p className="text-xs text-green-600 font-medium flex items-center gap-1 mt-2">
-                            Pronto: {pdfFile.name} ({(pdfFile.size / 1024 / 1024).toFixed(2)}MB)
-                        </p>
-                    )}
-
-                    {fileError && (
-                        <p className="text-xs text-destructive font-medium mt-1">{fileError}</p>
-                    )}
+                <div className="grid w-full max-w-sm items-center gap-1.5">
+                    <Input
+                        id="pdfFile"
+                        type="file"
+                        accept="application/pdf"
+                        onChange={handleFileChange}
+                        className="cursor-pointer"
+                    />
                 </div>
+
+                {pdfFile && (
+                    <p className="text-xs text-green-600 font-medium flex items-center gap-1 mt-2">
+                        {pdfFile.name} ({(pdfFile.size / 1024 / 1024).toFixed(2)}MB)
+                    </p>
+                )}
+
+                {fileError && (
+                    <p className="text-xs text-destructive font-medium mt-1">{fileError}</p>
+                )}
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t bg-background mt-auto sticky bottom-0">

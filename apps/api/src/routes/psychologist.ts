@@ -14,6 +14,11 @@ export const psychologistRouter = router({
                 phone: z.string().optional(),
                 crp: z.string().optional(),
                 city: z.string().optional(),
+                themeConfig: z.object({
+                    primary: z.string().optional(),
+                    sidebar: z.string().optional(),
+                    button: z.string().optional(),
+                }).optional().nullable(),
             })
         )
         .mutation(async ({ ctx, input }) => {

@@ -35,7 +35,7 @@ export function DailyView({
     });
 
     return (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col flex-1 min-h-0 gap-4">
             <div className="flex items-center justify-between">
                 <div>
                     <h3 className="text-sm font-medium capitalize">{formattedDate}</h3>
@@ -48,7 +48,7 @@ export function DailyView({
 
             <Separator />
 
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1 min-h-0">
                 {dayAppointments.length > 0 ? (
                     <div className="flex flex-col gap-2">
                         {dayAppointments.map((apt) => (

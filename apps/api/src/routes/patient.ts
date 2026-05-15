@@ -124,4 +124,51 @@ export const patientRouter = router({
             });
             return { success: true };
         }),
+
+    createMany: protectedProcedure
+        .input(
+            z.array(
+                z.object({
+                    nome: z.string().min(1),
+                    email: z.string().email(),
+                    telefone: z.string().min(1),
+                    dataNascimento: z.string().or(z.date()).transform((val) => new Date(val)),
+                    cidade: z.string().min(1),
+                    cpf: z.string().min(1),
+                    valorSessao: z.string().or(z.number()).optional().nullable(),
+                    modeloCobranca: z.string().optional().nullable(),
+                    nomeSocial: z.string().optional().nullable(),
+                    rg: z.string().optional().nullable(),
+                    profissao: z.string().optional().nullable(),
+                    endereco: z.string().optional().nullable(),
+                    cep: z.string().optional().nullable(),
+                    uf: z.string().optional().nullable(),
+                    contatoEmergencia: z.string().optional().nullable(),
+                    respLegalNome: z.string().optional().nullable(),
+                    respLegalParentesco: z.string().optional().nullable(),
+                    respLegalCpf: z.string().optional().nullable(),
+                    respLegalTelefone: z.string().optional().nullable(),
+                    respLegalEmail: z.string().optional().nullable(),
+                    servicoContratadoTipo: z.string().optional().nullable(),
+                    dataInicioAcompanhamento: z.string().or(z.date()).optional().nullable().transform((val) => val ? new Date(val) : null),
+                    formaPagamento: z.string().optional().nullable(),
+                    formaPagamentoDetalhe: z.string().optional().nullable(),
+                    responsavelFinanceiroTipo: z.string().optional().nullable(),
+                    responsavelFinanceiroDetalhe: z.string().optional().nullable(),
+                    origemContato: z.string().optional().nullable(),
+                    origemContatoDetalhe: z.string().optional().nullable(),
+                })
+            )
+        )
+        .mutation(async ({ ctx, input }) => {
+            await Promise.all(
+                input.map((patient) =>
+                    patientCommands.create({
+                        ...patient,
+                        psychologistId: ctx.session.user.id,
+                    })
+                )
+            );
+            return { count: input.length };
+        }),
 });

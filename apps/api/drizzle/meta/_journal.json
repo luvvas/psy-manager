@@ -50,6 +50,13 @@
       "when": 1778717330137,
       "tag": "0006_cultured_spot",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1778879384266,
+      "tag": "0007_pretty_obadiah_stane",
+      "breakpoints": true
     }
   ]
 }
