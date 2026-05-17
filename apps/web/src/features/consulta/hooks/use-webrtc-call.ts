@@ -30,6 +30,10 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
     const pcRef = useRef<RTCPeerConnection | null>(null);
     const localStreamRef = useRef<MediaStream | null>(null);
     const statusRef = useRef<CallStatus>("idle");
+    // ICE candidates that arrive before setRemoteDescription is called are queued here
+    // and flushed once the remote description is set.
+    const iceCandidateQueue = useRef<RTCIceCandidateInit[]>([]);
+    const remoteDescriptionSet = useRef(false);
 
     function updateStatus(s: CallStatus) {
         statusRef.current = s;
@@ -62,6 +66,8 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
         if (statusRef.current !== "idle") return;
         updateStatus("connecting");
         setErrorMessage(undefined);
+        iceCandidateQueue.current = [];
+        remoteDescriptionSet.current = false;
 
         let stream: MediaStream;
         try {
@@ -90,7 +96,9 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
 
         pc.onconnectionstatechange = () => {
             if (pc.connectionState === "connected") updateStatus("active");
-            if (["disconnected", "failed", "closed"].includes(pc.connectionState)) {
+            // "disconnected" is transient — the browser retries for ~5s before moving to "failed".
+            // Only "failed" and "closed" are truly terminal.
+            if (["failed", "closed"].includes(pc.connectionState)) {
                 updateStatus("ended");
             }
         };
@@ -118,6 +126,11 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
 
             if (msg.type === "offer" && role === "patient") {
                 await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp as RTCSessionDescriptionInit));
+                remoteDescriptionSet.current = true;
+                for (const c of iceCandidateQueue.current) {
+                    await pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => null);
+                }
+                iceCandidateQueue.current = [];
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);
                 sendWs({ type: "answer", sdp: pc.localDescription });
@@ -125,13 +138,19 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
 
             if (msg.type === "answer") {
                 await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp as RTCSessionDescriptionInit));
+                remoteDescriptionSet.current = true;
+                for (const c of iceCandidateQueue.current) {
+                    await pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => null);
+                }
+                iceCandidateQueue.current = [];
             }
 
             if (msg.type === "ice") {
-                try {
-                    await pc.addIceCandidate(new RTCIceCandidate(msg.candidate as RTCIceCandidateInit));
-                } catch {
-                    // ICE candidate may arrive before remote description — safe to ignore
+                const candidate = msg.candidate as RTCIceCandidateInit;
+                if (remoteDescriptionSet.current) {
+                    await pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => null);
+                } else {
+                    iceCandidateQueue.current.push(candidate);
                 }
             }
 
