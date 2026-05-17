@@ -39,6 +39,7 @@ jobs:
             export STORAGE_DRIVER=s3
             export AWS_REGION=sa-east-1
             export AWS_DOCUMENTS_BUCKET=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/AWS_DOCUMENTS_BUCKET" --query "Parameter.Value" --output text)
+            export PUBLIC_URL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/PUBLIC_URL" --query "Parameter.Value" --output text)
 
             docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml up -d --build
