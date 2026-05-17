@@ -9,6 +9,7 @@ import { ComingSoonPage } from "@/pages/coming-soon";
 import { AuthPage } from "@/features/auth/page";
 import { AuthGuard, PublicOnlyGuard } from "@/features/auth/auth-guard";
 import { GoogleCallbackPage } from "@/pages/google-callback";
+import { PsychologistPage, JoinPage } from "@/features/consulta";
 import {
     CreditCard,
     FlaskConical,
@@ -28,6 +29,11 @@ export const router = createBrowserRouter([
         ],
     },
     {
+        // Public patient join page — no auth required, no sidebar
+        path: "/consulta/entrar/:token",
+        element: <JoinPage />,
+    },
+    {
         path: "/",
         element: <AuthGuard />,
         children: [
@@ -42,6 +48,10 @@ export const router = createBrowserRouter([
                     {
                         path: "agendamento",
                         element: <AgendamentoPage />,
+                    },
+                    {
+                        path: "consulta/:sessionId",
+                        element: <PsychologistPage />,
                     },
                     {
                         path: "google-callback",

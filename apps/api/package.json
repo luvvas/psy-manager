@@ -13,9 +13,9 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@better-auth/drizzle-adapter": "^1.6.9",
     "@aws-sdk/client-s3": "^3.958.0",
     "@aws-sdk/s3-request-presigner": "^3.958.0",
+    "@better-auth/drizzle-adapter": "^1.6.9",
     "@hono/node-server": "^1.14.1",
     "@hono/trpc-server": "^0.3.4",
     "@psy-manager/shared": "workspace:*",
@@ -26,10 +26,12 @@
     "hono": "^4.7.7",
     "postgres": "^3.4.7",
     "superjson": "^2.2.2",
+    "ws": "^8.20.1",
     "zod": "^3.24.4"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",
+    "@types/ws": "^8.18.1",
     "drizzle-kit": "^0.31.1",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3"

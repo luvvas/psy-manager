@@ -204,6 +204,20 @@ export const document = pgTable("document", {
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const videoSession = pgTable("video_session", {
+    id: text("id").primaryKey(),
+    appointmentId: text("appointment_id")
+        .references(() => appointment.id, { onDelete: "set null" }),
+    psychologistId: text("psychologist_id")
+        .notNull()
+        .references(() => user.id, { onDelete: "cascade" }),
+    patientToken: text("patient_token").notNull().unique(),
+    status: text("status").notNull().default("pending"), // pending, active, ended
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    expiresAt: timestamp("expires_at").notNull(),
+    endedAt: timestamp("ended_at"),
+});
+
 export const clinicalRecord = pgTable("clinical_record", {
     id: text("id").primaryKey(),
     psychologistId: text("psychologist_id")

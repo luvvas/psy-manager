@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
-import { Clock, Repeat, MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Clock, Repeat, MessageSquare, Video, Loader2 } from "lucide-react";
 import type { Appointment } from "../types";
 import { APPOINTMENT_TYPE_LABELS } from "../types";
 import { StatusBadge } from "./status-badge";
@@ -9,6 +10,9 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useSession } from "@/lib/auth-client";
+import { useNavigate } from "react-router-dom";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 interface AppointmentCardProps {
     appointment: Appointment;
@@ -31,7 +35,20 @@ const TYPE_DOT_COLORS: Record<Appointment["type"], string> = {
 
 export function AppointmentCard({ appointment, compact }: AppointmentCardProps) {
     const { data: session } = useSession();
+    const navigate = useNavigate();
     const isOthers = session?.user?.id !== appointment.psychologistId;
+
+    const createSession = trpc.videoSession.create.useMutation({
+        onError: () => toast.error("Não foi possível iniciar a videochamada."),
+    });
+
+    async function handleStartVideo(e: React.MouseEvent) {
+        e.stopPropagation();
+        const result = await createSession.mutateAsync({ appointmentId: appointment.id });
+        navigate(`/consulta/${result.sessionId}`, {
+            state: { wsAuthToken: result.wsAuthToken, patientJoinUrl: result.patientJoinUrl },
+        });
+    }
 
     if (compact) {
         return (
@@ -136,6 +153,26 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
                 <p className="mt-1.5 text-[11px] text-muted-foreground/80 line-clamp-1 italic">
                     {appointment.notes}
                 </p>
+            )}
+
+            {/* Video call — online sessions only, own appointments only */}
+            {appointment.sessionType === "online" && !isOthers && (
+                <div className="mt-2 pt-2 border-t">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-1.5 text-xs h-7"
+                        onClick={handleStartVideo}
+                        disabled={createSession.isPending}
+                    >
+                        {createSession.isPending ? (
+                            <Loader2 className="size-3 animate-spin" />
+                        ) : (
+                            <Video className="size-3" />
+                        )}
+                        Iniciar videochamada
+                    </Button>
+                </div>
             )}
         </Card>
     );
