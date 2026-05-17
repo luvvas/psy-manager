@@ -1,7 +1,7 @@
-import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure, publicProcedure } from "../trpc/index";
+import { z } from "zod";
 import { videoSessionService } from "../services/video-session.service";
+import { protectedProcedure, publicProcedure, router } from "../trpc/index";
 import { createAuthToken } from "../ws/rooms";
 
 const PUBLIC_URL = process.env.PUBLIC_URL || "http://localhost:5173";

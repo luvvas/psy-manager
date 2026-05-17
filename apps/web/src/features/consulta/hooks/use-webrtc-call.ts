@@ -9,10 +9,15 @@ interface Options {
     iceServers: RTCIceServer[];
 }
 
-const API_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:3001";
+// VITE_WS_URL can point directly to the API host (bypassing CloudFront) when CloudFront
+// doesn't have a /ws/* behavior configured. Falls back to VITE_API_URL otherwise.
+const WS_BASE =
+    (import.meta.env.VITE_WS_URL as string | undefined) ??
+    (import.meta.env.VITE_API_URL as string | undefined) ??
+    "http://localhost:3001";
 
 function getWsUrl(sessionId: string): string {
-    return `${API_URL.replace(/^http/, "ws")}/ws/signaling/${sessionId}`;
+    return `${WS_BASE.replace(/^http/, "ws")}/ws/signaling/${sessionId}`;
 }
 
 export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Options) {
