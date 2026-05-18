@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { useParams, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { trpc } from "@/lib/trpc";
 import { useWebRtcCall } from "./hooks/use-webrtc-call";
 import { ConsultaRoom } from "./components/consulta-room";
@@ -12,10 +12,11 @@ export function PsychologistPage() {
     const { sessionId } = useParams<{ sessionId: string }>();
     const location = useLocation();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
 
     const state = location.state as { wsAuthToken?: string; patientJoinUrl?: string } | null;
-    const wsAuthToken = state?.wsAuthToken ?? "";
-    const patientJoinUrl = state?.patientJoinUrl;
+    const wsAuthToken = state?.wsAuthToken ?? searchParams.get("token") ?? "";
+    const patientJoinUrl = state?.patientJoinUrl ?? searchParams.get("joinUrl") ?? undefined;
 
     const { data: session, isLoading } = trpc.videoSession.get.useQuery(
         { id: sessionId! },

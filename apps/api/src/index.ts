@@ -14,6 +14,7 @@ import { patientProjections } from "./cqrs/patient/patient.projections";
 import { appointmentProjections } from "./cqrs/appointment/appointment.projections";
 import { storageService } from "./services/storage.service";
 import { handleSignaling } from "./ws/signaling";
+import { getRedisClient } from "./lib/cache";
 
 // Initialize CQRS Projections/Subscribers
 patientProjections.init();
@@ -59,6 +60,15 @@ app.use(
 );
 
 const port = Number(process.env.API_PORT) || 3001;
+
+const redis = getRedisClient();
+if (redis) {
+    redis.ping()
+        .then(() => console.log("✅ Redis conectado"))
+        .catch((err: Error) => console.error("❌ Redis não conectado:", err.message));
+} else {
+    console.log("ℹ️  REDIS_URL não configurado — cache desativado");
+}
 
 console.log(`🚀 psy-manager API running on http://localhost:${port}`);
 console.log(`📡 tRPC endpoint: http://localhost:${port}/trpc`);

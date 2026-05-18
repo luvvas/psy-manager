@@ -43,6 +43,7 @@ jobs:
             export TURN_URL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/TURN_URL" --query "Parameter.Value" --output text)
             export TURN_USERNAME=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/TURN_USERNAME" --query "Parameter.Value" --output text)
             export TURN_CREDENTIAL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/TURN_CREDENTIAL" --with-decryption --query "Parameter.Value" --output text)
+            export REDIS_URL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/REDIS_URL" --query "Parameter.Value" --output text)
 
             docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml up -d --build

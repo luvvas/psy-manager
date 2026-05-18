@@ -38,6 +38,11 @@ export const router = createBrowserRouter([
         element: <AuthGuard />,
         children: [
             {
+                // Fullscreen — no sidebar
+                path: "consulta/:sessionId",
+                element: <PsychologistPage />,
+            },
+            {
                 path: "/",
                 element: <AppLayout />,
                 children: [
@@ -48,10 +53,6 @@ export const router = createBrowserRouter([
                     {
                         path: "agendamento",
                         element: <AgendamentoPage />,
-                    },
-                    {
-                        path: "consulta/:sessionId",
-                        element: <PsychologistPage />,
                     },
                     {
                         path: "google-callback",

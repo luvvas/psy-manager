@@ -45,9 +45,9 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
     async function handleStartVideo(e: React.MouseEvent) {
         e.stopPropagation();
         const result = await createSession.mutateAsync({ appointmentId: appointment.id });
-        navigate(`/consulta/${result.sessionId}`, {
-            state: { wsAuthToken: result.wsAuthToken, patientJoinUrl: result.patientJoinUrl },
-        });
+        const params = new URLSearchParams({ token: result.wsAuthToken });
+        if (result.patientJoinUrl) params.set("joinUrl", result.patientJoinUrl);
+        window.open(`/consulta/${result.sessionId}?${params.toString()}`, "_blank");
     }
 
     if (compact) {

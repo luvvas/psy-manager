@@ -24,6 +24,7 @@
     "dotenv": "^16.5.0",
     "drizzle-orm": "^0.44.1",
     "hono": "^4.7.7",
+    "ioredis": "^5.10.1",
     "postgres": "^3.4.7",
     "superjson": "^2.2.2",
     "ws": "^8.20.1",
