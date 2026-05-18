@@ -11,6 +11,7 @@ import { NewAppointmentForm } from "./components/appointment-form";
 import { AppSheet } from "@/components/layout/app-sheet";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 import { type Appointment, type AppointmentStatus } from "./types";
 import { useSession } from "@/lib/auth-client";
 
@@ -193,7 +194,7 @@ export function AgendamentoPage() {
             setSheetOpen(false);
             setEditingAppointment(null);
         } catch (error) {
-            console.error("Failed to save appointment", error);
+            logger.error("Failed to save appointment", error);
         }
     };
 
@@ -205,7 +206,7 @@ export function AgendamentoPage() {
                 setSheetOpen(false);
                 setEditingAppointment(null);
             } catch (error) {
-                console.error("Failed to delete appointment", error);
+                logger.error("Failed to delete appointment", error);
             }
         }
     };

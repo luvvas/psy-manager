@@ -113,7 +113,8 @@ export const appointmentRouter = router({
 
             if (!response.ok) {
                 const body = await response.text();
-                throw new Error(`Google exchange failed: ${body}`);
+                console.error("Google OAuth exchange failed:", body);
+                throw new Error("Falha ao conectar com o Google Calendar. Tente novamente.");
             }
 
             const data = await response.json();

@@ -21,6 +21,7 @@ interface DataTableProps<T> {
     columns: DataTableColumn<T>[];
     searchPlaceholder?: string;
     searchFilter: (item: T, query: string) => boolean;
+    getRowKey?: (item: T) => string | number;
     emptyState?: {
         title: string;
         description: string;
@@ -33,6 +34,7 @@ export function DataTable<T>({
     columns,
     searchPlaceholder = "Buscar...",
     searchFilter,
+    getRowKey,
     emptyState,
 }: DataTableProps<T>) {
     const [searchQuery, setSearchQuery] = useState("");
@@ -66,8 +68,8 @@ export function DataTable<T>({
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                {columns.map((col, index) => (
-                                    <TableHead key={index} className={col.className}>
+                                {columns.map((col) => (
+                                    <TableHead key={col.header} className={col.className}>
                                         {col.header}
                                     </TableHead>
                                 ))}
@@ -75,9 +77,9 @@ export function DataTable<T>({
                         </TableHeader>
                         <TableBody>
                             {filteredData.map((item, rowIndex) => (
-                                <TableRow key={rowIndex}>
-                                    {columns.map((col, colIndex) => (
-                                        <TableCell key={colIndex} className={col.className}>
+                                <TableRow key={getRowKey ? getRowKey(item) : rowIndex}>
+                                    {columns.map((col) => (
+                                        <TableCell key={col.header} className={col.className}>
                                             {col.render(item)}
                                         </TableCell>
                                     ))}

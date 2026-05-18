@@ -12,6 +12,7 @@ import { parseDate } from "@/utils/csv";
 
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 import Papa from "papaparse";
 
 export function PacientesPage() {
@@ -95,7 +96,7 @@ export function PacientesPage() {
             setSheetOpen(false);
             setEditingPatient(null);
         } catch (error) {
-            console.error("Erro ao salvar paciente:", error);
+            logger.error("Erro ao salvar paciente", error);
         }
     };
 
@@ -104,7 +105,7 @@ export function PacientesPage() {
             try {
                 await deletePatientMutation.mutateAsync({ id });
             } catch (error) {
-                console.error("Erro ao excluir paciente:", error);
+                logger.error("Erro ao excluir paciente", error);
             }
         }
     };
@@ -198,7 +199,7 @@ export function PacientesPage() {
 
             await createManyMutation.mutateAsync(payload);
         } catch (err) {
-            console.error(err);
+            logger.error("Erro", err);
             setIsImporting(false);
         }
     };

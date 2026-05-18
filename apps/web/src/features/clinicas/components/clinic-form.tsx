@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod/v3";
@@ -73,7 +74,7 @@ export function NewClinicForm({
         try {
             await onSave(data);
         } catch (error) {
-            console.error("Failed to save clinic", error);
+            logger.error("Failed to save clinic", error);
         } finally {
             setIsSubmitting(false);
         }

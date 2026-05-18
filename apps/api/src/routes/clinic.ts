@@ -56,8 +56,8 @@ export const clinicRouter = router({
                 psychologistEmail: z.string().email(),
             })
         )
-        .mutation(async ({ input }) => {
-            return clinicService.linkPsychologist(input.clinicId, input.psychologistEmail);
+        .mutation(async ({ ctx, input }) => {
+            return clinicService.linkPsychologist(ctx.session.user.id, input.clinicId, input.psychologistEmail);
         }),
 
     unlinkPsychologist: protectedProcedure
@@ -67,7 +67,7 @@ export const clinicRouter = router({
                 psychologistId: z.string().min(1),
             })
         )
-        .mutation(async ({ input }) => {
-            return clinicService.unlinkPsychologist(input.clinicId, input.psychologistId);
+        .mutation(async ({ ctx, input }) => {
+            return clinicService.unlinkPsychologist(ctx.session.user.id, input.clinicId, input.psychologistId);
         }),
 });

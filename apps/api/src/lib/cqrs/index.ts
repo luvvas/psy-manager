@@ -125,23 +125,24 @@ export const cqrsEventStore = {
     ): Promise<void> {
         if (events.length === 0) return;
 
-        // Optimistic Concurrency Check: Verify that the current version matches expected
-        const [latestEvent] = await db
-            .select({ version: eventStore.version })
-            .from(eventStore)
-            .where(eq(eventStore.aggregateId, aggregateId))
-            .orderBy(desc(eventStore.version))
-            .limit(1);
-
-        const currentVersion = latestEvent?.version ?? 0;
-        if (currentVersion !== expectedVersion) {
-            throw new Error(
-                `Concurrency Conflict: Aggregate ${aggregateId} is at version ${currentVersion}, but expected version ${expectedVersion}`
-            );
-        }
-
-        // Insert new events in a transaction
+        // Optimistic concurrency check and inserts are inside the same transaction so
+        // the version read and the subsequent inserts are atomic. The unique constraint
+        // on (aggregateId, version) in the DB is the final guard against concurrent writes.
         await db.transaction(async (tx) => {
+            const [latestEvent] = await tx
+                .select({ version: eventStore.version })
+                .from(eventStore)
+                .where(eq(eventStore.aggregateId, aggregateId))
+                .orderBy(desc(eventStore.version))
+                .limit(1);
+
+            const currentVersion = latestEvent?.version ?? 0;
+            if (currentVersion !== expectedVersion) {
+                throw new Error(
+                    `Concurrency Conflict: Aggregate ${aggregateId} is at version ${currentVersion}, but expected version ${expectedVersion}`
+                );
+            }
+
             for (const event of events) {
                 await tx.insert(eventStore).values({
                     id: event.id,
@@ -188,6 +189,8 @@ type EventSubscriber = (event: DomainEvent) => Promise<void> | void;
 export class EventBus {
     private static instance: EventBus;
     private subscribers: Map<string, Set<EventSubscriber>> = new Map();
+    private failureCounts = new Map<EventSubscriber, number>();
+    private static readonly MAX_SUBSCRIBER_FAILURES = 5;
 
     private constructor() {}
 
@@ -227,13 +230,21 @@ export class EventBus {
 
         const allSubscribers = new Set([...specificSubscribers, ...globalSubscribers]);
 
-        // Process subscribers concurrently or sequentially depending on requirements.
-        // For projection stability, we run them concurrently and log failures.
         const promises = Array.from(allSubscribers).map(async (sub) => {
             try {
                 await sub(event);
+                this.failureCounts.delete(sub);
             } catch (err) {
-                console.error(`❌ Error in event subscriber for type "${event.type}":`, err);
+                const failures = (this.failureCounts.get(sub) ?? 0) + 1;
+                if (failures >= EventBus.MAX_SUBSCRIBER_FAILURES) {
+                    console.error(`⚠️ Removing subscriber for "${event.type}" after ${failures} consecutive failures:`, err);
+                    specificSubscribers.delete(sub);
+                    globalSubscribers.delete(sub);
+                    this.failureCounts.delete(sub);
+                } else {
+                    console.error(`❌ Error in event subscriber for type "${event.type}" (${failures}/${EventBus.MAX_SUBSCRIBER_FAILURES}):`, err);
+                    this.failureCounts.set(sub, failures);
+                }
             }
         });
 

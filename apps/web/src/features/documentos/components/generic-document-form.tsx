@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod/v3";
@@ -89,7 +90,7 @@ export function GenericDocumentForm({ onSave, onCancel, initialData }: GenericDo
                 file: pdfFile || undefined,
             });
         } catch (error) {
-            console.error("Erro ao salvar documento:", error);
+            logger.error("Erro ao salvar documento", error);
         } finally {
             setIsSubmitting(false);
         }

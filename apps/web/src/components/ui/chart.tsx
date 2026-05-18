@@ -79,9 +79,15 @@ function ChartContainer({
   )
 }
 
+// CSS custom property names: letters, digits, hyphens and underscores only
+const CSS_IDENT_RE = /^[a-zA-Z0-9_-]+$/
+// Accepted color formats: hex, rgb/rgba, hsl/hsla, oklch
+const CSS_COLOR_RE =
+  /^(#[0-9a-fA-F]{3,8}|rgba?\([\d\s,./]+\)|hsla?\([\d\s,./°%]+\)|oklch\([\d\s./]+\))$/
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
-    ([, config]) => config.theme ?? config.color
+    ([key, cfg]) => CSS_IDENT_RE.test(key) && (cfg.theme ?? cfg.color)
   )
 
   if (!colorConfig.length) {
@@ -100,8 +106,10 @@ ${colorConfig
     const color =
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ??
       itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
+    if (!color || !CSS_COLOR_RE.test(color.trim())) return null
+    return `  --color-${key}: ${color};`
   })
+  .filter(Boolean)
   .join("\n")}
 }
 `

@@ -61,8 +61,10 @@ export const financialRouter = router({
             })
         )
         .mutation(async ({ ctx, input }) => {
-            const { id, ...data } = input;
-            return financialService.update(ctx.session.user.id, id, data as any);
+            const { id, type, description, amount, date, category, patientId, status } = input;
+            return financialService.update(ctx.session.user.id, id, {
+                type, description, amount, date, category, patientId, status,
+            });
         }),
 
     delete: protectedProcedure

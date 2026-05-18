@@ -120,23 +120,6 @@ export const googleCalendarService = {
             .from(patient)
             .where(eq(patient.psychologistId, userId));
 
-        // Get or create a placeholder patient for unmatched imports
-        let placeholderPatient = myPatients.find((p) => p.nome === "Google Calendar Import");
-        if (!placeholderPatient) {
-            const id = crypto.randomUUID();
-            const [inserted] = await db.insert(patient).values({
-                id,
-                nome: "Google Calendar Import",
-                email: "google-sync@psy-manager.com",
-                telefone: "00000000000",
-                dataNascimento: new Date("1970-01-01"),
-                cidade: "Google Sync",
-                cpf: "000.000.000-00",
-                psychologistId: userId,
-            }).returning();
-            placeholderPatient = inserted;
-        }
-
         for (const event of googleEvents) {
             const googleEventId = event.id;
             const title = event.summary || "Consulta sem Título";
@@ -157,14 +140,16 @@ export const googleCalendarService = {
             }
 
             // Find a patient matching the title or description
-            let matchedPatient = myPatients.find(
+            const matchedPatient = myPatients.find(
                 (p) =>
                     title.toLowerCase().includes(p.nome.toLowerCase()) ||
                     event.description?.toLowerCase().includes(p.nome.toLowerCase())
             );
 
+            // Skip events with no matching patient instead of creating a fake record
             if (!matchedPatient) {
-                matchedPatient = placeholderPatient;
+                skipped++;
+                continue;
             }
 
             const startDate = new Date(start);

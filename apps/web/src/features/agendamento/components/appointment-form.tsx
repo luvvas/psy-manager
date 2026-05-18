@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -73,7 +74,7 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
         try {
             await onSave(data);
         } catch (error) {
-            console.error("Failed to save appointment", error);
+            logger.error("Failed to save appointment", error);
         } finally {
             setIsSubmitting(false);
         }

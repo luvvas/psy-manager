@@ -22,13 +22,15 @@ appointmentProjections.init();
 const app = new Hono();
 
 app.use("*", logger());
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "http://localhost:5173")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
 app.use(
     "*",
     cors({
-        origin: [
-            "http://localhost:5173",
-            "https://dswfc48bg9ft6.cloudfront.net",
-        ],
+        origin: allowedOrigins,
         allowHeaders: ["Content-Type", "Authorization"],
         allowMethods: ["POST", "GET", "OPTIONS", "PUT", "DELETE"],
         credentials: true,

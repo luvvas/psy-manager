@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Lucas\\\\projects\\\\psy-manager\\\\apps\\\\api\\\\src\" -Recurse -File)",
+      "Bash(Select-Object FullName)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Lucas\\\\projects\\\\psy-manager\\\\apps\\\\web\\\\src\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "PowerShell(cd \"c:\\\\Users\\\\Lucas\\\\projects\\\\psy-manager\"; git ls-files | Where-Object { $_ -match '\\\\.\\(env|pem|key\\)$' } | Select-Object -First 20)"
+    ]
+  }
+}

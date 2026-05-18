@@ -99,6 +99,9 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
             // "disconnected" is transient — the browser retries for ~5s before moving to "failed".
             // Only "failed" and "closed" are truly terminal.
             if (["failed", "closed"].includes(pc.connectionState)) {
+                stopLocalTracks();
+                setRemoteStream(null);
+                pcRef.current = null;
                 updateStatus("ended");
             }
         };
@@ -160,6 +163,11 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
         };
 
         ws.onerror = () => {
+            stopLocalTracks();
+            pcRef.current?.close();
+            pcRef.current = null;
+            setRemoteStream(null);
+            wsRef.current = null;
             updateStatus("error");
             setErrorMessage("Erro de conexão com o servidor. Tente novamente.");
         };

@@ -1,9 +1,10 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { db } from "../db";
 import { clinic, psychologistClinic, user } from "../db/schema";
 
 export const clinicService = {
     async list(psychologistId: string) {
+        // Query 1: clinics where this psychologist is a member
         const clinics = await db
             .select({
                 id: clinic.id,
@@ -21,25 +22,34 @@ export const clinicService = {
             .innerJoin(psychologistClinic, eq(clinic.id, psychologistClinic.clinicId))
             .where(eq(psychologistClinic.psychologistId, psychologistId));
 
-        const result = [];
-        for (const cl of clinics) {
-            const psychologists = await db
-                .select({
-                    id: user.id,
-                    name: user.name,
-                    email: user.email,
-                    phone: user.phone,
-                })
-                .from(psychologistClinic)
-                .innerJoin(user, eq(psychologistClinic.psychologistId, user.id))
-                .where(eq(psychologistClinic.clinicId, cl.id));
+        if (clinics.length === 0) return [];
 
-            result.push({
-                ...cl,
-                psychologists,
-            });
+        // Query 2: all members of those clinics in a single IN query (replaces N sub-queries)
+        const clinicIds = clinics.map((c) => c.id);
+        const members = await db
+            .select({
+                clinicId: psychologistClinic.clinicId,
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+            })
+            .from(psychologistClinic)
+            .innerJoin(user, eq(psychologistClinic.psychologistId, user.id))
+            .where(inArray(psychologistClinic.clinicId, clinicIds));
+
+        // Group members by clinicId in memory
+        const membersByClinic = new Map<string, typeof members>();
+        for (const member of members) {
+            const list = membersByClinic.get(member.clinicId) ?? [];
+            list.push(member);
+            membersByClinic.set(member.clinicId, list);
         }
-        return result;
+
+        return clinics.map((cl) => ({
+            ...cl,
+            psychologists: (membersByClinic.get(cl.id) ?? []).map(({ clinicId: _, ...m }) => m),
+        }));
     },
 
     async create(psychologistId: string, data: {
@@ -117,7 +127,16 @@ export const clinicService = {
         return deletedClinic ?? null;
     },
 
-    async linkPsychologist(clinicId: string, psychologistEmail: string) {
+    async linkPsychologist(requesterId: string, clinicId: string, psychologistEmail: string) {
+        const [ownerClinic] = await db
+            .select({ id: clinic.id })
+            .from(clinic)
+            .where(and(eq(clinic.id, clinicId), eq(clinic.createdById, requesterId)));
+
+        if (!ownerClinic) {
+            throw new Error("Clínica não encontrada ou sem permissão.");
+        }
+
         const [targetUser] = await db
             .select()
             .from(user)
@@ -153,7 +172,16 @@ export const clinicService = {
         return newLink;
     },
 
-    async unlinkPsychologist(clinicId: string, psychologistId: string) {
+    async unlinkPsychologist(requesterId: string, clinicId: string, psychologistId: string) {
+        const [ownerClinic] = await db
+            .select({ id: clinic.id })
+            .from(clinic)
+            .where(and(eq(clinic.id, clinicId), eq(clinic.createdById, requesterId)));
+
+        if (!ownerClinic) {
+            throw new Error("Clínica não encontrada ou sem permissão.");
+        }
+
         const [deletedLink] = await db
             .delete(psychologistClinic)
             .where(

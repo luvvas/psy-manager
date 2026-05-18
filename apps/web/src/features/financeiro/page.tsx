@@ -13,6 +13,7 @@ import { TransactionsTable } from "./components/transactions-table";
 import { parseCurrency, parseDate, parseStatus } from "@/utils/csv";
 import { AppSheet } from "@/components/layout/app-sheet";
 import { trpc } from "@/lib/trpc";
+import { logger } from "@/lib/logger";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { startOfMonth, endOfMonth } from "date-fns";
@@ -181,7 +182,7 @@ export function FinanceiroPage() {
 
             await createManyMutation.mutateAsync(payload);
         } catch (err) {
-            console.error(err);
+            logger.error("Erro", err);
             setIsImporting(false);
         }
     };

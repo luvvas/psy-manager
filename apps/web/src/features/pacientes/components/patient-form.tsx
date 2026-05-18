@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod/v3";
@@ -129,7 +130,7 @@ export function NewPatientForm({ onSave, onCancel, initialData }: NewPatientForm
             };
             await onSave(submissionData);
         } catch (error) {
-            console.error("Erro ao salvar paciente", error);
+            logger.error("Erro ao salvar paciente", error);
         } finally {
             setIsSubmitting(false);
         }

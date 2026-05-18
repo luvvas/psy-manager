@@ -35,7 +35,7 @@ export const auth = betterAuth({
         process.env.BETTER_AUTH_URL || "",
     ].filter(Boolean),
     advanced: {
-        useSecureCookies: false, // Required for HTTP testing on public domains
+        useSecureCookies: process.env.NODE_ENV === "production",
     },
     defaultCookieAttributes: {
         sameSite: "lax", // Allows cookies to be sent back during Google GET callback on HTTP

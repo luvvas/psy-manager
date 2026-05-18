@@ -1,10 +1,14 @@
 import { db } from "../db";
 import { videoSession, user } from "../db/schema";
 import { eq, and } from "drizzle-orm";
-import { randomUUID, randomBytes } from "crypto";
+import { randomUUID, randomBytes, createHash } from "crypto";
 
 function generatePatientToken(): string {
     return randomBytes(24).toString("base64url");
+}
+
+function hashToken(token: string): string {
+    return createHash("sha256").update(token).digest("hex");
 }
 
 export const videoSessionService = {
@@ -17,12 +21,12 @@ export const videoSessionService = {
             id,
             psychologistId,
             appointmentId: appointmentId ?? null,
-            patientToken,
+            patientToken: hashToken(patientToken), // store hash, not plaintext
             status: "pending",
             expiresAt,
         });
 
-        return { id, patientToken };
+        return { id, patientToken }; // return original for URL
     },
 
     async getById(psychologistId: string, id: string) {
@@ -61,7 +65,7 @@ export const videoSessionService = {
             })
             .from(videoSession)
             .innerJoin(user, eq(videoSession.psychologistId, user.id))
-            .where(eq(videoSession.patientToken, patientToken));
+            .where(eq(videoSession.patientToken, hashToken(patientToken)));
         return s ?? null;
     },
 };

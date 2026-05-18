@@ -33,10 +33,16 @@ export function ConsultaRoom({
 
     useEffect(() => {
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
+        return () => {
+            if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+        };
     }, [remoteStream]);
 
     useEffect(() => {
         if (localVideoRef.current) localVideoRef.current.srcObject = localStream;
+        return () => {
+            if (localVideoRef.current) localVideoRef.current.srcObject = null;
+        };
     }, [localStream]);
 
     const copyLink = useCallback(() => {

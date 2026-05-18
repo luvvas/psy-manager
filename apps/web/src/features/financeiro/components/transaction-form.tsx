@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { logger } from "@/lib/logger";
 import { trpc } from "@/lib/trpc";
 import { DatePicker } from "@/components/date-picker";
 
@@ -65,7 +66,7 @@ export function TransactionForm({ type, initialData, onSave, onCancel }: Transac
                 patientId: data.patientId === "none" || data.patientId === "" ? null : data.patientId,
             });
         } catch (error) {
-            console.error(error);
+            logger.error("Erro", error);
         } finally {
             setIsSubmitting(false);
         }

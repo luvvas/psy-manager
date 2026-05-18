@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -90,7 +91,7 @@ export function DocumentForm({ onSave, onCancel, patients, initialData }: Docume
                 file: pdfFile || undefined,
             });
         } catch (error) {
-            console.error("Erro ao salvar documento:", error);
+            logger.error("Erro ao salvar documento", error);
         } finally {
             setIsSubmitting(false);
         }

@@ -1,14 +1,21 @@
 import {
     GetObjectCommand,
     PutObjectCommand,
-    S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "crypto";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
-
-type StorageDriver = "local" | "s3";
+import {
+    assertPdf,
+    buildStorageKey,
+    getBucketName,
+    getDriver,
+    getS3Client,
+    toLocalFilePath,
+    URL_TTL_MS,
+    URL_TTL_SECONDS,
+} from "../utils/storage.utils";
 
 type UploadToken = {
     storageKey: string;
@@ -24,58 +31,6 @@ type ReadToken = {
 
 const uploadTokens = new Map<string, UploadToken>();
 const readTokens = new Map<string, ReadToken>();
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const URL_TTL_SECONDS = 10 * 60;
-const URL_TTL_MS = URL_TTL_SECONDS * 1000;
-
-function getDriver(): StorageDriver {
-    return (process.env.STORAGE_DRIVER === "s3" || process.env.AWS_DOCUMENTS_BUCKET)
-        ? "s3"
-        : "local";
-}
-
-function getS3Client() {
-    return new S3Client({
-        region: process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || "sa-east-1",
-    });
-}
-
-function getBucketName() {
-    const bucket = process.env.AWS_DOCUMENTS_BUCKET;
-    if (!bucket) {
-        throw new Error("AWS_DOCUMENTS_BUCKET precisa estar configurado para usar STORAGE_DRIVER=s3.");
-    }
-    return bucket;
-}
-
-function getLocalStorageDir() {
-    return process.env.LOCAL_STORAGE_DIR || path.join(process.cwd(), ".storage");
-}
-
-function assertPdf(contentType: string, fileSize: number) {
-    if (contentType !== "application/pdf") {
-        throw new Error("Apenas arquivos PDF sao aceitos.");
-    }
-
-    if (fileSize <= 0 || fileSize > MAX_FILE_SIZE) {
-        throw new Error("O arquivo deve ter no maximo 10MB.");
-    }
-}
-
-function buildStorageKey(psychologistId: string, fileName: string) {
-    const extension = path.extname(fileName).toLowerCase() || ".pdf";
-    return `documents/${psychologistId}/${randomUUID()}${extension}`;
-}
-
-function toLocalFilePath(storageKey: string) {
-    const normalizedKey = storageKey.replaceAll("\\", "/");
-    if (normalizedKey.includes("..")) {
-        throw new Error("Chave de storage invalida.");
-    }
-
-    return path.join(getLocalStorageDir(), normalizedKey);
-}
 
 function cleanupExpiredTokens() {
     const now = Date.now();

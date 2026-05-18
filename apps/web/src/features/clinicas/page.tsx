@@ -7,6 +7,7 @@ import { ClinicsTable, type DBClinic } from "./components/clinics-table";
 import { AppSheet } from "@/components/layout/app-sheet";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 export function ClinicasPage() {
     const [isSheetOpen, setSheetOpen] = useState(false);
@@ -110,7 +111,7 @@ export function ClinicasPage() {
             setSheetOpen(false);
             setEditingClinic(null);
         } catch (error) {
-            console.error("Erro ao salvar clínica:", error);
+            logger.error("Erro ao salvar clínica", error);
         }
     };
 
@@ -119,7 +120,7 @@ export function ClinicasPage() {
             try {
                 await deleteMutation.mutateAsync({ id });
             } catch (error) {
-                console.error("Erro ao excluir clínica:", error);
+                logger.error("Erro ao excluir clínica", error);
             }
         }
     };
