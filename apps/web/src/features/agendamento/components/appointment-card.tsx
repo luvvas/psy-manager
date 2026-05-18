@@ -1,18 +1,17 @@
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, Repeat, MessageSquare, Video, Loader2 } from "lucide-react";
-import type { Appointment } from "../types";
-import { APPOINTMENT_TYPE_LABELS } from "../types";
-import { StatusBadge } from "./status-badge";
+import { Card } from "@/components/ui/card";
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useSession } from "@/lib/auth-client";
-import { useNavigate } from "react-router-dom";
 import { trpc } from "@/lib/trpc";
+import { Clock, Loader2, MessageSquare, Repeat, Video } from "lucide-react";
 import { toast } from "sonner";
+import type { Appointment } from "../types";
+import { APPOINTMENT_TYPE_LABELS } from "../types";
+import { StatusBadge } from "./status-badge";
 
 interface AppointmentCardProps {
     appointment: Appointment;
@@ -35,7 +34,6 @@ const TYPE_DOT_COLORS: Record<Appointment["type"], string> = {
 
 export function AppointmentCard({ appointment, compact }: AppointmentCardProps) {
     const { data: session } = useSession();
-    const navigate = useNavigate();
     const isOthers = session?.user?.id !== appointment.psychologistId;
 
     const createSession = trpc.videoSession.create.useMutation({
