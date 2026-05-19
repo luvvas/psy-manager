@@ -66,7 +66,7 @@ export const patientProjections = {
             origemContatoDetalhe,
             createdAt: event.createdAt ?? new Date(),
             updatedAt: event.createdAt ?? new Date(),
-        });
+        }).onConflictDoNothing();
         
         console.log(`📈 Read Model Projected: Patient Created -> (${id})`);
     },

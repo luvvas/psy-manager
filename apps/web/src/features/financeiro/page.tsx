@@ -10,7 +10,7 @@ import { DateRangePicker } from "./components/date-range-picker";
 import { TransactionForm } from "./components/transaction-form";
 import { CsvImporter, REQUIRED_FIELDS, type FieldId } from "./components/csv-importer";
 import { TransactionsTable } from "./components/transactions-table";
-import { parseCurrency, parseDate, parseStatus } from "@/utils/csv";
+import { mapCsvRowsToTransactions } from "@/utils/csv";
 import { AppSheet } from "@/components/layout/app-sheet";
 import { trpc } from "@/lib/trpc";
 import { logger } from "@/lib/logger";
@@ -157,29 +157,7 @@ export function FinanceiroPage() {
         setIsImporting(true);
 
         try {
-            const reverseMap: Record<string, number> = {};
-            Object.entries(mappings).forEach(([colIdx, fieldId]) => {
-                if (fieldId !== "skip") {
-                    reverseMap[fieldId] = parseInt(colIdx, 10);
-                }
-            });
-
-            const payload = csvData.rows
-                .filter(row => row.some(cell => cell !== null && cell !== ""))
-                .map(row => {
-                    const rawAmount = String(row[reverseMap["amount"]] || "");
-                    const amount = parseCurrency(rawAmount);
-
-                    return {
-                        date: parseDate(String(row[reverseMap["date"]] || "")),
-                        description: String(row[reverseMap["description"]] || "Sem descrição"),
-                        category: String(row[reverseMap["category"]] || ""),
-                        amount: Math.abs(amount),
-                        type: (amount >= 0 ? "income" : "expense") as "income" | "expense",
-                        status: parseStatus(String(row[reverseMap["status"]] || "paid")),
-                    };
-                });
-
+            const payload = mapCsvRowsToTransactions(csvData.rows, mappings);
             await createManyMutation.mutateAsync(payload);
         } catch (err) {
             logger.error("Erro", err);

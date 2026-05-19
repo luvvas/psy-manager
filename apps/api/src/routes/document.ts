@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../trpc/index";
 import { documentService } from "../services/document.service";
 import { storageService } from "../services/storage.service";
@@ -23,7 +24,7 @@ export const documentRouter = router({
             if (!doc) return null;
 
             if (doc.storageKey) {
-                return { url: await storageService.createReadUrl(doc.storageKey) };
+                return { url: await storageService.createReadUrl(doc.storageKey, ctx.session.user.id) };
             }
 
             return { url: doc.content };
@@ -86,15 +87,23 @@ export const documentRouter = router({
         )
         .mutation(async ({ ctx, input }) => {
             const { id, ...data } = input;
-            return documentService.update(ctx.session.user.id, id, {
-                ...data,
-                patientId: data.patientId ?? undefined
-            });
+            try {
+                return await documentService.update(ctx.session.user.id, id, {
+                    ...data,
+                    patientId: data.patientId ?? undefined,
+                });
+            } catch (err: any) {
+                throw new TRPCError({ code: "NOT_FOUND", message: err.message });
+            }
         }),
 
     delete: protectedProcedure
         .input(z.object({ id: z.string().min(1) }))
         .mutation(async ({ ctx, input }) => {
-            return documentService.delete(ctx.session.user.id, input.id);
+            try {
+                return await documentService.delete(ctx.session.user.id, input.id);
+            } catch (err: any) {
+                throw new TRPCError({ code: "NOT_FOUND", message: err.message });
+            }
         }),
 });

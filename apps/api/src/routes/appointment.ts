@@ -1,11 +1,23 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../trpc/index";
 import { appointmentCommands } from "../cqrs/appointment/appointment.commands";
 import { appointmentQueries } from "../cqrs/appointment/appointment.queries";
 import { googleCalendarService } from "../services/google-calendar.service";
 import { db } from "../db";
-import { account } from "../db/schema";
+import { account, patient } from "../db/schema";
 import { eq, and } from "drizzle-orm";
+
+async function assertPatientOwnership(patientId: string, psychologistId: string) {
+    const [row] = await db
+        .select({ id: patient.id })
+        .from(patient)
+        .where(and(eq(patient.id, patientId), eq(patient.psychologistId, psychologistId)))
+        .limit(1);
+    if (!row) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Paciente não encontrado." });
+    }
+}
 
 export const appointmentRouter = router({
     list: protectedProcedure.query(async ({ ctx }) => {
@@ -27,6 +39,7 @@ export const appointmentRouter = router({
             })
         )
         .mutation(async ({ ctx, input }) => {
+            await assertPatientOwnership(input.patientId, ctx.session.user.id);
             const id = await appointmentCommands.schedule({
                 ...input,
                 psychologistId: ctx.session.user.id,
@@ -50,6 +63,7 @@ export const appointmentRouter = router({
             })
         )
         .mutation(async ({ ctx, input }) => {
+            await assertPatientOwnership(input.patientId, ctx.session.user.id);
             await appointmentCommands.reschedule({
                 ...input,
                 psychologistId: ctx.session.user.id,

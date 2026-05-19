@@ -15,6 +15,7 @@ import { appointmentProjections } from "./cqrs/appointment/appointment.projectio
 import { storageService } from "./services/storage.service";
 import { handleSignaling } from "./ws/signaling";
 import { getRedisClient } from "./lib/cache";
+import { eventBus } from "./lib/cqrs";
 
 // Initialize CQRS Projections/Subscribers
 patientProjections.init();
@@ -40,6 +41,15 @@ app.use(
 
 app.on(["POST", "GET"], "/api/auth/*", (c) => {
     return auth.handler(c.req.raw);
+});
+
+app.get("/api/health", (c) => {
+    const deadLetters = eventBus.getDeadLetters();
+    const healthy = deadLetters.length === 0;
+    return c.json(
+        { status: healthy ? "ok" : "degraded", deadLetters },
+        healthy ? 200 : 503
+    );
 });
 
 app.put("/api/storage/local-upload/:token", (c) => {

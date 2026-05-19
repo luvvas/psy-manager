@@ -8,6 +8,21 @@ import { decryptField } from "../../lib/encryption";
  * Queries read directly from the high-performance relational Projection tables (not replaying events),
  * fulfilling the main performance benefit of CQRS.
  */
+
+/**
+ * Decrypts the subset of patient fields that appear in join-query selections
+ * (nome, email, telefone). Use this in any query that joins with the patient
+ * table and selects only a summary — so encrypted fields are never forgotten.
+ */
+export function decryptPatientSummary<T extends { nome: string | null; email: string | null; telefone: string | null }>(row: T): T {
+    return {
+        ...row,
+        nome: decryptField(row.nome),
+        email: decryptField(row.email),
+        telefone: decryptField(row.telefone),
+    };
+}
+
 function decryptPatient<T extends Record<string, any>>(row: T): T {
     const decryptedDate = decryptField(row.dataNascimento as string);
     return {

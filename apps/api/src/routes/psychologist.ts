@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../trpc/index";
+import { router, protectedProcedure } from "../trpc/index";
 import { psychologistService } from "../services/psychologist.service";
 
 export const psychologistRouter = router({
@@ -25,7 +25,7 @@ export const psychologistRouter = router({
             return psychologistService.updateProfile(ctx.session.user.id, input);
         }),
 
-    list: publicProcedure.query(async () => {
+    list: protectedProcedure.query(async () => {
         return psychologistService.list();
     }),
 });

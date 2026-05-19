@@ -31,7 +31,7 @@ export const appointmentProjections = {
             googleEventId: googleEventId ?? null,
             createdAt: event.createdAt ?? new Date(),
             updatedAt: event.createdAt ?? new Date(),
-        });
+        }).onConflictDoNothing();
 
         console.log(`📈 Read Model Projected: Appointment Scheduled -> (${id})`);
     },

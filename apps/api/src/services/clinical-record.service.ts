@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { clinicalRecord } from "../db/schema";
+import { clinicalRecord, patient } from "../db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { encryptField, decryptField } from "../lib/encryption";
@@ -55,6 +55,16 @@ export const clinicalRecordService = {
             appointmentId?: string;
         }
     ) {
+        const [ownedPatient] = await db
+            .select({ id: patient.id })
+            .from(patient)
+            .where(and(eq(patient.id, data.patientId), eq(patient.psychologistId, psychologistId)))
+            .limit(1);
+
+        if (!ownedPatient) {
+            throw new Error("Paciente não encontrado.");
+        }
+
         const id = randomUUID();
         await db.insert(clinicalRecord).values({
             id,

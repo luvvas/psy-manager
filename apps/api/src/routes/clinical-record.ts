@@ -24,7 +24,7 @@ export const clinicalRecordRouter = router({
             if (!record) return null;
 
             if (record.storageKey) {
-                return { url: await storageService.createReadUrl(record.storageKey) };
+                return { url: await storageService.createReadUrl(record.storageKey, ctx.session.user.id) };
             }
 
             return { url: record.fileUrl };
@@ -63,7 +63,11 @@ export const clinicalRecordRouter = router({
             })
         )
         .mutation(async ({ ctx, input }) => {
-            return clinicalRecordService.create(ctx.session.user.id, input);
+            try {
+                return await clinicalRecordService.create(ctx.session.user.id, input);
+            } catch (err: any) {
+                throw new TRPCError({ code: "FORBIDDEN", message: err.message });
+            }
         }),
 
     update: protectedProcedure

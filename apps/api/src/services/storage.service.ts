@@ -18,6 +18,7 @@ import {
 } from "../utils/storage.utils";
 
 type UploadToken = {
+    psychologistId: string;
     storageKey: string;
     contentType: string;
     fileSize: number;
@@ -25,6 +26,7 @@ type UploadToken = {
 };
 
 type ReadToken = {
+    psychologistId: string;
     storageKey: string;
     expiresAt: number;
 };
@@ -76,6 +78,7 @@ export const storageService = {
         cleanupExpiredTokens();
         const token = randomUUID();
         uploadTokens.set(token, {
+            psychologistId,
             storageKey,
             contentType: input.contentType,
             fileSize: input.fileSize,
@@ -93,7 +96,7 @@ export const storageService = {
         };
     },
 
-    async createReadUrl(storageKey: string) {
+    async createReadUrl(storageKey: string, psychologistId: string) {
         const driver = getDriver();
 
         if (driver === "s3") {
@@ -112,6 +115,7 @@ export const storageService = {
         cleanupExpiredTokens();
         const token = randomUUID();
         readTokens.set(token, {
+            psychologistId,
             storageKey,
             expiresAt: Date.now() + URL_TTL_MS,
         });

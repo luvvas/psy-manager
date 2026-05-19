@@ -66,6 +66,14 @@ export const videoSessionService = {
             .from(videoSession)
             .innerJoin(user, eq(videoSession.psychologistId, user.id))
             .where(eq(videoSession.patientToken, hashToken(patientToken)));
-        return s ?? null;
+
+        if (!s) return null;
+
+        // Expose only the first name — enough for the patient join page UX
+        // without disclosing the full name via a public, token-gated endpoint.
+        return {
+            ...s,
+            psychologistName: s.psychologistName.split(" ")[0],
+        };
     },
 };

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../trpc/index";
 import { clinicService } from "../services/clinic.service";
 
@@ -36,7 +37,9 @@ export const clinicRouter = router({
         )
         .mutation(async ({ ctx, input }) => {
             const { id, ...data } = input;
-            return clinicService.update(ctx.session.user.id, id, data);
+            const result = await clinicService.update(ctx.session.user.id, id, data);
+            if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Clínica não encontrada." });
+            return result;
         }),
 
     delete: protectedProcedure
@@ -46,7 +49,9 @@ export const clinicRouter = router({
             })
         )
         .mutation(async ({ ctx, input }) => {
-            return clinicService.delete(ctx.session.user.id, input.id);
+            const result = await clinicService.delete(ctx.session.user.id, input.id);
+            if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Clínica não encontrada." });
+            return result;
         }),
 
     linkPsychologist: protectedProcedure
@@ -57,7 +62,11 @@ export const clinicRouter = router({
             })
         )
         .mutation(async ({ ctx, input }) => {
-            return clinicService.linkPsychologist(ctx.session.user.id, input.clinicId, input.psychologistEmail);
+            try {
+                return await clinicService.linkPsychologist(ctx.session.user.id, input.clinicId, input.psychologistEmail);
+            } catch (err: any) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: err.message });
+            }
         }),
 
     unlinkPsychologist: protectedProcedure
@@ -68,6 +77,10 @@ export const clinicRouter = router({
             })
         )
         .mutation(async ({ ctx, input }) => {
-            return clinicService.unlinkPsychologist(ctx.session.user.id, input.clinicId, input.psychologistId);
+            try {
+                return await clinicService.unlinkPsychologist(ctx.session.user.id, input.clinicId, input.psychologistId);
+            } catch (err: any) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: err.message });
+            }
         }),
 });

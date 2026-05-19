@@ -1,3 +1,6 @@
+import { z } from "zod";
+import type { FieldId } from "@/features/financeiro/components/csv-importer";
+
 export const parseCurrency = (val: string): number => {
     if (!val) return 0;
     // Remove everything except numbers, minus, comma and dot
@@ -30,7 +33,48 @@ export const parseDate = (val: string): Date => {
 };
 
 export const parseStatus = (val: string): "paid" | "pending" => {
-    const v = (val || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const v = (val || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
     if (v.includes("pag") || v.includes("rec") || v.includes("con") || v.includes("pai") || v.includes("done")) return "paid";
     return "pending";
 };
+
+export const transactionRowSchema = z.object({
+    date: z.date(),
+    description: z.string().min(1),
+    category: z.string(),
+    amount: z.number().nonnegative(),
+    type: z.enum(["income", "expense"]),
+    status: z.enum(["paid", "pending"]),
+});
+
+export type TransactionRow = z.infer<typeof transactionRowSchema>;
+
+/**
+ * Maps raw CSV rows to validated transaction objects using the user's column mappings.
+ * Throws if any row fails schema validation.
+ */
+export function mapCsvRowsToTransactions(
+    rows: any[][],
+    mappings: Record<string, FieldId | "skip">
+): TransactionRow[] {
+    const reverseMap: Record<string, number> = {};
+    Object.entries(mappings).forEach(([colIdx, fieldId]) => {
+        if (fieldId !== "skip") reverseMap[fieldId] = parseInt(colIdx, 10);
+    });
+
+    return rows
+        .filter((row) => row.some((cell) => cell !== null && cell !== ""))
+        .map((row) => {
+            const rawAmount = String(row[reverseMap["amount"]] ?? "");
+            const amount = parseCurrency(rawAmount);
+            const parsed = {
+                date: parseDate(String(row[reverseMap["date"]] ?? "")),
+                description: String(row[reverseMap["description"]] ?? "") || "Sem descrição",
+                category: String(row[reverseMap["category"]] ?? ""),
+                amount: Math.abs(amount),
+                type: (amount >= 0 ? "income" : "expense") as "income" | "expense",
+                status: parseStatus(String(row[reverseMap["status"]] ?? "paid")),
+            };
+            return transactionRowSchema.parse(parsed);
+        });
+}

@@ -194,10 +194,19 @@ export const cqrsEventStore = {
  */
 type EventSubscriber = (event: DomainEvent) => Promise<void> | void;
 
+type DeadLetter = {
+    eventType: string;
+    subscriberName: string;
+    failureCount: number;
+    lastError: string;
+    removedAt: Date;
+};
+
 export class EventBus {
     private static instance: EventBus;
     private subscribers: Map<string, Set<EventSubscriber>> = new Map();
     private failureCounts = new Map<EventSubscriber, number>();
+    private deadLetters: DeadLetter[] = [];
     private static readonly MAX_SUBSCRIBER_FAILURES = 5;
 
     private constructor() {}
@@ -230,6 +239,21 @@ export class EventBus {
     }
 
     /**
+     * Returns all subscribers that were removed after repeated failures.
+     * Use this to detect projection outages during health checks or startup.
+     */
+    public getDeadLetters(): DeadLetter[] {
+        return [...this.deadLetters];
+    }
+
+    /**
+     * Returns true if any projection subscriber has been evicted.
+     */
+    public hasDeadLetters(): boolean {
+        return this.deadLetters.length > 0;
+    }
+
+    /**
      * Publish an event to all interested subscribers.
      */
     public async publish(event: DomainEvent): Promise<void> {
@@ -245,12 +269,27 @@ export class EventBus {
             } catch (err) {
                 const failures = (this.failureCounts.get(sub) ?? 0) + 1;
                 if (failures >= EventBus.MAX_SUBSCRIBER_FAILURES) {
-                    console.error(`⚠️ Removing subscriber for "${event.type}" after ${failures} consecutive failures:`, err);
+                    const deadLetter: DeadLetter = {
+                        eventType: event.type,
+                        subscriberName: sub.name || "(anonymous)",
+                        failureCount: failures,
+                        lastError: err instanceof Error ? err.message : String(err),
+                        removedAt: new Date(),
+                    };
+                    this.deadLetters.push(deadLetter);
                     specificSubscribers.delete(sub);
                     globalSubscribers.delete(sub);
                     this.failureCounts.delete(sub);
+                    console.error(
+                        `[EventBus] CRITICAL: Subscriber "${deadLetter.subscriberName}" for "${event.type}" removed after ${failures} failures. ` +
+                        `Read-model projections may be inconsistent. Last error: ${deadLetter.lastError}`
+                    );
                 } else {
-                    console.error(`❌ Error in event subscriber for type "${event.type}" (${failures}/${EventBus.MAX_SUBSCRIBER_FAILURES}):`, err);
+                    console.error(
+                        `[EventBus] Subscriber "${sub.name || "(anonymous)"}" failed for "${event.type}" ` +
+                        `(${failures}/${EventBus.MAX_SUBSCRIBER_FAILURES}):`,
+                        err
+                    );
                     this.failureCounts.set(sub, failures);
                 }
             }

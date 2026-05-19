@@ -16,7 +16,7 @@ export function DocumentosPage() {
     const utils = trpc.useUtils();
 
     // Fetches only generic documents without direct patient links as per documentService filtering rules implicitly
-    const { data: dbDocs, refetch } = trpc.document.list.useQuery(
+    const { data: dbDocs } = trpc.document.list.useQuery(
         {},
         { retry: false }
     );
@@ -31,7 +31,7 @@ export function DocumentosPage() {
     const createMutation = trpc.document.create.useMutation({
         onSuccess: () => {
             toast.success("Documento criado com sucesso!");
-            refetch();
+            utils.document.list.invalidate();
             setSheetOpen(false);
         },
         onError: (err) => {
@@ -42,7 +42,7 @@ export function DocumentosPage() {
     const updateMutation = trpc.document.update.useMutation({
         onSuccess: () => {
             toast.success("Documento atualizado!");
-            refetch();
+            utils.document.list.invalidate();
             setSheetOpen(false);
             setEditingDoc(null);
         },
@@ -54,7 +54,7 @@ export function DocumentosPage() {
     const deleteMutation = trpc.document.delete.useMutation({
         onSuccess: () => {
             toast.success("Documento removido permanentemente.");
-            refetch();
+            utils.document.list.invalidate();
         },
         onError: (err) => {
             toast.error(`Erro ao excluir: ${err.message}`);

@@ -2,10 +2,10 @@ import { eq, inArray } from "drizzle-orm";
 import { db } from "../../db";
 import { appointment, patient, psychologistClinic, user } from "../../db/schema";
 import { decryptField } from "../../lib/encryption";
+import { decryptPatientSummary } from "../patient/patient.queries";
 
 export const appointmentQueries = {
     async list(psychologistId: string) {
-        // Find clinics of the current psychologist
         const psychologistClinics = await db
             .select({ clinicId: psychologistClinic.clinicId })
             .from(psychologistClinic)
@@ -13,7 +13,7 @@ export const appointmentQueries = {
 
         const clinicIds = psychologistClinics.map((c) => c.clinicId);
 
-        let sharedPsychologistIds = [psychologistId];
+        let sharedPsychologistIds: string[] = [];
 
         if (clinicIds.length > 0) {
             const sharedClinicsPsychologists = await db
@@ -22,14 +22,16 @@ export const appointmentQueries = {
                 .where(inArray(psychologistClinic.clinicId, clinicIds));
 
             sharedPsychologistIds = Array.from(
-                new Set([
-                    psychologistId,
-                    ...sharedClinicsPsychologists.map((p) => p.psychologistId),
-                ])
+                new Set(
+                    sharedClinicsPsychologists
+                        .map((p) => p.psychologistId)
+                        .filter((id) => id !== psychologistId)
+                )
             );
         }
 
-        const rows = await db
+        // Own appointments — full data including patient PII
+        const ownRows = await db
             .select({
                 id: appointment.id,
                 psychologistId: appointment.psychologistId,
@@ -59,18 +61,52 @@ export const appointmentQueries = {
             .from(appointment)
             .innerJoin(patient, eq(appointment.patientId, patient.id))
             .innerJoin(user, eq(appointment.psychologistId, user.id))
+            .where(eq(appointment.psychologistId, psychologistId));
+
+        const ownAppointments = ownRows.map((r) => ({
+            ...r,
+            isOwn: true as const,
+            notes: decryptField(r.notes),
+            patient: decryptPatientSummary(r.patient),
+        }));
+
+        if (sharedPsychologistIds.length === 0) {
+            return ownAppointments;
+        }
+
+        // Shared clinic appointments — slot info only; patient data must never cross ownership boundaries
+        const sharedRows = await db
+            .select({
+                id: appointment.id,
+                psychologistId: appointment.psychologistId,
+                date: appointment.date,
+                startTime: appointment.startTime,
+                endTime: appointment.endTime,
+                status: appointment.status,
+                sessionType: appointment.sessionType,
+                type: appointment.type,
+                isRecurring: appointment.isRecurring,
+                createdAt: appointment.createdAt,
+                updatedAt: appointment.updatedAt,
+                psychologist: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                },
+            })
+            .from(appointment)
+            .innerJoin(user, eq(appointment.psychologistId, user.id))
             .where(inArray(appointment.psychologistId, sharedPsychologistIds));
 
-        return rows.map((r) => ({
+        const sharedAppointments = sharedRows.map((r) => ({
             ...r,
-            notes: decryptField(r.notes),
-            patient: {
-                ...r.patient,
-                nome: decryptField(r.patient.nome),
-                email: decryptField(r.patient.email),
-                telefone: decryptField(r.patient.telefone),
-            },
+            patientId: null,
+            isOwn: false as const,
+            notes: null,
+            patient: null,
         }));
+
+        return [...ownAppointments, ...sharedAppointments];
     },
 };
 

@@ -2,6 +2,7 @@ import { eq, and } from "drizzle-orm";
 import { db } from "../db";
 import { account, patient, appointment } from "../db/schema";
 import { appointmentCommands } from "../cqrs/appointment/appointment.commands";
+import { decryptField } from "../lib/encryption";
 
 export const googleCalendarService = {
     /**
@@ -19,7 +20,7 @@ export const googleCalendarService = {
             );
 
         if (!googleAccount || !googleAccount.accessToken) {
-            console.log(`🔌 No Google Account linked for psychologist: ${userId}`);
+            console.log("[GoogleCalendar] No linked account found.");
             return null;
         }
 
@@ -28,9 +29,8 @@ export const googleCalendarService = {
 
         // Check if access token is expired or expires in the next 2 minutes
         if (expiresAt && now.getTime() >= expiresAt.getTime() - 120 * 1000) {
-            console.log(`🔄 Google Access Token expired for user ${userId}. Refreshing...`);
             if (!googleAccount.refreshToken) {
-                console.log(`⚠️ Refresh token missing for user ${userId}`);
+                console.warn("[GoogleCalendar] Refresh token missing — cannot renew access token.");
                 return null;
             }
 
@@ -64,10 +64,10 @@ export const googleCalendarService = {
                     })
                     .where(eq(account.id, googleAccount.id));
 
-                console.log(`✅ Google Access Token refreshed successfully for user ${userId}`);
+                console.log("[GoogleCalendar] Access token refreshed.");
                 return newAccessToken;
             } catch (err) {
-                console.error(`❌ Failed to refresh Google token:`, err);
+                console.error("[GoogleCalendar] Failed to refresh access token:", err);
                 return null;
             }
         }
@@ -128,14 +128,50 @@ export const googleCalendarService = {
 
             if (!start || !end) continue;
 
-            // Check if this event is already imported in our read-model
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+            const startTime = startDate.toTimeString().split(" ")[0].substring(0, 5);
+            const endTime = endDate.toTimeString().split(" ")[0].substring(0, 5);
+
+            // Check if this event is already imported — only look at own appointments
             const [existing] = await db
                 .select()
                 .from(appointment)
-                .where(eq(appointment.googleEventId, googleEventId));
+                .where(
+                    and(
+                        eq(appointment.googleEventId, googleEventId),
+                        eq(appointment.psychologistId, userId)
+                    )
+                );
 
             if (existing) {
-                skipped++;
+                // Update if date or time changed
+                const existingDateStr = new Date(existing.date).toISOString().split("T")[0];
+                const newDateStr = startDate.toISOString().split("T")[0];
+                const timeChanged =
+                    existingDateStr !== newDateStr ||
+                    existing.startTime !== startTime ||
+                    existing.endTime !== endTime;
+
+                if (timeChanged) {
+                    await appointmentCommands.reschedule({
+                        id: existing.id,
+                        psychologistId: userId,
+                        patientId: existing.patientId,
+                        date: startDate,
+                        startTime,
+                        endTime,
+                        status: existing.status,
+                        sessionType: existing.sessionType,
+                        type: existing.type,
+                        isRecurring: existing.isRecurring,
+                        notes: decryptField(existing.notes) ?? undefined,
+                        googleEventId,
+                    });
+                    imported++;
+                } else {
+                    skipped++;
+                }
                 continue;
             }
 
@@ -151,12 +187,6 @@ export const googleCalendarService = {
                 skipped++;
                 continue;
             }
-
-            const startDate = new Date(start);
-            const endDate = new Date(end);
-
-            const startTime = startDate.toTimeString().split(" ")[0].substring(0, 5); // "HH:MM"
-            const endTime = endDate.toTimeString().split(" ")[0].substring(0, 5); // "HH:MM"
 
             await appointmentCommands.schedule({
                 psychologistId: userId,

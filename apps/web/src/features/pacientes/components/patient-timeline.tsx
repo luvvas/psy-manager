@@ -24,7 +24,9 @@ const CATEGORY_ICONS: Record<string, any> = {
 export function PatientTimeline({ patientId }: PatientTimelineProps) {
     const [viewingDoc, setViewingDoc] = useState<any | null>(null);
 
-    const { data: records, refetch, isLoading } = trpc.clinicalRecord.list.useQuery(
+    const utils = trpc.useUtils();
+
+    const { data: records, isLoading } = trpc.clinicalRecord.list.useQuery(
         { patientId },
         { retry: false }
     );
@@ -36,7 +38,7 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
     const finalizeMutation = trpc.clinicalRecord.finalize.useMutation({
         onSuccess: () => {
             toast.success("Registro finalizado e assinado!");
-            refetch();
+            utils.clinicalRecord.list.invalidate({ patientId });
         },
         onError: (err) => {
             toast.error(`Erro ao finalizar: ${err.message}`);

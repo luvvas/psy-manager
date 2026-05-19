@@ -140,16 +140,16 @@ export function AgendamentoPage() {
                     email: app.psychologist.email,
                 } : undefined,
                 patient: {
-                    id: app.patient.id,
-                    name: app.patient.nome ?? "",
-                    email: app.patient.email ?? "",
-                    phone: app.patient.telefone ?? "",
-                    initials: (app.patient.nome ?? "")
+                    id: app.patient?.id ?? "",
+                    name: app.patient?.nome ?? "Consulta reservada",
+                    email: app.patient?.email ?? "",
+                    phone: app.patient?.telefone ?? "",
+                    initials: (app.patient?.nome ?? "")
                         .split(" ")
                         .map((n) => n[0])
                         .slice(0, 2)
                         .join("")
-                        .toUpperCase(),
+                        .toUpperCase() || "CR",
                 },
                 date: new Date(app.date),
                 startTime: app.startTime,

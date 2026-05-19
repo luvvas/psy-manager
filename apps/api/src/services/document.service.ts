@@ -93,6 +93,14 @@ export const documentService = {
             patientId?: string;
         }
     ) {
+        const [existing] = await db
+            .select({ id: document.id })
+            .from(document)
+            .where(and(eq(document.id, id), eq(document.psychologistId, psychologistId)))
+            .limit(1);
+
+        if (!existing) throw new Error("Documento não encontrado.");
+
         const encryptedData = {
             ...data,
             ...(data.title !== undefined && { title: encryptField(data.title) ?? data.title }),
@@ -100,20 +108,25 @@ export const documentService = {
         };
         await db
             .update(document)
-            .set({
-                ...encryptedData,
-                updatedAt: new Date(),
-            })
+            .set({ ...encryptedData, updatedAt: new Date() })
             .where(and(eq(document.id, id), eq(document.psychologistId, psychologistId)));
-        
+
         return { success: true };
     },
 
     async delete(psychologistId: string, id: string) {
+        const [existing] = await db
+            .select({ id: document.id })
+            .from(document)
+            .where(and(eq(document.id, id), eq(document.psychologistId, psychologistId)))
+            .limit(1);
+
+        if (!existing) throw new Error("Documento não encontrado.");
+
         await db
             .delete(document)
             .where(and(eq(document.id, id), eq(document.psychologistId, psychologistId)));
-        
+
         return { success: true };
     },
 };

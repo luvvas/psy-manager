@@ -44,6 +44,13 @@ export const psychologistService = {
     },
 
     async list() {
-        return db.select().from(user);
+        return db
+            .select({
+                id: user.id,
+                name: user.name,
+                crp: user.crp,
+                city: user.city,
+            })
+            .from(user);
     },
 };
