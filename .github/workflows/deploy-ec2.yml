@@ -12,7 +12,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Deploy to EC2 Instance
+      - name: Pull latest code on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -26,27 +26,55 @@ jobs:
             }
             git fetch --all
             git reset --hard origin/master
-            
-            # Garantir que o AWS CLI esteja instalado (o Ubuntu puro não vem com ele por padrão)
+
+      - name: Fetch secrets from AWS SSM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
             if ! command -v aws &> /dev/null; then
               sudo snap install aws-cli --classic
             fi
+            cat > ~/psy-manager/.env.prod << EOF
+            DATABASE_URL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/DATABASE_URL" --with-decryption --query "Parameter.Value" --output text)
+            BETTER_AUTH_SECRET=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/BETTER_AUTH_SECRET" --with-decryption --query "Parameter.Value" --output text)
+            GOOGLE_CLIENT_SECRET=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/GOOGLE_CLIENT_SECRET" --with-decryption --query "Parameter.Value" --output text)
+            STORAGE_DRIVER=s3
+            AWS_REGION=sa-east-1
+            AWS_DOCUMENTS_BUCKET=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/AWS_DOCUMENTS_BUCKET" --query "Parameter.Value" --output text)
+            PUBLIC_URL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/PUBLIC_URL" --query "Parameter.Value" --output text)
+            TURN_URL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/TURN_URL" --query "Parameter.Value" --output text)
+            TURN_USERNAME=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/TURN_USERNAME" --query "Parameter.Value" --output text)
+            TURN_CREDENTIAL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/TURN_CREDENTIAL" --with-decryption --query "Parameter.Value" --output text)
+            REDIS_URL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/REDIS_URL" --query "Parameter.Value" --output text)
+            EOF
 
-            # Buscando chaves confidenciais direto do cofre SSM usando o IAM Role do EC2
-            export DATABASE_URL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/DATABASE_URL" --with-decryption --query "Parameter.Value" --output text)
-            export BETTER_AUTH_SECRET=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/BETTER_AUTH_SECRET" --with-decryption --query "Parameter.Value" --output text)
-            export GOOGLE_CLIENT_SECRET=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/GOOGLE_CLIENT_SECRET" --with-decryption --query "Parameter.Value" --output text)
-            export STORAGE_DRIVER=s3
-            export AWS_REGION=sa-east-1
-            export AWS_DOCUMENTS_BUCKET=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/AWS_DOCUMENTS_BUCKET" --query "Parameter.Value" --output text)
-            export PUBLIC_URL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/PUBLIC_URL" --query "Parameter.Value" --output text)
-            export TURN_URL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/TURN_URL" --query "Parameter.Value" --output text)
-            export TURN_USERNAME=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/TURN_USERNAME" --query "Parameter.Value" --output text)
-            export TURN_CREDENTIAL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/TURN_CREDENTIAL" --with-decryption --query "Parameter.Value" --output text)
-            export REDIS_URL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/REDIS_URL" --query "Parameter.Value" --output text)
-
+      - name: Restart Docker services
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            cd ~/psy-manager
+            set -a && source .env.prod && set +a
             docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml up -d --build
+
+      - name: Run database migrations
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            cd ~/psy-manager
+            set -a && source .env.prod && set +a
             docker compose -f docker-compose.prod.yml exec -T api bun run db:migrate
 
   deploy-frontend:
