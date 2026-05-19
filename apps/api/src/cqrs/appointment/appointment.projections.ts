@@ -3,6 +3,7 @@ import { db } from "../../db";
 import { appointment } from "../../db/schema";
 import { eventBus } from "../../lib/cqrs";
 import type { DomainEvent } from "../../lib/cqrs";
+import { encryptField } from "../../lib/encryption";
 
 export const appointmentProjections = {
     init() {
@@ -26,7 +27,7 @@ export const appointmentProjections = {
             sessionType,
             type,
             isRecurring,
-            notes: notes ?? null,
+            notes: encryptField(notes ?? null),
             googleEventId: googleEventId ?? null,
             createdAt: event.createdAt ?? new Date(),
             updatedAt: event.createdAt ?? new Date(),
@@ -50,7 +51,7 @@ export const appointmentProjections = {
                 sessionType,
                 type,
                 isRecurring,
-                notes: notes ?? null,
+                notes: encryptField(notes ?? null),
                 googleEventId: googleEventId ?? null,
                 updatedAt: event.createdAt ?? new Date(),
             })

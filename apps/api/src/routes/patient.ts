@@ -3,17 +3,10 @@ import { router, protectedProcedure } from "../trpc/index";
 import { patientCommands } from "../cqrs/patient/patient.commands";
 import { patientQueries } from "../cqrs/patient/patient.queries";
 import { TRPCError } from "@trpc/server";
-import { getCachedPatients, setCachedPatients } from "../lib/cache";
 
 export const patientRouter = router({
     list: protectedProcedure.query(async ({ ctx }) => {
-        const psychologistId = ctx.session.user.id;
-        type PatientList = Awaited<ReturnType<typeof patientQueries.list>>;
-        const cached = await getCachedPatients<PatientList>(psychologistId);
-        if (cached) return cached;
-        const patients = await patientQueries.list(psychologistId);
-        await setCachedPatients(psychologistId, patients);
-        return patients;
+        return patientQueries.list(ctx.session.user.id);
     }),
 
     getById: protectedProcedure

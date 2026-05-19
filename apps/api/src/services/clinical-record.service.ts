@@ -2,20 +2,27 @@ import { db } from "../db";
 import { clinicalRecord } from "../db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { encryptField, decryptField } from "../lib/encryption";
 
 export const clinicalRecordService = {
     async list(psychologistId: string, filters?: { patientId?: string }) {
         let conditions = eq(clinicalRecord.psychologistId, psychologistId);
-        
+
         if (filters?.patientId) {
             conditions = and(conditions, eq(clinicalRecord.patientId, filters.patientId)) as any;
         }
 
-        return db
+        const rows = await db
             .select()
             .from(clinicalRecord)
             .where(conditions)
             .orderBy(desc(clinicalRecord.dateOfService));
+
+        return rows.map((r) => ({
+            ...r,
+            title: decryptField(r.title) ?? r.title,
+            textContent: decryptField(r.textContent),
+        }));
     },
 
     async getById(psychologistId: string, id: string) {
@@ -23,8 +30,13 @@ export const clinicalRecordService = {
             .select()
             .from(clinicalRecord)
             .where(and(eq(clinicalRecord.id, id), eq(clinicalRecord.psychologistId, psychologistId)));
-        
-        return record || null;
+
+        if (!record) return null;
+        return {
+            ...record,
+            title: decryptField(record.title) ?? record.title,
+            textContent: decryptField(record.textContent),
+        };
     },
 
     async create(
@@ -48,9 +60,9 @@ export const clinicalRecordService = {
             id,
             psychologistId,
             patientId: data.patientId,
-            title: data.title,
+            title: encryptField(data.title) ?? data.title,
             category: data.category || "evolucao",
-            textContent: data.textContent,
+            textContent: encryptField(data.textContent),
             fileUrl: data.fileUrl,
             storageKey: data.storageKey,
             fileName: data.fileName,
@@ -87,10 +99,15 @@ export const clinicalRecordService = {
         if (!record) throw new Error("Registro não encontrado");
         if (record.status === "finalized") throw new Error("Registros finalizados não podem ser alterados.");
 
+        const encryptedData = {
+            ...data,
+            ...(data.title !== undefined && { title: encryptField(data.title) ?? data.title }),
+            ...(data.textContent !== undefined && { textContent: encryptField(data.textContent) }),
+        };
         await db
             .update(clinicalRecord)
             .set({
-                ...data,
+                ...encryptedData,
                 updatedAt: new Date(),
             })
             .where(and(eq(clinicalRecord.id, id), eq(clinicalRecord.psychologistId, psychologistId)));

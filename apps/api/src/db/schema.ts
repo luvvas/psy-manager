@@ -27,7 +27,7 @@ export const patient = pgTable("patient", {
     nome: text("nome").notNull(),
     email: text("email").notNull(),
     telefone: text("telefone").notNull(),
-    dataNascimento: timestamp("data_nascimento").notNull(),
+    dataNascimento: text("data_nascimento").notNull(),
     cidade: text("cidade").notNull(),
     cpf: text("cpf").notNull(),
     psychologistId: text("psychologist_id")

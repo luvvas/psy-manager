@@ -1,6 +1,7 @@
 import { eq, asc, desc } from "drizzle-orm";
 import { db } from "../../db";
 import { eventStore } from "../../db/schema";
+import { encrypt, decrypt } from "../encryption";
 
 /**
  * Represents a domain event in the event sourcing system.
@@ -150,7 +151,7 @@ export const cqrsEventStore = {
                     aggregateType: event.aggregateType,
                     type: event.type,
                     version: event.version,
-                    data: event.data,
+                    data: { __enc: encrypt(JSON.stringify(event.data)) },
                     metadata: event.metadata,
                     createdAt: event.createdAt ?? new Date(),
                 });
@@ -168,16 +169,23 @@ export const cqrsEventStore = {
             .where(eq(eventStore.aggregateId, aggregateId))
             .orderBy(asc(eventStore.version));
 
-        return dbEvents.map((e) => ({
-            id: e.id,
-            aggregateId: e.aggregateId,
-            aggregateType: e.aggregateType,
-            type: e.type,
-            version: e.version,
-            data: e.data,
-            metadata: (e.metadata as Record<string, any>) ?? undefined,
-            createdAt: e.createdAt,
-        }));
+        return dbEvents.map((e) => {
+            const raw = e.data as Record<string, any>;
+            const data =
+                raw?.__enc != null
+                    ? JSON.parse(decrypt(raw.__enc as string))
+                    : raw;
+            return {
+                id: e.id,
+                aggregateId: e.aggregateId,
+                aggregateType: e.aggregateType,
+                type: e.type,
+                version: e.version,
+                data,
+                metadata: (e.metadata as Record<string, any>) ?? undefined,
+                createdAt: e.createdAt,
+            };
+        });
     },
 };
 

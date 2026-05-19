@@ -1,6 +1,7 @@
 import { eq, inArray } from "drizzle-orm";
 import { db } from "../../db";
 import { appointment, patient, psychologistClinic, user } from "../../db/schema";
+import { decryptField } from "../../lib/encryption";
 
 export const appointmentQueries = {
     async list(psychologistId: string) {
@@ -28,7 +29,7 @@ export const appointmentQueries = {
             );
         }
 
-        return db
+        const rows = await db
             .select({
                 id: appointment.id,
                 psychologistId: appointment.psychologistId,
@@ -59,6 +60,17 @@ export const appointmentQueries = {
             .innerJoin(patient, eq(appointment.patientId, patient.id))
             .innerJoin(user, eq(appointment.psychologistId, user.id))
             .where(inArray(appointment.psychologistId, sharedPsychologistIds));
+
+        return rows.map((r) => ({
+            ...r,
+            notes: decryptField(r.notes),
+            patient: {
+                ...r.patient,
+                nome: decryptField(r.patient.nome),
+                email: decryptField(r.patient.email),
+                telefone: decryptField(r.patient.telefone),
+            },
+        }));
     },
 };
 

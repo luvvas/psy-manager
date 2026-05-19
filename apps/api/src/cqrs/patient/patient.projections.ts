@@ -3,6 +3,7 @@ import { db } from "../../db";
 import { patient } from "../../db/schema";
 import { eventBus } from "../../lib/cqrs";
 import type { DomainEvent } from "../../lib/cqrs";
+import { encrypt, encryptField } from "../../lib/encryption";
 
 /**
  * Patient Projections (updates the Read Model optimized for fast querying)
@@ -34,28 +35,40 @@ export const patientProjections = {
         
         await db.insert(patient).values({
             id,
-            nome,
-            email,
-            telefone,
-            dataNascimento: new Date(dataNascimento),
+            nome: encrypt(nome),
+            email: encrypt(email),
+            telefone: encrypt(telefone),
+            dataNascimento: encrypt(new Date(dataNascimento).toISOString()),
             cidade,
-            cpf,
+            cpf: encrypt(cpf),
             psychologistId,
             valorSessao: valorSessao ? String(valorSessao) : null,
             modeloCobranca,
-            // Projections for extended survey fields
-            nomeSocial, rg, profissao, endereco, cep, uf, contatoEmergencia,
-            respLegalNome, respLegalParentesco, respLegalCpf, respLegalTelefone, respLegalEmail,
+            nomeSocial: encryptField(nomeSocial),
+            rg: encryptField(rg),
+            profissao: encryptField(profissao),
+            endereco: encryptField(endereco),
+            cep: encryptField(cep),
+            uf,
+            contatoEmergencia: encryptField(contatoEmergencia),
+            respLegalNome: encryptField(respLegalNome),
+            respLegalParentesco,
+            respLegalCpf: encryptField(respLegalCpf),
+            respLegalTelefone: encryptField(respLegalTelefone),
+            respLegalEmail: encryptField(respLegalEmail),
             servicoContratadoTipo,
             dataInicioAcompanhamento: dataInicioAcompanhamento ? new Date(dataInicioAcompanhamento) : null,
-            formaPagamento, formaPagamentoDetalhe,
-            responsavelFinanceiroTipo, responsavelFinanceiroDetalhe,
-            origemContato, origemContatoDetalhe,
+            formaPagamento: encryptField(formaPagamento),
+            formaPagamentoDetalhe: encryptField(formaPagamentoDetalhe),
+            responsavelFinanceiroTipo,
+            responsavelFinanceiroDetalhe: encryptField(responsavelFinanceiroDetalhe),
+            origemContato,
+            origemContatoDetalhe,
             createdAt: event.createdAt ?? new Date(),
             updatedAt: event.createdAt ?? new Date(),
         });
         
-        console.log(`📈 Read Model Projected: Patient Created -> ${nome} (${id})`);
+        console.log(`📈 Read Model Projected: Patient Created -> (${id})`);
     },
 
     /**
@@ -74,27 +87,39 @@ export const patientProjections = {
         await db
             .update(patient)
             .set({
-                nome,
-                email,
-                telefone,
-                dataNascimento: new Date(dataNascimento),
+                nome: encrypt(nome),
+                email: encrypt(email),
+                telefone: encrypt(telefone),
+                dataNascimento: encrypt(new Date(dataNascimento).toISOString()),
                 cidade,
-                cpf,
+                cpf: encrypt(cpf),
                 valorSessao: valorSessao ? String(valorSessao) : null,
                 modeloCobranca,
-                // Projection update for extended survey fields
-                nomeSocial, rg, profissao, endereco, cep, uf, contatoEmergencia,
-                respLegalNome, respLegalParentesco, respLegalCpf, respLegalTelefone, respLegalEmail,
+                nomeSocial: encryptField(nomeSocial),
+                rg: encryptField(rg),
+                profissao: encryptField(profissao),
+                endereco: encryptField(endereco),
+                cep: encryptField(cep),
+                uf,
+                contatoEmergencia: encryptField(contatoEmergencia),
+                respLegalNome: encryptField(respLegalNome),
+                respLegalParentesco,
+                respLegalCpf: encryptField(respLegalCpf),
+                respLegalTelefone: encryptField(respLegalTelefone),
+                respLegalEmail: encryptField(respLegalEmail),
                 servicoContratadoTipo,
                 dataInicioAcompanhamento: dataInicioAcompanhamento ? new Date(dataInicioAcompanhamento) : null,
-                formaPagamento, formaPagamentoDetalhe,
-                responsavelFinanceiroTipo, responsavelFinanceiroDetalhe,
-                origemContato, origemContatoDetalhe,
+                formaPagamento: encryptField(formaPagamento),
+                formaPagamentoDetalhe: encryptField(formaPagamentoDetalhe),
+                responsavelFinanceiroTipo,
+                responsavelFinanceiroDetalhe: encryptField(responsavelFinanceiroDetalhe),
+                origemContato,
+                origemContatoDetalhe,
                 updatedAt: event.createdAt ?? new Date(),
             })
             .where(eq(patient.id, id));
 
-        console.log(`📈 Read Model Projected: Patient Updated -> ${nome} (${id})`);
+        console.log(`📈 Read Model Projected: Patient Updated -> (${id})`);
     },
 
     /**

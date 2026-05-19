@@ -22,7 +22,7 @@ appointmentProjections.init();
 
 const app = new Hono();
 
-app.use("*", logger());
+if (process.env.NODE_ENV !== "production") app.use("*", logger());
 const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "http://localhost:5173")
     .split(",")
     .map((s) => s.trim())

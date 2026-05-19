@@ -1,6 +1,7 @@
 import { eq, and, between, desc } from "drizzle-orm";
 import { db } from "../db";
 import { financialTransaction, patient } from "../db/schema";
+import { encryptField, decryptField } from "../lib/encryption";
 
 export const financialService = {
     async list(psychologistId: string, filters: { startDate?: Date; endDate?: Date }) {
@@ -30,7 +31,12 @@ export const financialService = {
             )
             .orderBy(desc(financialTransaction.date));
 
-        return query;
+        const rows = await query;
+        return rows.map((r) => ({
+            ...r,
+            description: decryptField(r.description) ?? r.description,
+            patientNome: decryptField(r.patientNome),
+        }));
     },
 
     async create(
@@ -52,7 +58,7 @@ export const financialService = {
                 id,
                 psychologistId,
                 type: data.type,
-                description: data.description,
+                description: encryptField(data.description) ?? data.description,
                 amount: String(data.amount),
                 date: data.date,
                 category: data.category || null,
@@ -79,7 +85,7 @@ export const financialService = {
             id: crypto.randomUUID(),
             psychologistId,
             type: item.type,
-            description: item.description,
+            description: encryptField(item.description) ?? item.description,
             amount: String(item.amount),
             date: item.date,
             category: item.category || null,
@@ -113,6 +119,7 @@ export const financialService = {
             .update(financialTransaction)
             .set({
                 ...data,
+                description: data.description !== undefined ? (encryptField(data.description) ?? data.description) : undefined,
                 amount: data.amount !== undefined ? String(data.amount) : undefined,
                 category: data.category === undefined ? undefined : (data.category || null),
                 patientId: data.patientId === undefined ? undefined : (data.patientId || null),
