@@ -142,8 +142,8 @@ export function AgendamentoPage() {
                 patient: {
                     id: app.patient.id,
                     name: app.patient.nome ?? "",
-                    email: app.patient.email,
-                    phone: app.patient.telefone,
+                    email: app.patient.email ?? "",
+                    phone: app.patient.telefone ?? "",
                     initials: (app.patient.nome ?? "")
                         .split(" ")
                         .map((n) => n[0])
