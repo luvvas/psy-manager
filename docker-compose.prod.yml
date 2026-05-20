@@ -1,10 +1,4 @@
 services:
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-
   api:
     build:
       context: .
@@ -28,5 +22,4 @@ services:
       TURN_URL: ${TURN_URL}
       TURN_USERNAME: ${TURN_USERNAME}
       TURN_CREDENTIAL: ${TURN_CREDENTIAL}
-      REDIS_URL: ${REDIS_URL}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}

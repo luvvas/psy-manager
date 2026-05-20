@@ -1,6 +1,5 @@
 import { cqrsEventStore, eventBus } from "../../lib/cqrs";
 import { PatientAggregate } from "./patient.aggregate";
-import { invalidatePatientCache } from "../../lib/cache";
 
 export interface CreatePatientCommand {
     nome: string;
@@ -97,8 +96,6 @@ export const patientCommands = {
         // 4. Clear uncommitted events
         aggregate.clearUncommittedEvents();
 
-        await invalidatePatientCache(command.psychologistId);
-
         return id;
     },
 
@@ -136,8 +133,6 @@ export const patientCommands = {
         await eventBus.publishAll(aggregate.uncommittedEvents);
 
         aggregate.clearUncommittedEvents();
-
-        await invalidatePatientCache(command.psychologistId);
     },
 
     /**
@@ -163,7 +158,5 @@ export const patientCommands = {
         await cqrsEventStore.saveEvents(command.id, expectedVersion, aggregate.uncommittedEvents);
         await eventBus.publishAll(aggregate.uncommittedEvents);
         aggregate.clearUncommittedEvents();
-
-        await invalidatePatientCache(command.psychologistId);
     },
 };

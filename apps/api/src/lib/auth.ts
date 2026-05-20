@@ -2,25 +2,6 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { db } from "../db";
 import * as schema from "../db/schema";
-import { getRedisClient } from "./cache";
-
-function buildSecondaryStorage() {
-    const redis = getRedisClient();
-    if (!redis) return undefined;
-    return {
-        get: (key: string) => redis.get(key),
-        set: async (key: string, value: string, ttl?: number) => {
-            if (ttl) {
-                await redis.set(key, value, "EX", ttl);
-            } else {
-                await redis.set(key, value);
-            }
-        },
-        delete: async (key: string) => {
-            await redis.del(key);
-        },
-    };
-}
 
 export const auth = betterAuth({
     database: drizzleAdapter(db, {
@@ -29,7 +10,6 @@ export const auth = betterAuth({
             ...schema,
         },
     }),
-    secondaryStorage: buildSecondaryStorage(),
     emailAndPassword: {
         enabled: true,
     },
