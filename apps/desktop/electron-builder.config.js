@@ -36,9 +36,10 @@ module.exports = {
     {
       from: "../web/dist",
       to: "web-dist",
-      filter: ["**/*"],
+      filter: ["**/*", "!**/*.map"],
     },
   ],
+  compression: "maximum",
   win: {
     target: "nsis",
     artifactName: "psy-manager-setup.exe",
