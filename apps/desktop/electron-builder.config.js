@@ -1,11 +1,37 @@
 /** @type {import('electron-builder').Configuration} */
+
+// electron-updater and its full transitive dependency tree,
+// sourced from the bun workspace root node_modules to avoid
+// electron-builder trying to invoke bun (which fails in CI).
+const updaterModules = [
+  "electron-updater",
+  "builder-util-runtime",
+  "debug",
+  "ms",
+  "sax",
+  "fs-extra",
+  "graceful-fs",
+  "jsonfile",
+  "universalify",
+  "js-yaml",
+  "argparse",
+  "lazy-val",
+  "lodash.escaperegexp",
+  "lodash.isequal",
+  "semver",
+  "tiny-typed-emitter",
+].map((name) => ({
+  from: `../../node_modules/${name}`,
+  to: `node_modules/${name}`,
+}));
+
 module.exports = {
   appId: "br.com.psy-manager",
   productName: "Psy Manager",
   directories: {
     output: "dist-package",
   },
-  files: ["dist/**/*"],
+  files: ["dist/**/*", ...updaterModules],
   extraResources: [
     {
       from: "../web/dist",
