@@ -28,6 +28,7 @@ function Root() {
         httpBatchLink({
           url: `${import.meta.env.VITE_API_URL || ""}/trpc`,
           transformer: superjson,
+          fetch: (url, options) => fetch(url, { ...options, credentials: "include" }),
         }),
       ],
     })
