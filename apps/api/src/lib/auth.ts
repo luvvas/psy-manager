@@ -39,6 +39,10 @@ export const auth = betterAuth({
         useSecureCookies: process.env.NODE_ENV === "production",
     },
     defaultCookieAttributes: {
-        sameSite: "lax", // Allows cookies to be sent back during Google GET callback on HTTP
+        // "none" required in production so the Electron desktop app (app://localhost)
+        // can send cookies to the cloud API cross-origin. Requires Secure=true, which
+        // useSecureCookies already sets in production. Dev keeps "lax" because local
+        // HTTP doesn't support Secure cookies and both origins are localhost anyway.
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     },
 });
