@@ -218,6 +218,18 @@ export const videoSession = pgTable("video_session", {
     endedAt: timestamp("ended_at"),
 });
 
+export const feedback = pgTable("feedback", {
+    id: text("id").primaryKey(),
+    psychologistId: text("psychologist_id")
+        .notNull()
+        .references(() => user.id, { onDelete: "cascade" }),
+    message: text("message").notNull(),
+    page: text("page").notNull(),
+    category: text("category").notNull(), // confuso | nao_funciona | sugestao | outro
+    screenshotBase64: text("screenshot_base64"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const clinicalRecord = pgTable("clinical_record", {
     id: text("id").primaryKey(),
     psychologistId: text("psychologist_id")

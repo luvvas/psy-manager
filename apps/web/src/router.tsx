@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
+import { NotFoundPage } from "@/pages/not-found";
 import { AppLayout } from "@/components/layout/app-layout";
 import { AgendamentoPage } from "@/features/agendamento";
 import { PacientesPage, PatientDetailsPage } from "@/features/pacientes";
@@ -126,8 +127,16 @@ export const router = createBrowserRouter([
                             />
                         ),
                     },
+                    {
+                        path: "*",
+                        element: <NotFoundPage />,
+                    },
                 ],
             },
         ],
+    },
+    {
+        path: "*",
+        element: <Navigate to="/" replace />,
     },
 ]);

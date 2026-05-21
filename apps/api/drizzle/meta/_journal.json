@@ -92,6 +92,20 @@
       "when": 1779161460411,
       "tag": "0012_mean_beast",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1779343716768,
+      "tag": "0013_open_white_tiger",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1779344314406,
+      "tag": "0014_dashing_yellowjacket",
+      "breakpoints": true
     }
   ]
 }

@@ -1,13 +1,13 @@
-import { useState } from "react";
 import { AppHeader } from "@/components/layout/app-header";
-import { Button } from "@/components/ui/button";
-import { FileText, Plus, ArrowLeft, Download, Files } from "lucide-react";
 import { AppSheet } from "@/components/layout/app-sheet";
+import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
+import { uploadFileToTarget } from "@/utils/upload";
+import { ArrowLeft, Download, Files, FileText, Plus } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { GenericDocumentForm } from "./components/generic-document-form";
 import { GenericDocumentsTable, type DBGenericDocument } from "./components/generic-documents-table";
-import { uploadFileToTarget } from "@/utils/upload";
 
 export function DocumentosPage() {
     const [isSheetOpen, setSheetOpen] = useState(false);
@@ -164,19 +164,17 @@ export function DocumentosPage() {
                         </>
                     }
                 />
-                <div className="flex-1 flex flex-col h-[calc(100vh-120px)] rounded-lg overflow-hidden border bg-muted/5 mx-4 mb-4 lg:mx-6">
-                    {(downloadData?.url || viewingDoc.content) ? (
-                        <iframe
-                            src={`${downloadData?.url || viewingDoc.content}#toolbar=0`}
-                            className="w-full h-full border-none"
-                            title={viewingDoc.title}
-                        />
-                    ) : (
-                        <div className="flex items-center justify-center h-full bg-muted/30 border rounded-lg border-dashed">
-                            <p className="text-muted-foreground">Nenhum conteúdo encontrado para este arquivo.</p>
-                        </div>
-                    )}
-                </div>
+                {(downloadData?.url || viewingDoc.content) ? (
+                    <iframe
+                        src={`${downloadData?.url || viewingDoc.content}#toolbar=0`}
+                        className="w-full h-full border-none"
+                        title={viewingDoc.title}
+                    />
+                ) : (
+                    <div className="flex items-center justify-center h-full bg-muted/30 border rounded-lg border-dashed">
+                        <p className="text-muted-foreground">Nenhum conteúdo encontrado para este arquivo.</p>
+                    </div>
+                )}
             </>
         );
     }

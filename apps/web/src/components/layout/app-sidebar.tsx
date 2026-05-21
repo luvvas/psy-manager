@@ -1,15 +1,5 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-    CalendarDays,
-    DollarSign,
-    FileText,
-    FlaskConical,
-    Search,
-    Brain,
-    LogOut,
-    Users,
-    Building2,
-} from "lucide-react";
+import { AppSheet } from "@/components/layout/app-sheet";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
     Sidebar,
     SidebarContent,
@@ -25,10 +15,22 @@ import {
     SidebarSeparator,
     SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { signOut, useSession } from "@/lib/auth-client";
+import {
+    Brain,
+    Building2,
+    CalendarDays,
+    DollarSign,
+    FileText,
+    FlaskConical,
+    LogOut,
+    MessageSquareDot,
+    Search,
+    Users,
+} from "lucide-react";
 import { useState } from "react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useSession, signOut } from "@/lib/auth-client";
-import { AppSheet } from "@/components/layout/app-sheet";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { FeedbackDialog } from "./feedback-dialog";
 import { ProfileForm } from "./profile-form";
 
 const NAV_ITEMS = [
@@ -155,6 +157,14 @@ export function AppSidebar() {
 
                 <SidebarFooter>
                     <SidebarMenu>
+                        <SidebarMenuItem>
+                            <FeedbackDialog>
+                                <SidebarMenuButton className="mb-2" tooltip="Enviar feedback">
+                                    <MessageSquareDot />
+                                    <span>Enviar feedback</span>
+                                </SidebarMenuButton>
+                            </FeedbackDialog>
+                        </SidebarMenuItem>
                         <SidebarMenuItem>
                             <div className="flex items-center w-full group-data-[collapsible=icon]:flex-col gap-1 p-0">
                                 <SidebarMenuButton
