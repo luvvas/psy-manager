@@ -1,4 +1,4 @@
-import { app, BrowserWindow, protocol, net, dialog } from "electron";
+import { app, BrowserWindow, protocol, net, dialog, session } from "electron";
 import path from "path";
 import { pathToFileURL } from "url";
 import fs from "fs";
@@ -63,6 +63,23 @@ function setupAutoUpdater(win: BrowserWindow): void {
 }
 
 app.whenReady().then(() => {
+  // Rewrite Set-Cookie headers from the cloud API so cookies are stored and sent
+  // cross-origin from app://localhost. Chromium won't send SameSite=Lax cookies
+  // for cross-site requests; forcing SameSite=None;Secure fixes session persistence.
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const headers = { ...details.responseHeaders };
+    const key = Object.keys(headers).find((k) => k.toLowerCase() === "set-cookie");
+    if (key) {
+      headers[key] = headers[key].map((cookie) => {
+        let c = cookie.replace(/;\s*SameSite=\w+/gi, "");
+        c += "; SameSite=None";
+        if (!/;\s*Secure/i.test(c)) c += "; Secure";
+        return c;
+      });
+    }
+    callback({ responseHeaders: headers });
+  });
+
   if (app.isPackaged) {
     const webDistPath = path.join(process.resourcesPath, "web-dist");
 
