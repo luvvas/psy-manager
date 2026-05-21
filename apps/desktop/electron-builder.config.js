@@ -56,5 +56,6 @@ module.exports = {
     bucket: "psy-manager-releases",
     region: "sa-east-1",
     path: "/",
+    acl: null,
   },
 };
