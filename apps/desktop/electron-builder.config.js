@@ -15,6 +15,7 @@ module.exports = {
   ],
   win: {
     target: "nsis",
+    artifactName: "psy-manager-setup.exe",
     // icon: "assets/icon.ico", // adicionar ícone 256x256 ICO aqui
   },
   nsis: {

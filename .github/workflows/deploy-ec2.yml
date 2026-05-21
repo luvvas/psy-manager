@@ -26,6 +26,39 @@ jobs:
       - name: Build API
         run: bun run build:api
 
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    needs: quality-gate
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build Frontend
+        env:
+          VITE_API_URL: https://dswfc48bg9ft6.cloudfront.net
+          VITE_DESKTOP_DOWNLOAD_URL: https://psy-manager-releases.s3.sa-east-1.amazonaws.com/psy-manager-setup.exe
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        run: bun run --cwd apps/web build
+
+      - name: Upload web dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: apps/web/dist/
+          retention-days: 1
+
   deploy-backend:
     name: Deploy to EC2 via SSH
     runs-on: ubuntu-latest
@@ -106,29 +139,15 @@ jobs:
             docker compose -f docker-compose.prod.yml exec -T api bun run db:migrate
 
   deploy-frontend:
-    name: Build & Sync Frontend to S3
+    name: Sync Frontend to S3
     runs-on: ubuntu-latest
-    needs: quality-gate
+    needs: build-frontend
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+      - name: Download web dist artifact
+        uses: actions/download-artifact@v4
         with:
-          bun-version: latest
-
-      - name: Install Dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Build Frontend
-        env:
-          VITE_API_URL: https://dswfc48bg9ft6.cloudfront.net
-          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-        run: bun run --cwd apps/web build
+          name: web-dist
+          path: apps/web/dist
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -159,7 +178,7 @@ jobs:
   deploy-desktop:
     name: Build & Release Desktop App
     runs-on: windows-latest
-    needs: quality-gate
+    needs: build-frontend
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -172,14 +191,11 @@ jobs:
       - name: Install Dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build Frontend for Desktop
-        env:
-          VITE_API_URL: https://dswfc48bg9ft6.cloudfront.net
-          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-        run: bun run --cwd apps/web build
+      - name: Download web dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: apps/web/dist
 
       - name: Build & Publish Desktop App to S3
         env:
