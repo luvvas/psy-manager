@@ -8,6 +8,7 @@ import { FinanceiroPage } from "@/features/financeiro";
 import { DocumentosPage } from "@/features/documentos";
 import { ComingSoonPage } from "@/pages/coming-soon";
 import { AuthPage } from "@/features/auth/page";
+import { ResetPasswordPage } from "@/features/auth/reset-password-page";
 import { AuthGuard, PublicOnlyGuard } from "@/features/auth/auth-guard";
 import { GoogleCallbackPage } from "@/pages/google-callback";
 import { PsychologistPage, JoinPage } from "@/features/consulta";
@@ -28,6 +29,10 @@ export const router = createBrowserRouter([
                 element: <AuthPage />,
             },
         ],
+    },
+    {
+        path: "/redefinir-senha",
+        element: <ResetPasswordPage />,
     },
     {
         // Public patient join page — no auth required, no sidebar

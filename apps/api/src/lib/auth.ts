@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { db } from "../db";
 import * as schema from "../db/schema";
+import { emailService } from "../services/email.service";
 
 export const auth = betterAuth({
     database: drizzleAdapter(db, {
@@ -12,6 +13,9 @@ export const auth = betterAuth({
     }),
     emailAndPassword: {
         enabled: true,
+        sendResetPassword: async ({ user, url }) => {
+            await emailService.sendPasswordReset(user.email, url);
+        },
     },
     user: {
         additionalFields: {

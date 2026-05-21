@@ -125,6 +125,12 @@ jobs:
             ENCRYPTION_KEY=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/ENCRYPTION_KEY" --with-decryption --query "Parameter.Value" --output text)
             SENTRY_DSN=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/SENTRY_DSN" --query "Parameter.Value" --output text)
             ALLOWED_ORIGINS=https://dswfc48bg9ft6.cloudfront.net,app://localhost
+            SMTP_HOST=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/SMTP_HOST" --query "Parameter.Value" --output text)
+            SMTP_PORT=587
+            SMTP_SECURE=false
+            SMTP_USER=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/SMTP_USER" --query "Parameter.Value" --output text)
+            SMTP_PASS=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/SMTP_PASS" --with-decryption --query "Parameter.Value" --output text)
+            SMTP_FROM=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/SMTP_FROM" --query "Parameter.Value" --output text)
             EOF
 
       - name: Restart Docker services

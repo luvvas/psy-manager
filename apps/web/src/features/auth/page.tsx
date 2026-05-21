@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Brain, Download, Loader2 } from "lucide-react";
+import { Brain, Download, Loader2, ArrowLeft } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod/v3";
@@ -10,12 +10,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { signIn, signUp } from "@/lib/auth-client";
+import { signIn, signUp, requestPasswordReset } from "@/lib/auth-client";
 import { formatCRP } from "@/utils/format";
 
 const loginSchema = z.object({
     email: z.string().min(1, "O email é obrigatório").email("Formato de email inválido"),
     password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
+});
+
+const forgotSchema = z.object({
+    email: z.string().min(1, "O email é obrigatório").email("Formato de email inválido"),
 });
 
 const registerSchema = z.object({
@@ -29,6 +33,8 @@ const registerSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
+type ForgotFormValues = z.infer<typeof forgotSchema>;
+type View = "auth" | "forgot" | "forgot-sent";
 
 import { toast } from "sonner";
 
@@ -36,6 +42,7 @@ export function AuthPage() {
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [view, setView] = useState<View>("auth");
 
     const {
         register: registerLogin,
@@ -68,6 +75,33 @@ export function AuthPage() {
     });
 
     const crpWatch = watchRegister("crp");
+
+    const {
+        register: registerForgot,
+        handleSubmit: handleSubmitForgot,
+        formState: { errors: forgotErrors },
+    } = useForm<ForgotFormValues>({
+        resolver: zodResolver(forgotSchema),
+        defaultValues: { email: "" },
+    });
+
+    const handleForgot = async (data: ForgotFormValues) => {
+        setIsLoading(true);
+        setError(null);
+
+        const { error } = await requestPasswordReset({
+            email: data.email,
+            redirectTo: `${window.location.origin}/redefinir-senha`,
+        });
+
+        setIsLoading(false);
+
+        if (error) {
+            setError(error.message || "Erro ao solicitar redefinição de senha");
+        } else {
+            setView("forgot-sent");
+        }
+    };
 
     const handleLogin = async (data: LoginFormValues) => {
         setIsLoading(true);
@@ -123,144 +157,216 @@ export function AuthPage() {
             </div>
 
             <Card className="w-full max-w-md shadow-xl border-t-4 border-t-primary">
-                <Tabs defaultValue="login" className="w-full">
-                    <CardHeader className="pb-4">
-                        <TabsList className="grid w-full grid-cols-2 mb-2">
-                            <TabsTrigger value="login">Entrar</TabsTrigger>
-                            <TabsTrigger value="register">Cadastrar</TabsTrigger>
-                        </TabsList>
-                        {error && (
-                            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md mb-2 font-medium">
-                                {error}
-                            </div>
-                        )}
-                    </CardHeader>
-                    <CardContent>
-                        <TabsContent value="login" className="mt-0">
-                            <form onSubmit={handleSubmitLogin(handleLogin)} className="space-y-4">
+                {view === "forgot" ? (
+                    <>
+                        <CardHeader className="pb-4">
+                            <button
+                                type="button"
+                                onClick={() => { setView("auth"); setError(null); }}
+                                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3"
+                            >
+                                <ArrowLeft className="size-4" />
+                                Voltar para o login
+                            </button>
+                            <h2 className="text-lg font-semibold">Recuperar senha</h2>
+                            <p className="text-sm text-muted-foreground">
+                                Informe seu email e enviaremos um link para redefinir sua senha.
+                            </p>
+                            {error && (
+                                <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md font-medium">
+                                    {error}
+                                </div>
+                            )}
+                        </CardHeader>
+                        <CardContent>
+                            <form onSubmit={handleSubmitForgot(handleForgot)} className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="email">Email</Label>
+                                    <Label htmlFor="forgot-email">Email</Label>
                                     <Input
-                                        id="email"
+                                        id="forgot-email"
                                         type="email"
                                         placeholder="psicologo@email.com"
                                         disabled={isLoading}
-                                        {...registerLogin("email")}
+                                        {...registerForgot("email")}
                                     />
-                                    {loginErrors.email && (
-                                        <p className="text-xs text-destructive">{loginErrors.email.message}</p>
-                                    )}
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="password">Senha</Label>
-                                    <Input
-                                        id="password"
-                                        type="password"
-                                        disabled={isLoading}
-                                        {...registerLogin("password")}
-                                    />
-                                    {loginErrors.password && (
-                                        <p className="text-xs text-destructive">{loginErrors.password.message}</p>
+                                    {forgotErrors.email && (
+                                        <p className="text-xs text-destructive">{forgotErrors.email.message}</p>
                                     )}
                                 </div>
                                 <Button type="submit" className="w-full" disabled={isLoading}>
                                     {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
-                                    Entrar
+                                    Enviar link de redefinição
                                 </Button>
                             </form>
-                        </TabsContent>
+                        </CardContent>
+                    </>
+                ) : view === "forgot-sent" ? (
+                    <>
+                        <CardHeader className="pb-4">
+                            <h2 className="text-lg font-semibold">Email enviado</h2>
+                            <p className="text-sm text-muted-foreground">
+                                Se esse email estiver cadastrado, você receberá um link para redefinir sua senha em instantes.
+                            </p>
+                        </CardHeader>
+                        <CardContent>
+                            <Button
+                                variant="outline"
+                                className="w-full"
+                                onClick={() => { setView("auth"); setError(null); }}
+                            >
+                                Voltar para o login
+                            </Button>
+                        </CardContent>
+                    </>
+                ) : (
+                    <Tabs defaultValue="login" className="w-full">
+                        <CardHeader className="pb-4">
+                            <TabsList className="grid w-full grid-cols-2 mb-2">
+                                <TabsTrigger value="login">Entrar</TabsTrigger>
+                                <TabsTrigger value="register">Cadastrar</TabsTrigger>
+                            </TabsList>
+                            {error && (
+                                <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md mb-2 font-medium">
+                                    {error}
+                                </div>
+                            )}
+                        </CardHeader>
+                        <CardContent>
+                            <TabsContent value="login" className="mt-0">
+                                <form onSubmit={handleSubmitLogin(handleLogin)} className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="email">Email</Label>
+                                        <Input
+                                            id="email"
+                                            type="email"
+                                            placeholder="psicologo@email.com"
+                                            disabled={isLoading}
+                                            {...registerLogin("email")}
+                                        />
+                                        {loginErrors.email && (
+                                            <p className="text-xs text-destructive">{loginErrors.email.message}</p>
+                                        )}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <Label htmlFor="password">Senha</Label>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setView("forgot"); setError(null); }}
+                                                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                            >
+                                                Esqueci minha senha
+                                            </button>
+                                        </div>
+                                        <Input
+                                            id="password"
+                                            type="password"
+                                            disabled={isLoading}
+                                            {...registerLogin("password")}
+                                        />
+                                        {loginErrors.password && (
+                                            <p className="text-xs text-destructive">{loginErrors.password.message}</p>
+                                        )}
+                                    </div>
+                                    <Button type="submit" className="w-full" disabled={isLoading}>
+                                        {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+                                        Entrar
+                                    </Button>
+                                </form>
+                            </TabsContent>
 
-                        <TabsContent value="register" className="mt-0">
-                            <form onSubmit={handleSubmitRegister(handleRegister)} className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="reg-name">Nome Completo</Label>
-                                    <Input
-                                        id="reg-name"
-                                        placeholder="João Silva"
-                                        disabled={isLoading}
-                                        {...registerRegister("name")}
-                                    />
-                                    {registerErrors.name && (
-                                        <p className="text-xs text-destructive">{registerErrors.name.message}</p>
-                                    )}
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
+                            <TabsContent value="register" className="mt-0">
+                                <form onSubmit={handleSubmitRegister(handleRegister)} className="space-y-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="reg-crp">CRP</Label>
+                                        <Label htmlFor="reg-name">Nome Completo</Label>
                                         <Input
-                                            id="reg-crp"
-                                            placeholder="00/000000"
+                                            id="reg-name"
+                                            placeholder="João Silva"
                                             disabled={isLoading}
-                                            value={crpWatch}
-                                            onChange={(e) => {
-                                                setRegisterValue("crp", formatCRP(e.target.value), {
-                                                    shouldValidate: true,
-                                                });
-                                            }}
+                                            {...registerRegister("name")}
                                         />
-                                        {registerErrors.crp && (
-                                            <p className="text-xs text-destructive">{registerErrors.crp.message}</p>
+                                        {registerErrors.name && (
+                                            <p className="text-xs text-destructive">{registerErrors.name.message}</p>
+                                        )}
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="reg-crp">CRP</Label>
+                                            <Input
+                                                id="reg-crp"
+                                                placeholder="00/000000"
+                                                disabled={isLoading}
+                                                value={crpWatch}
+                                                onChange={(e) => {
+                                                    setRegisterValue("crp", formatCRP(e.target.value), {
+                                                        shouldValidate: true,
+                                                    });
+                                                }}
+                                            />
+                                            {registerErrors.crp && (
+                                                <p className="text-xs text-destructive">{registerErrors.crp.message}</p>
+                                            )}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="reg-phone">Celular</Label>
+                                            <Input
+                                                id="reg-phone"
+                                                placeholder="(00) 00000-0000"
+                                                disabled={isLoading}
+                                                {...registerRegister("phone")}
+                                            />
+                                            {registerErrors.phone && (
+                                                <p className="text-xs text-destructive">{registerErrors.phone.message}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="reg-city">Cidade / Estado</Label>
+                                        <Input
+                                            id="reg-city"
+                                            placeholder="Curitiba - PR"
+                                            disabled={isLoading}
+                                            {...registerRegister("city")}
+                                        />
+                                        {registerErrors.city && (
+                                            <p className="text-xs text-destructive">{registerErrors.city.message}</p>
                                         )}
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="reg-phone">Celular</Label>
+                                        <Label htmlFor="reg-email">Email</Label>
                                         <Input
-                                            id="reg-phone"
-                                            placeholder="(00) 00000-0000"
+                                            id="reg-email"
+                                            type="email"
+                                            placeholder="psicologo@email.com"
                                             disabled={isLoading}
-                                            {...registerRegister("phone")}
+                                            {...registerRegister("email")}
                                         />
-                                        {registerErrors.phone && (
-                                            <p className="text-xs text-destructive">{registerErrors.phone.message}</p>
+                                        {registerErrors.email && (
+                                            <p className="text-xs text-destructive">{registerErrors.email.message}</p>
                                         )}
                                     </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="reg-city">Cidade / Estado</Label>
-                                    <Input
-                                        id="reg-city"
-                                        placeholder="Curitiba - PR"
-                                        disabled={isLoading}
-                                        {...registerRegister("city")}
-                                    />
-                                    {registerErrors.city && (
-                                        <p className="text-xs text-destructive">{registerErrors.city.message}</p>
-                                    )}
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="reg-email">Email</Label>
-                                    <Input
-                                        id="reg-email"
-                                        type="email"
-                                        placeholder="psicologo@email.com"
-                                        disabled={isLoading}
-                                        {...registerRegister("email")}
-                                    />
-                                    {registerErrors.email && (
-                                        <p className="text-xs text-destructive">{registerErrors.email.message}</p>
-                                    )}
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="reg-password">Senha</Label>
-                                    <Input
-                                        id="reg-password"
-                                        type="password"
-                                        placeholder="********"
-                                        disabled={isLoading}
-                                        {...registerRegister("password")}
-                                    />
-                                    {registerErrors.password && (
-                                        <p className="text-xs text-destructive">{registerErrors.password.message}</p>
-                                    )}
-                                </div>
-                                <Button type="submit" className="w-full" disabled={isLoading}>
-                                    {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
-                                    Criar Conta
-                                </Button>
-                            </form>
-                        </TabsContent>
-                    </CardContent>
-                </Tabs>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="reg-password">Senha</Label>
+                                        <Input
+                                            id="reg-password"
+                                            type="password"
+                                            placeholder="********"
+                                            disabled={isLoading}
+                                            {...registerRegister("password")}
+                                        />
+                                        {registerErrors.password && (
+                                            <p className="text-xs text-destructive">{registerErrors.password.message}</p>
+                                        )}
+                                    </div>
+                                    <Button type="submit" className="w-full" disabled={isLoading}>
+                                        {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+                                        Criar Conta
+                                    </Button>
+                                </form>
+                            </TabsContent>
+                        </CardContent>
+                    </Tabs>
+                )}
             </Card>
 
             {import.meta.env.VITE_DESKTOP_DOWNLOAD_URL && (
