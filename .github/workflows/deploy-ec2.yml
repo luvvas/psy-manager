@@ -5,9 +5,31 @@ on:
       - master
 
 jobs:
+  quality-gate:
+    name: Test & Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run API Unit Tests
+        run: bun run test
+
+      - name: Build API
+        run: bun run build:api
+
   deploy-backend:
     name: Deploy to EC2 via SSH
     runs-on: ubuntu-latest
+    needs: quality-gate
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -84,6 +106,7 @@ jobs:
   deploy-frontend:
     name: Build & Sync Frontend to S3
     runs-on: ubuntu-latest
+    needs: quality-gate
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -94,11 +117,10 @@ jobs:
           bun-version: latest
 
       - name: Install Dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Build Frontend
         env:
-          # Points the browser client to your public EC2 endpoint
           VITE_API_URL: https://dswfc48bg9ft6.cloudfront.net
         run: bun run --cwd apps/web build
 
