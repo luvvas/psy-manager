@@ -207,12 +207,14 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          # electron-builder always runs "npm install --production" before packaging.
-          # In a bun workspace, npm fails resolving workspace:* from sibling packages.
-          # Fix: shim npm with a no-op script so electron-builder skips install cleanly.
-          $shimDir = "$env:TEMP\npm-shim"
+          # electron-builder always runs "npm/bun install --production" before packaging.
+          # In a bun workspace this fails: npm hits workspace:* refs, bun hits the same.
+          # Fix: shim both package managers as no-ops, then invoke electron-builder via
+          # node directly (bypassing bun's .bin/ launcher which requires bun in PATH).
+          $shimDir = "$env:TEMP\pkg-shim"
           New-Item -ItemType Directory -Force -Path $shimDir | Out-Null
           New-Item -ItemType Directory -Force -Path node_modules | Out-Null
           "@echo off`nexit /b 0" | Out-File -FilePath "$shimDir\npm.cmd" -Encoding ascii
+          "@echo off`nexit /b 0" | Out-File -FilePath "$shimDir\bun.cmd" -Encoding ascii
           $env:PATH = "$shimDir;" + ($env:PATH -split ';' | Where-Object { $_ -ne "$env:USERPROFILE\.bun\bin" }) -join ';'
-          ..\..\node_modules\.bin\electron-builder --config electron-builder.config.js --publish always
+          node "..\..\node_modules\electron-builder\cli.js" --config electron-builder.config.js --publish always
