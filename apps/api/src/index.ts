@@ -1,5 +1,8 @@
 import "./load-env";
+import "./instrument";
 
+import * as Sentry from "@sentry/hono/node";
+import { sentry } from "@sentry/hono/node";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -21,6 +24,8 @@ patientProjections.init();
 appointmentProjections.init();
 
 const app = new Hono();
+
+app.use(sentry(app));
 
 if (process.env.NODE_ENV !== "production") app.use("*", logger());
 const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "http://localhost:5173")
@@ -65,8 +70,23 @@ app.use(
         router: appRouter,
         createContext: (_opts, c) =>
             createContext({ headers: c.req.raw.headers }),
+        onError: ({ error, ctx }) => {
+            if (error.code === "INTERNAL_SERVER_ERROR") {
+                Sentry.withScope((scope) => {
+                    if (ctx?.session) {
+                        scope.setUser({ id: ctx.session.user.id });
+                    }
+                    Sentry.captureException(error.cause ?? error);
+                });
+            }
+        },
     })
 );
+
+app.onError((err, c) => {
+    Sentry.captureException(err);
+    return c.json({ error: "Internal Server Error" }, 500);
+});
 
 const port = Number(process.env.API_PORT) || 3001;
 

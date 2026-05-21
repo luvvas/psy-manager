@@ -101,7 +101,43 @@ Important variables:
 
 ## Tests
 
-At the time this folder was created, no test runner config or test files were
-found. Verification is currently mostly build/lint/manual unless tests are
-added for a task.
+Test runner: Bun's built-in test runner (`bun test`).
+Run with coverage: `bun test --coverage`.
+CI script alias: `bun run test` (defined in the API package).
+
+Test files live in `apps/api/tests/` with this structure:
+
+```text
+apps/api/tests/
+  utils/
+    router-test-utils.ts   ← shared mocks, callers, input builders, state
+  routes/
+    auth.test.ts           ← UNAUTHORIZED guards for all major procedures
+    psychologist.test.ts
+    patient.test.ts        ← includes cross-user isolation tests
+    appointment.test.ts    ← includes cross-user isolation + Google OAuth tests
+    clinic.test.ts
+    financial.test.ts
+    document.test.ts
+    clinical-record.test.ts
+    video-session.test.ts
+  cqrs/
+    patient.aggregate.test.ts      ← domain event + state machine tests
+    appointment.aggregate.test.ts  ← domain event + state machine tests
+```
+
+All route tests use module-level mocking (no real DB). The `cqrs/` tests test
+aggregate classes directly with no mocks — pure domain logic.
+
+Route tests assert:
+- Happy-path responses and return shapes.
+- Error codes (NOT_FOUND, FORBIDDEN, UNAUTHORIZED, BAD_REQUEST).
+- That the correct `psychologistId` (always `ctx.session.user.id`) is passed
+  into commands and queries — the primary cross-user isolation guarantee.
+
+Aggregate tests assert:
+- Each command raises the expected event type and version.
+- `loadFromHistory` reconstructs identical state from persisted events.
+- Business rule guards throw on invalid state transitions (double-create,
+  update-after-delete, double-delete, invalid fields).
 

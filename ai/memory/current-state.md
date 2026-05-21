@@ -1,6 +1,6 @@
 # Current State
 
-Generated on: 2026-05-14
+Generated on: 2026-05-21
 
 ## Repo Snapshot
 
@@ -19,9 +19,19 @@ Before this `/ai` folder was created, these files were already modified:
 
 Treat those as user or pre-existing work unless explicitly told otherwise.
 
+## Test Coverage
+
+52 tests passing across 11 files. Route coverage is 100% lines on all route
+files. Run with `bun test --coverage`.
+
+Key gaps that still require integration tests (DB not exercised by any test):
+- Drizzle queries, migrations, and transactions.
+- CQRS event store persistence and optimistic concurrency (`lib/cqrs/index.ts`).
+- Encryption/decryption helpers (`lib/encryption.ts`).
+- Pagination and complex filter combinations on list endpoints.
+
 ## Known Gaps And Watchpoints
 
-- No test runner or test files were found.
 - `packages/shared/src/index.ts` is minimal and may not reflect current auth/user
   types used by the app.
 - Patient and appointment writes use CQRS; direct DB writes can bypass event
@@ -32,4 +42,6 @@ Treat those as user or pre-existing work unless explicitly told otherwise.
   boundaries.
 - The documents page currently calls `document.list` with an empty filter; verify
   intended generic-vs-patient filtering before changing document library behavior.
+- `GOOGLE_CLIENT_ID` is not stored in SSM; verify it is set via another mechanism
+  on EC2 or add it as a non-secret SSM parameter.
 

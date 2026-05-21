@@ -76,6 +76,7 @@ jobs:
             TURN_USERNAME=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/TURN_USERNAME" --query "Parameter.Value" --output text)
             TURN_CREDENTIAL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/TURN_CREDENTIAL" --with-decryption --query "Parameter.Value" --output text)
             ENCRYPTION_KEY=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/ENCRYPTION_KEY" --with-decryption --query "Parameter.Value" --output text)
+            SENTRY_DSN=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/SENTRY_DSN" --query "Parameter.Value" --output text)
             EOF
 
       - name: Restart Docker services
@@ -122,6 +123,10 @@ jobs:
       - name: Build Frontend
         env:
           VITE_API_URL: https://dswfc48bg9ft6.cloudfront.net
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
         run: bun run --cwd apps/web build
 
       - name: Configure AWS Credentials
