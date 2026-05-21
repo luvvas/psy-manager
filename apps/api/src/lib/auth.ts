@@ -32,6 +32,7 @@ export const auth = betterAuth({
     trustedOrigins: [
         "http://localhost:5173",
         "http://localhost:3000",
+        "app://localhost",
         process.env.BETTER_AUTH_URL || "",
     ].filter(Boolean),
     advanced: {

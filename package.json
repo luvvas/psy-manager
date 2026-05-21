@@ -20,7 +20,11 @@
     "db:studio": "bun run --filter @psy-manager/api db:studio",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
-    "docker:db": "docker compose up -d db"
+    "docker:db": "docker compose up -d db",
+    "dev:desktop": "bun run --filter @psy-manager/desktop dev",
+    "build:desktop": "bun run --filter @psy-manager/desktop build",
+    "package:desktop": "bun run build:web && bun run --filter @psy-manager/desktop package",
+    "release:desktop": "bun run build:web && bun run --filter @psy-manager/desktop release"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

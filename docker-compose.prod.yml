@@ -47,6 +47,7 @@ services:
       TURN_CREDENTIAL: ${TURN_CREDENTIAL}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       SENTRY_DSN: ${SENTRY_DSN}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
 
 volumes:
   postgres_data:

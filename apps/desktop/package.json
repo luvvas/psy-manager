@@ -1,0 +1,21 @@
+{
+  "name": "@psy-manager/desktop",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "tsc && electron .",
+    "build": "tsc",
+    "package": "bun run build && electron-builder --config electron-builder.config.js",
+    "release": "bun run build && electron-builder --config electron-builder.config.js --publish always"
+  },
+  "dependencies": {
+    "electron-updater": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "electron": "^35.0.0",
+    "electron-builder": "^25.0.0",
+    "typescript": "^5.8.0"
+  }
+}
