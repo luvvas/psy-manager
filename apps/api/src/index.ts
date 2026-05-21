@@ -47,6 +47,10 @@ app.on(["POST", "GET"], "/api/auth/*", (c) => {
     return auth.handler(c.req.raw);
 });
 
+app.get("/debug-sentry", () => {
+    throw new Error("Teste Sentry API");
+});
+
 app.get("/api/health", (c) => {
     const deadLetters = eventBus.getDeadLetters();
     const healthy = deadLetters.length === 0;
