@@ -44,6 +44,7 @@ export const appointmentQueries = {
                 type: appointment.type,
                 isRecurring: appointment.isRecurring,
                 notes: appointment.notes,
+                meetingUrl: appointment.meetingUrl,
                 createdAt: appointment.createdAt,
                 updatedAt: appointment.updatedAt,
                 patient: {

@@ -13,6 +13,7 @@ export interface AppointmentState {
     type: string;
     isRecurring: boolean;
     notes: string | null;
+    meetingUrl: string | null;
     googleEventId: string | null;
     isDeleted: boolean;
     createdAt: Date | null;
@@ -35,6 +36,7 @@ export class AppointmentAggregate extends AggregateRoot<AppointmentState> {
             type: "individual",
             isRecurring: false,
             notes: null,
+            meetingUrl: null,
             googleEventId: null,
             isDeleted: false,
             createdAt: null,
@@ -54,6 +56,7 @@ export class AppointmentAggregate extends AggregateRoot<AppointmentState> {
         type: string;
         isRecurring: boolean;
         notes?: string;
+        meetingUrl?: string;
         googleEventId?: string;
     }): void {
         if (this._version > 0) {
@@ -73,6 +76,7 @@ export class AppointmentAggregate extends AggregateRoot<AppointmentState> {
         type: string;
         isRecurring: boolean;
         notes?: string;
+        meetingUrl?: string;
         googleEventId?: string;
     }): void {
         if (this._state.isDeleted) {
@@ -104,6 +108,7 @@ export class AppointmentAggregate extends AggregateRoot<AppointmentState> {
                     type: event.data.type,
                     isRecurring: event.data.isRecurring,
                     notes: event.data.notes ?? null,
+                    meetingUrl: event.data.meetingUrl ?? null,
                     googleEventId: event.data.googleEventId ?? null,
                     isDeleted: false,
                     createdAt: event.createdAt ?? new Date(),
@@ -122,6 +127,7 @@ export class AppointmentAggregate extends AggregateRoot<AppointmentState> {
                     type: event.data.type,
                     isRecurring: event.data.isRecurring,
                     notes: event.data.notes ?? null,
+                    meetingUrl: event.data.meetingUrl ?? null,
                     googleEventId: event.data.googleEventId ?? state.googleEventId,
                     updatedAt: event.createdAt ?? new Date(),
                 };

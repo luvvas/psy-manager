@@ -1,8 +1,13 @@
 import type { WebSocket } from "ws";
+import { createHash } from "crypto";
 import { db } from "../db";
 import { videoSession } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { consumeAuthToken, getOrCreateRoom, getRoom, pruneRoom } from "./rooms";
+
+function hashToken(token: string): string {
+    return createHash("sha256").update(token).digest("hex");
+}
 
 type JoinPsychologist = { type: "join"; role: "psychologist"; wsAuthToken: string };
 type JoinPatient = { type: "join"; role: "patient"; token: string };
@@ -53,7 +58,7 @@ export function handleSignaling(ws: WebSocket, sessionId: string): void {
                 const now = new Date();
                 if (
                     !s ||
-                    s.patientToken !== msg.token ||
+                    s.patientToken !== hashToken(msg.token) ||
                     s.status === "ended" ||
                     now > new Date(s.expiresAt)
                 ) {

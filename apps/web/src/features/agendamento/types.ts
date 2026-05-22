@@ -25,6 +25,7 @@ export interface Appointment {
     status: AppointmentStatus;
     type: "individual" | "casal" | "infantil" | "avaliacao";
     notes?: string;
+    meetingUrl?: string;
     isRecurring?: boolean;
     sessionType?: "online" | "in_person";
 }

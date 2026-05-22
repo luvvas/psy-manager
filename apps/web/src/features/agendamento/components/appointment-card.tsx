@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useSession } from "@/lib/auth-client";
 import { trpc } from "@/lib/trpc";
-import { Clock, Loader2, MessageSquare, Repeat, Video } from "lucide-react";
+import { Clock, ExternalLink, Loader2, MessageSquare, Repeat, Video } from "lucide-react";
 import { toast } from "sonner";
 import type { Appointment } from "../types";
 import { APPOINTMENT_TYPE_LABELS } from "../types";
@@ -174,20 +174,32 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
             {/* Video call — available 15 min before start until 15 min after end */}
             {canStartVideo && (
                 <div className="mt-2 pt-2 border-t">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full gap-1.5 text-xs h-7"
-                        onClick={handleStartVideo}
-                        disabled={createSession.isPending}
-                    >
-                        {createSession.isPending ? (
-                            <Loader2 className="size-3 animate-spin" />
-                        ) : (
-                            <Video className="size-3" />
-                        )}
-                        Iniciar videochamada
-                    </Button>
+                    {appointment.meetingUrl ? (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-1.5 text-xs h-7"
+                            onClick={(e) => { e.stopPropagation(); window.open(appointment.meetingUrl, "_blank"); }}
+                        >
+                            <ExternalLink className="size-3" />
+                            Entrar na videochamada
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-1.5 text-xs h-7"
+                            onClick={handleStartVideo}
+                            disabled={createSession.isPending}
+                        >
+                            {createSession.isPending ? (
+                                <Loader2 className="size-3 animate-spin" />
+                            ) : (
+                                <Video className="size-3" />
+                            )}
+                            Iniciar videochamada
+                        </Button>
+                    )}
                 </div>
             )}
         </Card>

@@ -157,6 +157,7 @@ export function AgendamentoPage() {
                 status,
                 type: app.type as any,
                 notes: app.notes || undefined,
+                meetingUrl: app.meetingUrl || undefined,
                 isRecurring: app.isRecurring,
                 sessionType: app.sessionType as any,
             };
@@ -177,6 +178,7 @@ export function AgendamentoPage() {
                     type: formData.type,
                     isRecurring: formData.isRecurring,
                     notes: formData.notes,
+                    meetingUrl: formData.meetingUrl || undefined,
                 });
             } else {
                 await createMutation.mutateAsync({
@@ -189,6 +191,7 @@ export function AgendamentoPage() {
                     type: formData.type,
                     isRecurring: formData.isRecurring,
                     notes: formData.notes,
+                    meetingUrl: formData.meetingUrl || undefined,
                 });
             }
             setSheetOpen(false);
@@ -366,6 +369,7 @@ export function AgendamentoPage() {
                                             type: editingAppointment.type,
                                             isRecurring: editingAppointment.isRecurring || false,
                                             notes: editingAppointment.notes || "",
+                                            meetingUrl: editingAppointment.meetingUrl || "",
                                         }
                                         : pendingCreationDate
                                             ? { date: pendingCreationDate }

@@ -124,6 +124,7 @@ export const appointment = pgTable("appointment", {
     type: text("type").notNull().default("individual"), // individual, casal, infantil, avaliacao
     isRecurring: boolean("is_recurring").notNull().default(false),
     notes: text("notes"),
+    meetingUrl: text("meeting_url"),
     googleEventId: text("google_event_id"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),

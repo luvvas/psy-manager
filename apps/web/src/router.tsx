@@ -12,6 +12,7 @@ import { ResetPasswordPage } from "@/features/auth/reset-password-page";
 import { AuthGuard, PublicOnlyGuard } from "@/features/auth/auth-guard";
 import { GoogleCallbackPage } from "@/pages/google-callback";
 import { PsychologistPage, JoinPage } from "@/features/consulta";
+import { LandingGuard } from "@/pages/landing";
 import {
     CreditCard,
     FlaskConical,
@@ -22,7 +23,7 @@ import {
 export const router = createBrowserRouter([
     {
         path: "/",
-        element: <Navigate to="/login" replace />,
+        element: <LandingGuard />,
     },
     {
         path: "/login",

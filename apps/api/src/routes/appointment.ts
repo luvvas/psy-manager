@@ -36,6 +36,7 @@ export const appointmentRouter = router({
                 type: z.string().min(1),
                 isRecurring: z.boolean(),
                 notes: z.string().optional(),
+                meetingUrl: z.string().optional(),
             })
         )
         .mutation(async ({ ctx, input }) => {
@@ -60,6 +61,7 @@ export const appointmentRouter = router({
                 type: z.string().min(1),
                 isRecurring: z.boolean(),
                 notes: z.string().optional(),
+                meetingUrl: z.string().optional(),
             })
         )
         .mutation(async ({ ctx, input }) => {

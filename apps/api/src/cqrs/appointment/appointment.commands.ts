@@ -12,6 +12,7 @@ export interface ScheduleAppointmentCommand {
     type: string;
     isRecurring: boolean;
     notes?: string;
+    meetingUrl?: string;
     googleEventId?: string;
 }
 
@@ -27,6 +28,7 @@ export interface RescheduleAppointmentCommand {
     type: string;
     isRecurring: boolean;
     notes?: string;
+    meetingUrl?: string;
     googleEventId?: string;
 }
 
@@ -52,6 +54,7 @@ export const appointmentCommands = {
             type: command.type,
             isRecurring: command.isRecurring,
             notes: command.notes,
+            meetingUrl: command.meetingUrl,
             googleEventId: command.googleEventId,
         });
 
@@ -87,6 +90,7 @@ export const appointmentCommands = {
             type: command.type,
             isRecurring: command.isRecurring,
             notes: command.notes,
+            meetingUrl: command.meetingUrl,
             googleEventId: command.googleEventId,
         });
 

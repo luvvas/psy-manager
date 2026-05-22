@@ -15,7 +15,7 @@ import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod/v3";
-import { Loader2, Video } from "lucide-react";
+import { ExternalLink, Loader2, Video } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { DatePicker } from "@/components/date-picker";
 import { useSession } from "@/lib/auth-client";
@@ -44,6 +44,7 @@ const appointmentSchema = z.object({
     type: z.enum(["individual", "casal", "infantil", "avaliacao"]),
     isRecurring: z.boolean(),
     notes: z.string().optional(),
+    meetingUrl: z.string().optional(),
 });
 
 export type AppointmentFormValues = z.infer<typeof appointmentSchema>;
@@ -91,6 +92,7 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
         register,
         handleSubmit,
         control,
+        watch,
         formState: { errors },
     } = useForm<AppointmentFormValues>({
         resolver: zodResolver(appointmentSchema),
@@ -104,8 +106,11 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
             type: initialData?.type || "individual",
             isRecurring: initialData?.isRecurring || false,
             notes: initialData?.notes || "",
+            meetingUrl: initialData?.meetingUrl || "",
         },
     });
+
+    const sessionType = watch("sessionType");
 
     const onSubmitForm = async (data: AppointmentFormValues) => {
         setIsSubmitting(true);
@@ -305,10 +310,37 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
                         {...register("notes")}
                     />
                 </div>
+
+                {/* External meeting URL — only for online sessions */}
+                {sessionType === "online" && (
+                    <div className="grid gap-2">
+                        <Label htmlFor="meetingUrl">Link da videochamada (opcional)</Label>
+                        <Input
+                            id="meetingUrl"
+                            type="url"
+                            placeholder="https://meet.google.com/... ou zoom.us/..."
+                            disabled={isSubmitting || readOnly}
+                            {...register("meetingUrl")}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Cole aqui o link do Google Meet, Zoom ou Teams gerado externamente.
+                        </p>
+                    </div>
+                )}
             </div>
 
             <div className="mt-auto space-y-3">
-                {canStartVideo && (
+                {canStartVideo && initialData?.meetingUrl ? (
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full gap-1.5"
+                        onClick={() => window.open(initialData.meetingUrl, "_blank")}
+                    >
+                        <ExternalLink className="size-4" />
+                        Entrar na videochamada
+                    </Button>
+                ) : canStartVideo ? (
                     <Button
                         type="button"
                         variant="outline"
@@ -323,7 +355,7 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
                         )}
                         Iniciar videochamada
                     </Button>
-                )}
+                ) : null}
                 <div className="flex justify-end gap-2 border-t pt-3 w-full">
                     {onDelete && !readOnly && (
                         <Button type="button" variant="destructive" onClick={onDelete} className="mr-auto">
