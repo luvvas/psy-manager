@@ -104,6 +104,7 @@ export const appointmentQueries = {
             patientId: null,
             isOwn: false as const,
             notes: null,
+            meetingUrl: null,
             patient: null,
         }));
 
