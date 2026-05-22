@@ -348,6 +348,8 @@ export function AgendamentoPage() {
                                 initialData={
                                     editingAppointment
                                         ? {
+                                            id: editingAppointment.id,
+                                            psychologistId: editingAppointment.psychologistId,
                                             patientId: editingAppointment.patient.id,
                                             date: editingAppointment.date,
                                             startTime: editingAppointment.startTime,

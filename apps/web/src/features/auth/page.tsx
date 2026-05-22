@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Brain, Download, Loader2, ArrowLeft } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,6 +40,7 @@ import { toast } from "sonner";
 
 export function AuthPage() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [view, setView] = useState<View>("auth");
@@ -219,7 +220,7 @@ export function AuthPage() {
                         </CardContent>
                     </>
                 ) : (
-                    <Tabs defaultValue="login" className="w-full">
+                    <Tabs defaultValue={searchParams.get("tab") === "register" ? "register" : "login"} className="w-full">
                         <CardHeader className="pb-4">
                             <TabsList className="grid w-full grid-cols-2 mb-2">
                                 <TabsTrigger value="login">Entrar</TabsTrigger>

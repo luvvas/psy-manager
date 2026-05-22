@@ -13,6 +13,19 @@ import type { Appointment } from "../types";
 import { APPOINTMENT_TYPE_LABELS } from "../types";
 import { StatusBadge } from "./status-badge";
 
+function isVideoCallAvailable(date: Date, startTime: string, endTime: string): boolean {
+    const now = new Date();
+    const [sh, sm] = startTime.split(":").map(Number);
+    const [eh, em] = endTime.split(":").map(Number);
+    const windowStart = new Date(date);
+    windowStart.setHours(sh, sm, 0, 0);
+    windowStart.setMinutes(windowStart.getMinutes() - 15);
+    const windowEnd = new Date(date);
+    windowEnd.setHours(eh, em, 0, 0);
+    windowEnd.setMinutes(windowEnd.getMinutes() + 15);
+    return now >= windowStart && now <= windowEnd;
+}
+
 interface AppointmentCardProps {
     appointment: Appointment;
     compact?: boolean;
@@ -35,6 +48,10 @@ const TYPE_DOT_COLORS: Record<Appointment["type"], string> = {
 export function AppointmentCard({ appointment, compact }: AppointmentCardProps) {
     const { data: session } = useSession();
     const isOthers = session?.user?.id !== appointment.psychologistId;
+    const canStartVideo =
+        appointment.sessionType === "online" &&
+        !isOthers &&
+        isVideoCallAvailable(appointment.date, appointment.startTime, appointment.endTime);
 
     const createSession = trpc.videoSession.create.useMutation({
         onError: () => toast.error("Não foi possível iniciar a videochamada."),
@@ -42,6 +59,7 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
 
     async function handleStartVideo(e: React.MouseEvent) {
         e.stopPropagation();
+        if (!window.confirm("Deseja iniciar a videochamada com este paciente?")) return;
         const result = await createSession.mutateAsync({ appointmentId: appointment.id });
         const params = new URLSearchParams({ token: result.wsAuthToken });
         if (result.patientJoinUrl) params.set("joinUrl", result.patientJoinUrl);
@@ -153,8 +171,8 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
                 </p>
             )}
 
-            {/* Video call — online sessions only, own appointments only */}
-            {appointment.sessionType === "online" && !isOthers && (
+            {/* Video call — available 15 min before start until 15 min after end */}
+            {canStartVideo && (
                 <div className="mt-2 pt-2 border-t">
                     <Button
                         variant="outline"

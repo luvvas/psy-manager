@@ -1,10 +1,11 @@
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSheet } from "@/components/layout/app-sheet";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
 import { uploadFileToTarget } from "@/utils/upload";
 import { ArrowLeft, Download, Files, FileText, Plus } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { GenericDocumentForm } from "./components/generic-document-form";
 import { GenericDocumentsTable, type DBGenericDocument } from "./components/generic-documents-table";
@@ -13,6 +14,7 @@ export function DocumentosPage() {
     const [isSheetOpen, setSheetOpen] = useState(false);
     const [editingDoc, setEditingDoc] = useState<DBGenericDocument | null>(null);
     const [viewingDoc, setViewingDoc] = useState<DBGenericDocument | null>(null);
+    const [activeTab, setActiveTab] = useState("todos");
     const utils = trpc.useUtils();
 
     // Fetches only generic documents without direct patient links as per documentService filtering rules implicitly
@@ -61,16 +63,21 @@ export function DocumentosPage() {
         },
     });
 
-    // Re-map the existing basic docs directly to the simple library types
-    const allDocuments: DBGenericDocument[] = (dbDocs || []).map((d) => ({
-        id: d.id,
-        title: d.title,
-        type: d.type,
-        isTemplate: d.isTemplate,
-        updatedAt: new Date(d.updatedAt),
-        content: d.content,
-        storageKey: d.storageKey,
-    }));
+    const allDocuments: DBGenericDocument[] = useMemo(() =>
+        (dbDocs || []).map((d) => ({
+            id: d.id,
+            title: d.title,
+            type: d.type,
+            isTemplate: d.isTemplate,
+            updatedAt: new Date(d.updatedAt),
+            content: d.content,
+            storageKey: d.storageKey,
+        })),
+        [dbDocs]
+    );
+
+    const documentos = useMemo(() => allDocuments.filter((d) => !d.isTemplate), [allDocuments]);
+    const modelos = useMemo(() => allDocuments.filter((d) => d.isTemplate), [allDocuments]);
 
     const handleSave = async (data: any) => {
         const { file, ...metadata } = data;
@@ -230,18 +237,45 @@ export function DocumentosPage() {
             />
 
             <div className="flex flex-1 flex-col gap-4 p-4 lg:p-6">
-                <div className="space-y-4">
-                    <GenericDocumentsTable
-                        documents={allDocuments}
-                        onViewDocument={(doc) => setViewingDoc(doc)}
-                        onDownloadDocument={handleDownloadDocument}
-                        onEditMetadata={(doc) => {
-                            setEditingDoc(doc);
-                            setSheetOpen(true);
-                        }}
-                        onDelete={handleDelete}
-                    />
-                </div>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 space-y-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <TabsList className="grid w-full max-w-2/6 grid-cols-3">
+                            <TabsTrigger value="todos">Todos</TabsTrigger>
+                            <TabsTrigger value="documentos">Documentos</TabsTrigger>
+                            <TabsTrigger value="modelos">Modelos</TabsTrigger>
+                        </TabsList>
+                    </div>
+
+                    <TabsContent value="todos" className="outline-none">
+                        <GenericDocumentsTable
+                            documents={allDocuments}
+                            onViewDocument={(doc) => setViewingDoc(doc)}
+                            onDownloadDocument={handleDownloadDocument}
+                            onEditMetadata={(doc) => { setEditingDoc(doc); setSheetOpen(true); }}
+                            onDelete={handleDelete}
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="documentos" className="outline-none">
+                        <GenericDocumentsTable
+                            documents={documentos}
+                            onViewDocument={(doc) => setViewingDoc(doc)}
+                            onDownloadDocument={handleDownloadDocument}
+                            onEditMetadata={(doc) => { setEditingDoc(doc); setSheetOpen(true); }}
+                            onDelete={handleDelete}
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="modelos" className="outline-none">
+                        <GenericDocumentsTable
+                            documents={modelos}
+                            onViewDocument={(doc) => setViewingDoc(doc)}
+                            onDownloadDocument={handleDownloadDocument}
+                            onEditMetadata={(doc) => { setEditingDoc(doc); setSheetOpen(true); }}
+                            onDelete={handleDelete}
+                        />
+                    </TabsContent>
+                </Tabs>
             </div>
         </>
     );

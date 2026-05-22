@@ -15,9 +15,24 @@ import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod/v3";
-import { Loader2 } from "lucide-react";
+import { Loader2, Video } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { DatePicker } from "@/components/date-picker";
+import { useSession } from "@/lib/auth-client";
+import { toast } from "sonner";
+
+function isVideoCallAvailable(date: Date, startTime: string, endTime: string): boolean {
+    const now = new Date();
+    const [sh, sm] = startTime.split(":").map(Number);
+    const [eh, em] = endTime.split(":").map(Number);
+    const windowStart = new Date(date);
+    windowStart.setHours(sh, sm, 0, 0);
+    windowStart.setMinutes(windowStart.getMinutes() - 15);
+    const windowEnd = new Date(date);
+    windowEnd.setHours(eh, em, 0, 0);
+    windowEnd.setMinutes(windowEnd.getMinutes() + 15);
+    return now >= windowStart && now <= windowEnd;
+}
 
 const appointmentSchema = z.object({
     patientId: z.string().min(1, "O paciente é obrigatório"),
@@ -43,6 +58,29 @@ interface NewAppointmentFormProps {
 
 export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, readOnly = false }: NewAppointmentFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const { data: session } = useSession();
+
+    const isOthers = session?.user?.id !== initialData?.psychologistId;
+    const canStartVideo =
+        !!initialData?.id &&
+        initialData?.sessionType === "online" &&
+        !isOthers &&
+        !!initialData?.date &&
+        !!initialData?.startTime &&
+        !!initialData?.endTime &&
+        isVideoCallAvailable(new Date(initialData.date), initialData.startTime, initialData.endTime);
+
+    const createSession = trpc.videoSession.create.useMutation({
+        onError: () => toast.error("Não foi possível iniciar a videochamada."),
+    });
+
+    async function handleStartVideo() {
+        if (!window.confirm("Deseja iniciar a videochamada com este paciente?")) return;
+        const result = await createSession.mutateAsync({ appointmentId: initialData.id });
+        const params = new URLSearchParams({ token: result.wsAuthToken });
+        if (result.patientJoinUrl) params.set("joinUrl", result.patientJoinUrl);
+        window.open(`/consulta/${result.sessionId}?${params.toString()}`, "_blank");
+    }
 
     // Load actual patients for select dropdown
     const { data: patients } = trpc.patient.list.useQuery(undefined, {
@@ -269,21 +307,39 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
                 </div>
             </div>
 
-            <div className="flex justify-end gap-2 border-t pt-4 mt-auto w-full">
-                {onDelete && !readOnly && (
-                    <Button type="button" variant="destructive" onClick={onDelete} className="mr-auto">
-                        Excluir
+            <div className="mt-auto space-y-3">
+                {canStartVideo && (
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full gap-1.5"
+                        onClick={handleStartVideo}
+                        disabled={createSession.isPending}
+                    >
+                        {createSession.isPending ? (
+                            <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                            <Video className="size-4" />
+                        )}
+                        Iniciar videochamada
                     </Button>
                 )}
-                <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-                    {readOnly ? "Fechar" : "Cancelar"}
-                </Button>
-                {!readOnly && (
-                    <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-                        Salvar
+                <div className="flex justify-end gap-2 border-t pt-3 w-full">
+                    {onDelete && !readOnly && (
+                        <Button type="button" variant="destructive" onClick={onDelete} className="mr-auto">
+                            Excluir
+                        </Button>
+                    )}
+                    <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+                        {readOnly ? "Fechar" : "Cancelar"}
                     </Button>
-                )}
+                    {!readOnly && (
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
+                            Salvar
+                        </Button>
+                    )}
+                </div>
             </div>
         </form>
     );

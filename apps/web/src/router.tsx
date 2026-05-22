@@ -12,6 +12,7 @@ import { ResetPasswordPage } from "@/features/auth/reset-password-page";
 import { AuthGuard, PublicOnlyGuard } from "@/features/auth/auth-guard";
 import { GoogleCallbackPage } from "@/pages/google-callback";
 import { PsychologistPage, JoinPage } from "@/features/consulta";
+import { LandingGuard } from "@/pages/landing";
 import {
     CreditCard,
     FlaskConical,
@@ -20,6 +21,10 @@ import {
 } from "lucide-react";
 
 export const router = createBrowserRouter([
+    {
+        path: "/",
+        element: <LandingGuard />,
+    },
     {
         path: "/login",
         element: <PublicOnlyGuard />,
@@ -52,10 +57,6 @@ export const router = createBrowserRouter([
                 path: "/",
                 element: <AppLayout />,
                 children: [
-                    {
-                        index: true,
-                        element: <Navigate to="/agendamento" replace />,
-                    },
                     {
                         path: "agendamento",
                         element: <AgendamentoPage />,

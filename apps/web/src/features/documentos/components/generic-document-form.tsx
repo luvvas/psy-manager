@@ -110,20 +110,19 @@ export function GenericDocumentForm({ onSave, onCancel, initialData }: GenericDo
                 </div>
 
                 <div className="space-y-1.5">
-                    <Label htmlFor="type">Tipo</Label>
+                    <Label htmlFor="type">Categoria</Label>
                     <Controller
                         name="type"
                         control={control}
                         render={({ field }) => (
                             <Select onValueChange={field.onChange} value={field.value}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Selecione o tipo" />
+                                    <SelectValue placeholder="Selecione a categoria" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="template">Modelo / Template</SelectItem>
-                                    <SelectItem value="contrato">Contrato Padrão</SelectItem>
-                                    <SelectItem value="materiais">Materiais de Divulgação</SelectItem>
-                                    <SelectItem value="formulario">Formulário Administrativo</SelectItem>
+                                    <SelectItem value="contrato">Contrato</SelectItem>
+                                    <SelectItem value="materiais">Material de Divulgação</SelectItem>
+                                    <SelectItem value="formulario">Formulário</SelectItem>
                                     <SelectItem value="outro">Outro</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -132,7 +131,12 @@ export function GenericDocumentForm({ onSave, onCancel, initialData }: GenericDo
                     {errors.type && <p className="text-xs text-destructive">{errors.type.message}</p>}
                 </div>
 
-                <div className="flex items-center space-x-2 pt-2">
+                <div className="flex items-center justify-between rounded-lg pr-3">
+                    <div className="space-y-0.5">
+                        <Label htmlFor="isTemplate" className="text-sm font-medium">
+                            Modelo
+                        </Label>
+                    </div>
                     <Controller
                         name="isTemplate"
                         control={control}
@@ -144,9 +148,6 @@ export function GenericDocumentForm({ onSave, onCancel, initialData }: GenericDo
                             />
                         )}
                     />
-                    <Label htmlFor="isTemplate" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        Marcar como Modelo/Template
-                    </Label>
                 </div>
 
                 <Label htmlFor="pdfFile" className="pt-2">
