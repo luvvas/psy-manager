@@ -176,11 +176,13 @@ export const googleCalendarService = {
             }
 
             // Find a patient matching the title or description
-            const matchedPatient = myPatients.find(
-                (p) =>
-                    title.toLowerCase().includes(p.nome.toLowerCase()) ||
-                    event.description?.toLowerCase().includes(p.nome.toLowerCase())
-            );
+            const matchedPatient = myPatients.find((p) => {
+                const nome = (decryptField(p.nome) ?? p.nome).toLowerCase();
+                return (
+                    title.toLowerCase().includes(nome) ||
+                    event.description?.toLowerCase().includes(nome)
+                );
+            });
 
             // Skip events with no matching patient instead of creating a fake record
             if (!matchedPatient) {
