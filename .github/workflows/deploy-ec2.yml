@@ -133,6 +133,7 @@ jobs:
             SMTP_USER=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/SMTP_USER" --query "Parameter.Value" --output text)
             SMTP_PASS=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/SMTP_PASS" --with-decryption --query "Parameter.Value" --output text)
             SMTP_FROM=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/SMTP_FROM" --query "Parameter.Value" --output text)
+            DISCORD_FEEDBACK_WEBHOOK_URL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/DISCORD_FEEDBACK_WEBHOOK_URL" --query "Parameter.Value" --output text)
             EOF
 
             set -a && source .env.prod && set +a
