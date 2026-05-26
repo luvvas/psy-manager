@@ -832,7 +832,15 @@ export function LandingPage() {
                         </div>
                         <span>psy-manager</span>
                     </div>
-                    <p>Gestão clínica para psicólogos brasileiros.</p>
+                    <div className="flex items-center gap-4">
+                        <p>Gestão clínica para psicólogos brasileiros.</p>
+                        <Link to="/politica-de-privacidade" className="hover:text-foreground transition-colors">
+                            Privacidade
+                        </Link>
+                        <Link to="/termos-de-uso" className="hover:text-foreground transition-colors">
+                            Termos
+                        </Link>
+                    </div>
                 </div>
             </footer>
         </div>

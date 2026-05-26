@@ -1,12 +1,23 @@
 import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { signOut } from "@/lib/auth-client";
 import { applyTheme, type ThemeConfig } from "@/lib/theme";
 import { trpc } from "@/lib/trpc";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, X } from "lucide-react";
+import { Download, Loader2, TriangleAlert, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import * as z from "zod/v3";
 
@@ -88,8 +99,11 @@ interface ProfileFormProps {
 
 export function ProfileForm({ onSuccess }: ProfileFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [themeConfig, setThemeConfig] = useState<ThemeConfig>({});
     const utils = trpc.useUtils();
+    const navigate = useNavigate();
 
     const { data: profile, isLoading } = trpc.psychologist.me.useQuery();
 
@@ -103,6 +117,42 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
             toast.error(`Erro ao atualizar perfil: ${err.message}`);
         },
     });
+
+    const { refetch: fetchExport, isFetching: isExporting } = trpc.psychologist.exportData.useQuery(undefined, {
+        enabled: false,
+    });
+
+    const handleExport = async () => {
+        const { data, error } = await fetchExport();
+        if (error || !data) {
+            toast.error("Erro ao exportar dados. Tente novamente.");
+            return;
+        }
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `psy-manager-export-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success("Dados exportados com sucesso!");
+    };
+
+    const deleteAccountMutation = trpc.psychologist.deleteAccount.useMutation({
+        onSuccess: async () => {
+            await signOut();
+            navigate("/", { replace: true });
+        },
+        onError: (err) => {
+            toast.error(`Erro ao excluir conta: ${err.message}`);
+            setIsDeletingAccount(false);
+        },
+    });
+
+    async function handleDeleteAccount() {
+        setIsDeletingAccount(true);
+        deleteAccountMutation.mutate();
+    }
 
     const { register, handleSubmit, reset, formState: { errors } } = useForm<ProfileValues>({
         resolver: zodResolver(profileSchema),
@@ -209,6 +259,83 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Salvar Alterações
                 </Button>
+            </div>
+
+            {/* ── Portabilidade de Dados ──────────────────────────────────────── */}
+            <div className="border rounded-lg p-4 space-y-3 mt-4">
+                <p className="text-sm font-medium">Exportar meus dados</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                    Baixe uma cópia de todos os seus dados em formato JSON. O arquivo inclui
+                    pacientes, prontuários, documentos, transações e agendamentos.
+                </p>
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExport}
+                    disabled={isExporting}
+                >
+                    {isExporting
+                        ? <Loader2 className="mr-2 size-4 animate-spin" />
+                        : <Download className="mr-2 size-4" />}
+                    {isExporting ? "Exportando..." : "Exportar meus dados"}
+                </Button>
+            </div>
+
+            {/* ── Zona de Perigo ──────────────────────────────────────────────── */}
+            <div className="border border-destructive/40 rounded-lg p-4 space-y-3 mt-4">
+                <div className="flex items-center gap-2 text-destructive">
+                    <TriangleAlert className="size-4 shrink-0" />
+                    <span className="text-sm font-semibold">Zona de Perigo</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                    A exclusão da sua conta é permanente e não pode ser desfeita. Todos os seus dados
+                    serão removidos: pacientes, prontuários, documentos, transações financeiras e
+                    agendamentos.
+                </p>
+                <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button type="button" variant="destructive" size="sm">
+                            Excluir minha conta
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent showCloseButton={!isDeletingAccount}>
+                        <DialogHeader>
+                            <DialogTitle>Excluir conta permanentemente?</DialogTitle>
+                            <DialogDescription>
+                                Esta ação não pode ser desfeita. Os seguintes dados serão removidos
+                                definitivamente:
+                            </DialogDescription>
+                        </DialogHeader>
+                        <ul className="text-sm text-muted-foreground space-y-1 pl-4 list-disc">
+                            <li>Sua conta e dados de perfil</li>
+                            <li>Todos os pacientes cadastrados</li>
+                            <li>Prontuários e registros clínicos</li>
+                            <li>Documentos e arquivos</li>
+                            <li>Transações financeiras</li>
+                            <li>Agendamentos e sessões de vídeo</li>
+                        </ul>
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setDeleteDialogOpen(false)}
+                                disabled={isDeletingAccount}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                onClick={handleDeleteAccount}
+                                disabled={isDeletingAccount}
+                            >
+                                {isDeletingAccount && <Loader2 className="mr-2 size-4 animate-spin" />}
+                                Excluir permanentemente
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </form>
     );

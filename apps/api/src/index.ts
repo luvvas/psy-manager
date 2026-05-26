@@ -8,6 +8,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { trpcServer } from "@hono/trpc-server";
+import { rateLimiter } from "hono-rate-limiter";
 import { WebSocketServer } from "ws";
 import { URL } from "url";
 import { appRouter } from "./routes/router";
@@ -43,19 +44,46 @@ app.use(
     })
 );
 
-app.on(["POST", "GET"], "/api/auth/*", (c) => {
-    return auth.handler(c.req.raw);
+const getIp = (c: { req: { header: (name: string) => string | undefined } }) =>
+    c.req.header("x-forwarded-for")?.split(",")[0].trim() ?? c.req.header("x-real-ip") ?? "unknown";
+
+const signInRateLimiter = rateLimiter({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    keyGenerator: (c) => `sign-in:${getIp(c)}`,
+    standardHeaders: "draft-6",
+    message: "Muitas tentativas de login. Tente novamente em 15 minutos.",
 });
 
-app.get("/debug-sentry", () => {
-    throw new Error("Teste Sentry API");
+const forgotPasswordRateLimiter = rateLimiter({
+    windowMs: 60 * 60 * 1000,
+    limit: 5,
+    keyGenerator: (c) => `forgot-password:${getIp(c)}`,
+    standardHeaders: "draft-6",
+    message: "Muitas solicitações de recuperação de senha. Tente novamente em 1 hora.",
+});
+
+const authRateLimiter = rateLimiter({
+    windowMs: 15 * 60 * 1000,
+    limit: 30,
+    keyGenerator: (c) => `auth:${getIp(c)}`,
+    standardHeaders: "draft-6",
+    message: "Muitas requisições. Tente novamente em instantes.",
+});
+
+app.use("/api/auth/sign-in", signInRateLimiter);
+app.use("/api/auth/forgot-password", forgotPasswordRateLimiter);
+app.use("/api/auth/*", authRateLimiter);
+
+app.on(["POST", "GET"], "/api/auth/*", (c) => {
+    return auth.handler(c.req.raw);
 });
 
 app.get("/api/health", (c) => {
     const deadLetters = eventBus.getDeadLetters();
     const healthy = deadLetters.length === 0;
     return c.json(
-        { status: healthy ? "ok" : "degraded", deadLetters },
+        { status: healthy ? "ok" : "degraded", deadLetterCount: deadLetters.length },
         healthy ? 200 : 503
     );
 });

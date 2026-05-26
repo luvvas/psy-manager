@@ -96,7 +96,7 @@ jobs:
             git fetch --all
             git reset --hard origin/master
 
-      - name: Fetch secrets from AWS SSM
+      - name: Deploy (secrets + restart + migrate)
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -104,11 +104,10 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
-            if ! command -v aws &> /dev/null; then
-              sudo snap install aws-cli --classic
-            fi
+            cd ~/psy-manager
+
             POSTGRES_PASSWORD=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/POSTGRES_PASSWORD" --with-decryption --query "Parameter.Value" --output text)
-            cat > ~/psy-manager/.env.prod << EOF
+            cat > .env.prod << EOF
             DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/psy_manager
             POSTGRES_USER=postgres
             POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -133,29 +132,9 @@ jobs:
             SMTP_FROM=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/SMTP_FROM" --query "Parameter.Value" --output text)
             EOF
 
-      - name: Restart Docker services
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
-          script: |
-            cd ~/psy-manager
             set -a && source .env.prod && set +a
-            docker compose -f docker-compose.prod.yml down
-            docker compose -f docker-compose.prod.yml up -d --build
+            docker compose -f docker-compose.prod.yml up -d --build --force-recreate --remove-orphans
 
-      - name: Run database migrations
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
-          script: |
-            cd ~/psy-manager
-            set -a && source .env.prod && set +a
             docker compose -f docker-compose.prod.yml exec -T api bun run db:migrate
 
   deploy-frontend:
@@ -219,6 +198,15 @@ jobs:
           path: ~\.bun\install\cache
           key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
           restore-keys: ${{ runner.os }}-bun-
+
+      - name: Cache electron-builder binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\electron\Cache
+            ~\AppData\Local\electron-builder\Cache
+          key: ${{ runner.os }}-electron-${{ hashFiles('apps/desktop/package.json') }}
+          restore-keys: ${{ runner.os }}-electron-
 
       - name: Install Dependencies
         run: bun install --frozen-lockfile

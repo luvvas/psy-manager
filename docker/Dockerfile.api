@@ -29,6 +29,5 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 WORKDIR /app/apps/api
-RUN bun run build
 EXPOSE 3001
-CMD ["bun", "dist/index.js"]
+CMD ["bun", "src/index.ts"]

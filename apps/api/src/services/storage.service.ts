@@ -1,10 +1,11 @@
 import {
+    DeleteObjectCommand,
     GetObjectCommand,
     PutObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "crypto";
-import { mkdir, readFile, writeFile } from "fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "fs/promises";
 import path from "path";
 import {
     assertPdf,
@@ -170,6 +171,25 @@ export const storageService = {
             });
         } catch {
             return new Response("Arquivo nao encontrado.", { status: 404 });
+        }
+    },
+
+    async deleteObject(storageKey: string): Promise<void> {
+        const driver = getDriver();
+
+        if (driver === "s3") {
+            const command = new DeleteObjectCommand({
+                Bucket: getBucketName(),
+                Key: storageKey,
+            });
+            await getS3Client().send(command);
+            return;
+        }
+
+        try {
+            await unlink(toLocalFilePath(storageKey));
+        } catch (err: any) {
+            if (err?.code !== "ENOENT") throw err;
         }
     },
 };

@@ -71,7 +71,7 @@ export const videoSessionRouter = router({
             return {
                 sessionId: s.id,
                 psychologistName: s.psychologistName,
-                iceServers: getIceServers(),
+                iceServers: [{ urls: "stun:stun.l.google.com:19302" }] as IceServer[],
             };
         }),
 });

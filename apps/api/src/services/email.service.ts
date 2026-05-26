@@ -20,7 +20,7 @@ const transporter = createTransporter();
 export const emailService = {
     async sendPasswordReset(to: string, resetUrl: string): Promise<void> {
         if (!transporter) {
-            console.warn(`[email] SMTP não configurado. Link de redefinição para ${to}: ${resetUrl}`);
+            console.warn("[email] SMTP não configurado. E-mail de redefinição de senha não enviado.");
             return;
         }
         await transporter.sendMail({

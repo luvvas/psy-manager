@@ -1,10 +1,9 @@
 import { useEffect, useRef } from "react";
-import { useParams, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { trpc } from "@/lib/trpc";
 import { useWebRtcCall } from "./hooks/use-webrtc-call";
 import { ConsultaRoom } from "./components/consulta-room";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 const DEFAULT_ICE: RTCIceServer[] = [{ urls: "stun:stun.l.google.com:19302" }];
 
@@ -12,11 +11,10 @@ export function PsychologistPage() {
     const { sessionId } = useParams<{ sessionId: string }>();
     const location = useLocation();
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
 
     const state = location.state as { wsAuthToken?: string; patientJoinUrl?: string } | null;
-    const wsAuthToken = state?.wsAuthToken ?? searchParams.get("token") ?? "";
-    const patientJoinUrl = state?.patientJoinUrl ?? searchParams.get("joinUrl") ?? undefined;
+    const wsAuthToken = state?.wsAuthToken ?? "";
+    const patientJoinUrl = state?.patientJoinUrl;
 
     const { data: session, isLoading } = trpc.videoSession.get.useQuery(
         { id: sessionId! },
@@ -37,6 +35,12 @@ export function PsychologistPage() {
     const startedRef = useRef(false);
 
     useEffect(() => {
+        if (!wsAuthToken) {
+            navigate("/agendamento", { replace: true });
+        }
+    }, [wsAuthToken, navigate]);
+
+    useEffect(() => {
         if (session && wsAuthToken && !startedRef.current) {
             startedRef.current = true;
             startCall();
@@ -53,13 +57,8 @@ export function PsychologistPage() {
 
     if (!wsAuthToken) {
         return (
-            <div className="flex h-svh flex-col items-center justify-center gap-4 text-center">
-                <p className="text-muted-foreground">
-                    Token de autenticação ausente. Por favor, inicie a videochamada pela agenda.
-                </p>
-                <Button variant="outline" onClick={() => navigate("/agendamento")}>
-                    Voltar para a agenda
-                </Button>
+            <div className="flex h-svh items-center justify-center">
+                <Loader2 className="size-8 animate-spin text-muted-foreground" />
             </div>
         );
     }

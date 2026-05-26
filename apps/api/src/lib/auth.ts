@@ -31,6 +31,14 @@ export const auth = betterAuth({
                 type: "string",
                 required: false,
             },
+            consentedAt: {
+                type: "string",
+                required: false,
+            },
+            consentVersion: {
+                type: "string",
+                required: false,
+            },
         },
     },
     trustedOrigins: [

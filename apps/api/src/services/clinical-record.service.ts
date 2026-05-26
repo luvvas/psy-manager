@@ -3,6 +3,7 @@ import { clinicalRecord, patient } from "../db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { encryptField, decryptField } from "../lib/encryption";
+import { storageService } from "./storage.service";
 
 export const clinicalRecordService = {
     async list(psychologistId: string, filters?: { patientId?: string }) {
@@ -148,7 +149,7 @@ export const clinicalRecordService = {
 
     async delete(psychologistId: string, id: string) {
         const [record] = await db
-            .select({ status: clinicalRecord.status })
+            .select({ status: clinicalRecord.status, storageKey: clinicalRecord.storageKey })
             .from(clinicalRecord)
             .where(and(eq(clinicalRecord.id, id), eq(clinicalRecord.psychologistId, psychologistId)));
 
@@ -158,7 +159,11 @@ export const clinicalRecordService = {
         await db
             .delete(clinicalRecord)
             .where(and(eq(clinicalRecord.id, id), eq(clinicalRecord.psychologistId, psychologistId)));
-        
+
+        if (record.storageKey) {
+            await storageService.deleteObject(record.storageKey);
+        }
+
         return { success: true };
     },
 };

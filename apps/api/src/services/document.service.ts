@@ -3,6 +3,7 @@ import { document } from "../db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { encryptField, decryptField } from "../lib/encryption";
+import { storageService } from "./storage.service";
 
 export const documentService = {
     async list(psychologistId: string, filters?: { patientId?: string; isTemplate?: boolean }) {
@@ -116,7 +117,7 @@ export const documentService = {
 
     async delete(psychologistId: string, id: string) {
         const [existing] = await db
-            .select({ id: document.id })
+            .select({ id: document.id, storageKey: document.storageKey })
             .from(document)
             .where(and(eq(document.id, id), eq(document.psychologistId, psychologistId)))
             .limit(1);
@@ -126,6 +127,10 @@ export const documentService = {
         await db
             .delete(document)
             .where(and(eq(document.id, id), eq(document.psychologistId, psychologistId)));
+
+        if (existing.storageKey) {
+            await storageService.deleteObject(existing.storageKey);
+        }
 
         return { success: true };
     },

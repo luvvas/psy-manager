@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Brain, Download, Loader2, ArrowLeft } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -128,6 +128,9 @@ export function AuthPage() {
         setIsLoading(true);
         setError(null);
 
+        const consentedAt = new Date().toISOString();
+        const consentVersion = "2025-05";
+
         const { error } = await signUp.email({
             name: data.name,
             email: data.email,
@@ -135,6 +138,8 @@ export function AuthPage() {
             phone: data.phone,
             crp: data.crp,
             city: data.city,
+            consentedAt,
+            consentVersion,
         } as any);
 
         setIsLoading(false);
@@ -359,6 +364,25 @@ export function AuthPage() {
                                             <p className="text-xs text-destructive">{registerErrors.password.message}</p>
                                         )}
                                     </div>
+                                    <p className="text-xs text-muted-foreground text-center leading-relaxed">
+                                        Ao criar sua conta, você concorda com os{" "}
+                                        <Link
+                                            to="/termos-de-uso"
+                                            target="_blank"
+                                            className="underline underline-offset-2 hover:text-foreground transition-colors"
+                                        >
+                                            Termos de Uso
+                                        </Link>{" "}
+                                        e a{" "}
+                                        <Link
+                                            to="/politica-de-privacidade"
+                                            target="_blank"
+                                            className="underline underline-offset-2 hover:text-foreground transition-colors"
+                                        >
+                                            Política de Privacidade
+                                        </Link>
+                                        .
+                                    </p>
                                     <Button type="submit" className="w-full" disabled={isLoading}>
                                         {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
                                         Criar Conta

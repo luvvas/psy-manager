@@ -1,29 +1,36 @@
-import { createBrowserRouter, Navigate } from "react-router-dom";
-import { NotFoundPage } from "@/pages/not-found";
 import { AppLayout } from "@/components/layout/app-layout";
 import { AgendamentoPage } from "@/features/agendamento";
-import { PacientesPage, PatientDetailsPage } from "@/features/pacientes";
-import { ClinicasPage } from "@/features/clinicas";
-import { FinanceiroPage } from "@/features/financeiro";
-import { DocumentosPage } from "@/features/documentos";
-import { ComingSoonPage } from "@/pages/coming-soon";
+import { AuthGuard, PublicOnlyGuard } from "@/features/auth/auth-guard";
 import { AuthPage } from "@/features/auth/page";
 import { ResetPasswordPage } from "@/features/auth/reset-password-page";
-import { AuthGuard, PublicOnlyGuard } from "@/features/auth/auth-guard";
+import { ClinicasPage } from "@/features/clinicas";
+import { JoinPage, PsychologistPage } from "@/features/consulta";
+import { DocumentosPage } from "@/features/documentos";
+import { FinanceiroPage } from "@/features/financeiro";
+import { PacientesPage, PatientDetailsPage } from "@/features/pacientes";
+import { ComingSoonPage } from "@/pages/coming-soon";
 import { GoogleCallbackPage } from "@/pages/google-callback";
-import { PsychologistPage, JoinPage } from "@/features/consulta";
 import { LandingGuard } from "@/pages/landing";
+import { NotFoundPage } from "@/pages/not-found";
+import { PrivacyPolicyPage } from "@/pages/privacy-policy";
+import { TermsOfUsePage } from "@/pages/terms-of-use";
 import {
-    CreditCard,
-    FlaskConical,
-    Search,
-    Settings,
+    CreditCard
 } from "lucide-react";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 
 export const router = createBrowserRouter([
     {
         path: "/",
         element: <LandingGuard />,
+    },
+    {
+        path: "/politica-de-privacidade",
+        element: <PrivacyPolicyPage />,
+    },
+    {
+        path: "/termos-de-uso",
+        element: <TermsOfUsePage />,
     },
     {
         path: "/login",
@@ -102,36 +109,6 @@ export const router = createBrowserRouter([
                     {
                         path: "prontuarios",
                         element: <Navigate to="/documentos" replace />,
-                    },
-                    {
-                        path: "exames",
-                        element: (
-                            <ComingSoonPage
-                                title="Aplicação de Exames"
-                                description="Aplique e gerencie exames psicológicos com resultados integrados ao prontuário."
-                                icon={FlaskConical}
-                            />
-                        ),
-                    },
-                    {
-                        path: "buscar",
-                        element: (
-                            <ComingSoonPage
-                                title="Buscar Psicólogos"
-                                description="Encontre psicólogos em Curitiba por especialidade, localização e disponibilidade."
-                                icon={Search}
-                            />
-                        ),
-                    },
-                    {
-                        path: "configuracoes",
-                        element: (
-                            <ComingSoonPage
-                                title="Configurações"
-                                description="Personalize seu perfil, horários de atendimento e preferências do sistema."
-                                icon={Settings}
-                            />
-                        ),
                     },
                     {
                         path: "*",

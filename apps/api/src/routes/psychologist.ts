@@ -28,4 +28,13 @@ export const psychologistRouter = router({
     list: protectedProcedure.query(async () => {
         return psychologistService.list();
     }),
+
+    exportData: protectedProcedure.query(async ({ ctx }) => {
+        return psychologistService.exportData(ctx.session.user.id);
+    }),
+
+    deleteAccount: protectedProcedure.mutation(async ({ ctx }) => {
+        await psychologistService.deleteAccount(ctx.session.user.id);
+        return { success: true };
+    }),
 });

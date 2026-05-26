@@ -22,10 +22,8 @@ import {
     CalendarDays,
     DollarSign,
     FileText,
-    FlaskConical,
     LogOut,
     MessageSquareDot,
-    Search,
     Users,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -132,19 +130,7 @@ const NAV_ITEMS = [
         url: "/clinicas",
         icon: Building2,
         ready: true,
-    },
-    {
-        title: "Exames",
-        url: "/exames",
-        icon: FlaskConical,
-        ready: false,
-    },
-    {
-        title: "Buscar Psicólogos",
-        url: "/buscar",
-        icon: Search,
-        ready: false,
-    },
+    }
 ];
 
 export function AppSidebar() {

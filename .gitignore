@@ -38,6 +38,7 @@ npm-debug.log*
 # Private Keys
 *.pem
 
+.ssh
 .csv
 step-by-step.md
 next-step.md
