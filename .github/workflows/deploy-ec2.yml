@@ -4,9 +4,12 @@ on:
     branches:
       - master
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   quality-gate:
-    name: Test & Build
+    name: CI / API
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -34,7 +37,7 @@ jobs:
         run: bun run build:api
 
   build-frontend:
-    name: Build Frontend
+    name: CI / Frontend
     runs-on: ubuntu-latest
     needs: quality-gate
     steps:
@@ -74,7 +77,7 @@ jobs:
           retention-days: 1
 
   deploy-backend:
-    name: Deploy to EC2 via SSH
+    name: Deploy / API
     runs-on: ubuntu-latest
     needs: quality-gate
     steps:
@@ -138,7 +141,7 @@ jobs:
             docker compose -f docker-compose.prod.yml exec -T api bun run db:migrate
 
   deploy-frontend:
-    name: Sync Frontend to S3
+    name: Deploy / Web
     runs-on: ubuntu-latest
     needs: build-frontend
     steps:
@@ -175,7 +178,7 @@ jobs:
             --paths "/*"
 
   deploy-desktop:
-    name: Build & Release Desktop App
+    name: Release / Desktop
     runs-on: windows-latest
     needs: build-frontend
     steps:
