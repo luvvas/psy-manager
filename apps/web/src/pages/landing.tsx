@@ -1,3 +1,4 @@
+import { changelog, changeTypeConfig } from "@/data/changelog";
 import { Button } from "@/components/ui/button";
 import {
     Carousel,
@@ -204,98 +205,6 @@ const featureSlides: {
         },
     ];
 
-type ChangeType = "new" | "fix" | "improvement";
-
-const changelog: {
-    version: string;
-    date: string;
-    label?: string;
-    changes: { type: ChangeType; text: string }[];
-}[] = [
-        {
-            version: "1.8",
-            date: "Maio 2025",
-            label: "Mais recente",
-            changes: [
-                { type: "new", text: "Consulta online com vídeo integrada diretamente na plataforma" },
-                { type: "new", text: "Link de convite para pacientes acessarem a sala de atendimento" },
-                { type: "improvement", text: "Performance de carregamento da agenda otimizada" },
-            ],
-        },
-        {
-            version: "1.7",
-            date: "Abril 2025",
-            changes: [
-                { type: "new", text: "Redefinição de senha via link enviado por e-mail" },
-                { type: "improvement", text: "Melhoria na sincronização bidirecional com Google Agenda" },
-                { type: "fix", text: "Correção no fuso horário de eventos importados do Google" },
-            ],
-        },
-        {
-            version: "1.6",
-            date: "Março 2025",
-            changes: [
-                { type: "new", text: "Temas visuais personalizáveis por psicólogo" },
-                { type: "new", text: "Personalização de cor primária e estilo da interface" },
-                { type: "improvement", text: "Sidebar redesenhada com navegação mais clara" },
-            ],
-        },
-        {
-            version: "1.5",
-            date: "Fevereiro 2025",
-            changes: [
-                { type: "new", text: "Integração com Google Agenda via OAuth" },
-                { type: "new", text: "Importação de eventos existentes do Google Calendar" },
-                { type: "improvement", text: "Filtros por período no módulo Financeiro" },
-            ],
-        },
-        {
-            version: "1.4",
-            date: "Janeiro 2025",
-            changes: [
-                { type: "new", text: "Prontuário clínico com status de rascunho e finalizado" },
-                { type: "new", text: "Anexo de PDFs diretamente nos registros clínicos" },
-                { type: "improvement", text: "Linha do tempo do paciente exibe prontuários e consultas" },
-            ],
-        },
-        {
-            version: "1.3",
-            date: "Dezembro 2024",
-            changes: [
-                { type: "new", text: "Módulo de Clínicas: criação e gestão de espaços compartilhados" },
-                { type: "new", text: "Vínculo de profissionais a clínicas por e-mail" },
-                { type: "improvement", text: "Agenda exibe consultas de colegas vinculados à mesma clínica" },
-            ],
-        },
-        {
-            version: "1.2",
-            date: "Novembro 2024",
-            changes: [
-                { type: "new", text: "Módulo Financeiro com fluxo de caixa e categorias" },
-                { type: "new", text: "Importação de lançamentos financeiros via CSV" },
-                { type: "new", text: "Gráficos de receita e despesa com filtro por período" },
-            ],
-        },
-        {
-            version: "1.1",
-            date: "Outubro 2024",
-            changes: [
-                { type: "new", text: "Módulo de Documentos com upload e visualização de PDFs" },
-                { type: "new", text: "Download e edição de metadados de arquivos" },
-                { type: "fix", text: "Correções de estabilidade no módulo de Agendamento" },
-            ],
-        },
-        {
-            version: "1.0",
-            date: "Setembro 2024",
-            changes: [
-                { type: "new", text: "Lançamento do psy-manager" },
-                { type: "new", text: "Autenticação com e-mail e senha" },
-                { type: "new", text: "Calendário de agendamento com visões diária, semanal e mensal" },
-                { type: "new", text: "Cadastro e gestão de pacientes" },
-            ],
-        },
-    ];
 
 // ─── guard ────────────────────────────────────────────────────────────────────
 
@@ -343,12 +252,6 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
         </div>
     );
 }
-
-const changeTypeConfig: Record<ChangeType, { label: string; className: string }> = {
-    new: { label: "Novo", className: "bg-primary/10 text-primary" },
-    fix: { label: "Correção", className: "bg-destructive/10 text-destructive" },
-    improvement: { label: "Melhoria", className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
-};
 
 // ─── abas ─────────────────────────────────────────────────────────────────────
 

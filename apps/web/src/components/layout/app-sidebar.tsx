@@ -130,7 +130,7 @@ const NAV_ITEMS = [
         url: "/clinicas",
         icon: Building2,
         ready: true,
-    }
+    },
 ];
 
 export function AppSidebar() {
