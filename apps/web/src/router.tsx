@@ -15,28 +15,12 @@ import { LandingGuard } from "@/pages/landing";
 import { NotFoundPage } from "@/pages/not-found";
 import { PrivacyPolicyPage } from "@/pages/privacy-policy";
 import { TermsOfUsePage } from "@/pages/terms-of-use";
-import {
-    CreditCard
-} from "lucide-react";
+import { CreditCard } from "lucide-react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
-export const router = createBrowserRouter([
-    {
-        path: "/",
-        element: <LandingGuard />,
-    },
-    {
-        path: "/atualizacoes",
-        element: <AtualizacoesPage />,
-    },
-    {
-        path: "/politica-de-privacidade",
-        element: <PrivacyPolicyPage />,
-    },
-    {
-        path: "/termos-de-uso",
-        element: <TermsOfUsePage />,
-    },
+const isElectron = typeof window !== "undefined" && "electronAPI" in window;
+
+const appRoutes = [
     {
         path: "/login",
         element: <PublicOnlyGuard />,
@@ -52,7 +36,6 @@ export const router = createBrowserRouter([
         element: <ResetPasswordPage />,
     },
     {
-        // Public patient join page — no auth required, no sidebar
         path: "/consulta/entrar/:token",
         element: <JoinPage />,
     },
@@ -61,7 +44,6 @@ export const router = createBrowserRouter([
         element: <AuthGuard />,
         children: [
             {
-                // Fullscreen — no sidebar
                 path: "consulta/:sessionId",
                 element: <PsychologistPage />,
             },
@@ -123,8 +105,43 @@ export const router = createBrowserRouter([
             },
         ],
     },
+];
+
+const webOnlyRoutes = [
+    {
+        path: "/",
+        element: <LandingGuard />,
+    },
+    {
+        path: "/atualizacoes",
+        element: <AtualizacoesPage />,
+    },
+    {
+        path: "/politica-de-privacidade",
+        element: <PrivacyPolicyPage />,
+    },
+    {
+        path: "/termos-de-uso",
+        element: <TermsOfUsePage />,
+    },
     {
         path: "*",
         element: <Navigate to="/" replace />,
     },
+];
+
+const desktopOnlyRoutes = [
+    {
+        path: "/",
+        element: <Navigate to="/login" replace />,
+    },
+    {
+        path: "*",
+        element: <Navigate to="/login" replace />,
+    },
+];
+
+export const router = createBrowserRouter([
+    ...appRoutes,
+    ...(isElectron ? desktopOnlyRoutes : webOnlyRoutes),
 ]);

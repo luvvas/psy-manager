@@ -328,6 +328,9 @@ export function TermsOfUsePage() {
                         ← Voltar para o início
                     </Link>
                     <div className="flex gap-4">
+                        <Link to="/atualizacoes" className="hover:text-foreground transition-colors">
+                            Atualizações
+                        </Link>
                         <Link to="/politica-de-privacidade" className="hover:text-foreground transition-colors">
                             Política de Privacidade
                         </Link>

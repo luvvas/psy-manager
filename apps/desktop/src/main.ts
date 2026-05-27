@@ -30,9 +30,9 @@ function createWindow(): BrowserWindow {
   });
 
   if (app.isPackaged) {
-    win.loadURL("app://localhost/");
+    win.loadURL("app://localhost/login");
   } else {
-    win.loadURL("http://localhost:5173");
+    win.loadURL("http://localhost:5173/login");
   }
 
   return win;
