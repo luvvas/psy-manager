@@ -10,11 +10,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { signOut } from "@/lib/auth-client";
 import { applyTheme, type ThemeConfig } from "@/lib/theme";
 import { trpc } from "@/lib/trpc";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Download, Loader2, TriangleAlert, X } from "lucide-react";
+import { Download, Loader2, Palette, Shield, TriangleAlert, User, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
@@ -185,6 +186,7 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
                 primary: HEX_RE.test(themeConfig.primary ?? "") ? themeConfig.primary : undefined,
                 sidebar: HEX_RE.test(themeConfig.sidebar ?? "") ? themeConfig.sidebar : undefined,
                 button: HEX_RE.test(themeConfig.button ?? "") ? themeConfig.button : undefined,
+                tableHeader: HEX_RE.test(themeConfig.tableHeader ?? "") ? themeConfig.tableHeader : undefined,
             };
             await updateMutation.mutateAsync({
                 name: data.name,
@@ -208,134 +210,159 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
     }
 
     return (
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pt-4">
-            <div className="space-y-2">
-                <Label htmlFor="name">Nome Completo</Label>
-                <Input id="name" {...register("name")} placeholder="Ex: Dr. João Silva" />
-                {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-            </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full">
+            <Tabs defaultValue="perfil" className="flex-1 flex flex-col w-full space-y-4">
+                <TabsList className="grid w-full grid-cols-3 h-auto p-1 bg-muted/50">
+                    <TabsTrigger value="perfil" className="flex-col gap-1 py-2 text-[10px] xs:text-xs">
+                        <User className="h-4 w-4" /> Perfil
+                    </TabsTrigger>
+                    <TabsTrigger value="customizacao" className="flex-col gap-1 py-2 text-[10px] xs:text-xs">
+                        <Palette className="h-4 w-4" /> Customização
+                    </TabsTrigger>
+                    <TabsTrigger value="seguranca" className="flex-col gap-1 py-2 text-[10px] xs:text-xs">
+                        <Shield className="h-4 w-4" /> Segurança
+                    </TabsTrigger>
+                </TabsList>
 
-            <div className="space-y-2">
-                <Label htmlFor="crp">CRP</Label>
-                <Input id="crp" {...register("crp")} placeholder="Ex: 08/12345" />
-            </div>
+                {/* ── Tab Perfil ──────────────────────────────────────────────── */}
+                <TabsContent value="perfil" className="flex-1 space-y-4 overflow-y-auto px-1 pt-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Nome Completo</Label>
+                        <Input id="name" {...register("name")} placeholder="Ex: Dr. João Silva" />
+                        {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+                    </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone</Label>
-                    <Input id="phone" {...register("phone")} placeholder="(00) 00000-0000" />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="city">Cidade</Label>
-                    <Input id="city" {...register("city")} placeholder="Sua Cidade" />
-                </div>
-            </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="crp">CRP</Label>
+                        <Input id="crp" {...register("crp")} placeholder="Ex: 08/12345" />
+                    </div>
 
-            {/* ── Personalização Visual ───────────────────────────────────────── */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <ColorPickerField
-                    label="Cor do Cabeçalho"
-                    description="Fundo do cabeçalho das páginas"
-                    value={themeConfig.primary ?? ""}
-                    onChange={(hex) => handleColorChange("primary", hex)}
-                />
-                <ColorPickerField
-                    label="Cor da Barra Lateral"
-                    description="Fundo da barra de navegação"
-                    value={themeConfig.sidebar ?? ""}
-                    onChange={(hex) => handleColorChange("sidebar", hex)}
-                />
-            </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="phone">Telefone</Label>
+                            <Input id="phone" {...register("phone")} placeholder="(00) 00000-0000" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="city">Cidade</Label>
+                            <Input id="city" {...register("city")} placeholder="Sua Cidade" />
+                        </div>
+                    </div>
+                </TabsContent>
 
-            <ColorPickerField
-                label="Cor dos Botões"
-                description="Botões de ação e itens ativos na navegação"
-                value={themeConfig.button ?? ""}
-                onChange={(hex) => handleColorChange("button", hex)}
-            />
+                {/* ── Tab Customização ────────────────────────────────────────── */}
+                <TabsContent value="customizacao" className="flex-1 space-y-4 overflow-y-auto px-1 pt-4">
+                    <div className="flex flex-col gap-4">
+                        <ColorPickerField
+                            label="Cor do Cabeçalho"
+                            description="Fundo do cabeçalho das páginas"
+                            value={themeConfig.primary ?? ""}
+                            onChange={(hex) => handleColorChange("primary", hex)}
+                        />
+                        <ColorPickerField
+                            label="Cor da Barra Lateral"
+                            description="Fundo da barra de navegação"
+                            value={themeConfig.sidebar ?? ""}
+                            onChange={(hex) => handleColorChange("sidebar", hex)}
+                        />
+                        <ColorPickerField
+                            label="Cor do Cabeçalho das Tabelas"
+                            description="Fundo do cabeçalho das tabelas de dados"
+                            value={themeConfig.tableHeader ?? ""}
+                            onChange={(hex) => handleColorChange("tableHeader", hex)}
+                        />
+                        <ColorPickerField
+                            label="Cor dos Botões"
+                            description="Botões de ação e itens ativos na navegação"
+                            value={themeConfig.button ?? ""}
+                            onChange={(hex) => handleColorChange("button", hex)}
+                        />
+                    </div>
+                </TabsContent>
 
-            <div className="flex justify-end pt-4">
+                {/* ── Tab Segurança ───────────────────────────────────────────── */}
+                <TabsContent value="seguranca" className="flex-1 space-y-4 overflow-y-auto px-1 pt-4">
+                    <div className="border rounded-lg p-4 space-y-3">
+                        <p className="text-sm font-medium">Exportar meus dados</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                            Baixe uma cópia de todos os seus dados em formato JSON. O arquivo inclui
+                            pacientes, prontuários, documentos, transações e agendamentos.
+                        </p>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleExport}
+                            disabled={isExporting}
+                        >
+                            {isExporting
+                                ? <Loader2 className="mr-2 size-4 animate-spin" />
+                                : <Download className="mr-2 size-4" />}
+                            {isExporting ? "Exportando..." : "Exportar meus dados"}
+                        </Button>
+                    </div>
+
+                    <div className="border border-destructive/40 rounded-lg p-4 space-y-3">
+                        <div className="flex items-center gap-2 text-destructive">
+                            <TriangleAlert className="size-4 shrink-0" />
+                            <span className="text-sm font-semibold">Zona de Perigo</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                            A exclusão da sua conta é permanente e não pode ser desfeita. Todos os seus dados
+                            serão removidos: pacientes, prontuários, documentos, transações financeiras e
+                            agendamentos.
+                        </p>
+                        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button type="button" variant="destructive" size="sm">
+                                    Excluir minha conta
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent showCloseButton={!isDeletingAccount}>
+                                <DialogHeader>
+                                    <DialogTitle>Excluir conta permanentemente?</DialogTitle>
+                                    <DialogDescription>
+                                        Esta ação não pode ser desfeita. Os seguintes dados serão removidos
+                                        definitivamente:
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <ul className="text-sm text-muted-foreground space-y-1 pl-4 list-disc">
+                                    <li>Sua conta e dados de perfil</li>
+                                    <li>Todos os pacientes cadastrados</li>
+                                    <li>Prontuários e registros clínicos</li>
+                                    <li>Documentos e arquivos</li>
+                                    <li>Transações financeiras</li>
+                                    <li>Agendamentos e sessões de vídeo</li>
+                                </ul>
+                                <DialogFooter>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => setDeleteDialogOpen(false)}
+                                        disabled={isDeletingAccount}
+                                    >
+                                        Cancelar
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="destructive"
+                                        onClick={handleDeleteAccount}
+                                        disabled={isDeletingAccount}
+                                    >
+                                        {isDeletingAccount && <Loader2 className="mr-2 size-4 animate-spin" />}
+                                        Excluir permanentemente
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+                </TabsContent>
+            </Tabs>
+
+            <div className="flex justify-end gap-2 border-t pt-4 mt-4 w-full bg-background z-10">
                 <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Salvar Alterações
                 </Button>
-            </div>
-
-            {/* ── Portabilidade de Dados ──────────────────────────────────────── */}
-            <div className="border rounded-lg p-4 space-y-3 mt-4">
-                <p className="text-sm font-medium">Exportar meus dados</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                    Baixe uma cópia de todos os seus dados em formato JSON. O arquivo inclui
-                    pacientes, prontuários, documentos, transações e agendamentos.
-                </p>
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleExport}
-                    disabled={isExporting}
-                >
-                    {isExporting
-                        ? <Loader2 className="mr-2 size-4 animate-spin" />
-                        : <Download className="mr-2 size-4" />}
-                    {isExporting ? "Exportando..." : "Exportar meus dados"}
-                </Button>
-            </div>
-
-            {/* ── Zona de Perigo ──────────────────────────────────────────────── */}
-            <div className="border border-destructive/40 rounded-lg p-4 space-y-3 mt-4">
-                <div className="flex items-center gap-2 text-destructive">
-                    <TriangleAlert className="size-4 shrink-0" />
-                    <span className="text-sm font-semibold">Zona de Perigo</span>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                    A exclusão da sua conta é permanente e não pode ser desfeita. Todos os seus dados
-                    serão removidos: pacientes, prontuários, documentos, transações financeiras e
-                    agendamentos.
-                </p>
-                <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button type="button" variant="destructive" size="sm">
-                            Excluir minha conta
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent showCloseButton={!isDeletingAccount}>
-                        <DialogHeader>
-                            <DialogTitle>Excluir conta permanentemente?</DialogTitle>
-                            <DialogDescription>
-                                Esta ação não pode ser desfeita. Os seguintes dados serão removidos
-                                definitivamente:
-                            </DialogDescription>
-                        </DialogHeader>
-                        <ul className="text-sm text-muted-foreground space-y-1 pl-4 list-disc">
-                            <li>Sua conta e dados de perfil</li>
-                            <li>Todos os pacientes cadastrados</li>
-                            <li>Prontuários e registros clínicos</li>
-                            <li>Documentos e arquivos</li>
-                            <li>Transações financeiras</li>
-                            <li>Agendamentos e sessões de vídeo</li>
-                        </ul>
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setDeleteDialogOpen(false)}
-                                disabled={isDeletingAccount}
-                            >
-                                Cancelar
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="destructive"
-                                onClick={handleDeleteAccount}
-                                disabled={isDeletingAccount}
-                            >
-                                {isDeletingAccount && <Loader2 className="mr-2 size-4 animate-spin" />}
-                                Excluir permanentemente
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
             </div>
         </form>
     );

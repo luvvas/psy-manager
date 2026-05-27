@@ -18,6 +18,7 @@ export const psychologistRouter = router({
                     primary: z.string().optional(),
                     sidebar: z.string().optional(),
                     button: z.string().optional(),
+                    tableHeader: z.string().optional(),
                 }).optional().nullable(),
             })
         )

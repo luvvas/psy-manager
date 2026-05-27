@@ -69,7 +69,14 @@ export function DataTable<T>({
                         <TableHeader>
                             <TableRow>
                                 {columns.map((col) => (
-                                    <TableHead key={col.header} className={col.className}>
+                                    <TableHead
+                                        key={col.header}
+                                        className={col.className}
+                                        style={{
+                                            backgroundColor: "var(--table-header-bg, var(--sidebar))",
+                                            color: "var(--table-header-fg, var(--sidebar-foreground))",
+                                        }}
+                                    >
                                         {col.header}
                                     </TableHead>
                                 ))}

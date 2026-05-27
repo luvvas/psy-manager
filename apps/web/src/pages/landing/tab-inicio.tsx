@@ -152,29 +152,37 @@ export function TabInicio() {
     return (
         <>
             {/* Hero */}
-            <section className="mx-auto max-w-5xl px-6 pt-20 pb-16 text-center">
-                <h1 className="text-4xl font-bold tracking-tight leading-tight mb-4 sm:text-5xl">
-                    O que você precisa para{" "}
-                    <span className="text-primary">
-                        gerenciar seu consultório, com a sua identidade
-                    </span>
-                </h1>
-                <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-                    Agendamento, prontuários, financeiro e documentos em um só lugar.
-                    Simples, seguro e feito para psicólogos.
-                </p>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <Link to="/login?tab=register">
-                        <Button size="lg" className="gap-2">
-                            Começar gratuitamente
-                            <ArrowRight className="size-4" />
-                        </Button>
-                    </Link>
-                    <Link to="/login">
-                        <Button size="lg" variant="outline">
-                            Já tenho uma conta
-                        </Button>
-                    </Link>
+            <section className="mx-auto max-w-5xl px-6 pt-20 pb-16">
+                <div className="flex flex-col-reverse items-center gap-10 lg:flex-row lg:gap-16">
+                    <div className="flex-1 text-center lg:text-left">
+                        <h1 className="text-3xl font-bold tracking-tight leading-tight mb-4 sm:text-4xl">
+                            Gerencie seu consultório, com a sua identidade
+                        </h1>
+                        <p className="text-md text-muted-foreground mb-8 leading-relaxed">
+                            Agendamento, prontuários, financeiro e documentos em um só lugar.
+                            Simples, seguro e feito para psicólogos.
+                        </p>
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 lg:justify-start">
+                            <Link to="/login?tab=register">
+                                <Button size="lg" className="gap-2">
+                                    Começar gratuitamente
+                                    <ArrowRight className="size-4" />
+                                </Button>
+                            </Link>
+                            <Link to="/login">
+                                <Button size="lg" variant="outline">
+                                    Já tenho uma conta
+                                </Button>
+                            </Link>
+                        </div>
+                    </div>
+                    <div className="flex-1 w-full max-w-md lg:max-w-none">
+                        <img
+                            src="/images/multitask.svg"
+                            alt="Ilustração de gerenciamento de consultório"
+                            className="w-full h-auto"
+                        />
+                    </div>
                 </div>
             </section>
 

@@ -9,7 +9,7 @@ import { financialService } from "./financial.service";
 import { appointmentQueries } from "../cqrs/appointment/appointment.queries";
 
 export type Psychologist = typeof user.$inferSelect;
-export type ThemeConfig = { primary?: string; sidebar?: string; button?: string };
+export type ThemeConfig = { primary?: string; sidebar?: string; button?: string; tableHeader?: string };
 export type PsychologistUpdate = Partial<Pick<Psychologist, "name" | "phone" | "crp" | "city" | "image">> & {
     themeConfig?: ThemeConfig | null;
 };

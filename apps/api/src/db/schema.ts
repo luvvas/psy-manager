@@ -17,7 +17,7 @@ export const user = pgTable("user", {
     phone: text("phone"),
     crp: text("crp"),
     city: text("city"),
-    themeConfig: jsonb("theme_config").$type<{ primary?: string; sidebar?: string; button?: string }>(),
+    themeConfig: jsonb("theme_config").$type<{ primary?: string; sidebar?: string; button?: string; tableHeader?: string }>(),
     consentedAt: timestamp("consented_at"),
     consentVersion: text("consent_version"),
     createdAt: timestamp("created_at").notNull().defaultNow(),

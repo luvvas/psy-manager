@@ -5,6 +5,8 @@ export interface ThemeConfig {
     sidebar?: string;
     /** Buttons and active nav-item color (hex) */
     button?: string;
+    /** Data-table header background color (hex) */
+    tableHeader?: string;
 }
 
 /** Relative luminance (WCAG 2.1), used to auto-pick black or white foreground. */
@@ -30,7 +32,7 @@ export function applyTheme(config: ThemeConfig | null | undefined) {
     const existing = document.getElementById(STYLE_ID);
     if (existing) existing.remove();
 
-    if (!config || (!isHex(config.primary) && !isHex(config.sidebar) && !isHex(config.button))) return;
+    if (!config || (!isHex(config.primary) && !isHex(config.sidebar) && !isHex(config.button) && !isHex(config.tableHeader))) return;
 
     const vars: string[] = [];
 
@@ -67,6 +69,15 @@ export function applyTheme(config: ThemeConfig | null | undefined) {
             `--sidebar-primary: ${config.button}`,
             `--sidebar-primary-foreground: ${fg}`,
             `--sidebar-ring: ${config.button}`,
+        );
+    }
+
+    // ── Data-table header ─────────────────────────────────────────────────────
+    if (isHex(config.tableHeader)) {
+        const fg = contrastHex(config.tableHeader);
+        vars.push(
+            `--table-header-bg: ${config.tableHeader}`,
+            `--table-header-fg: ${fg}`,
         );
     }
 

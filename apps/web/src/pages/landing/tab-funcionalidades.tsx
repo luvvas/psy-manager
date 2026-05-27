@@ -14,6 +14,7 @@ import {
     FolderOpen,
     Users,
     Video,
+    X,
 } from "lucide-react";
 import { type ElementType, useEffect, useState } from "react";
 
@@ -76,6 +77,7 @@ const featureSlides: {
 export function TabFuncionalidades() {
     const [api, setApi] = useState<CarouselApi>();
     const [current, setCurrent] = useState(0);
+    const [lightbox, setLightbox] = useState<string | null>(null);
 
     useEffect(() => {
         if (!api) return;
@@ -83,7 +85,15 @@ export function TabFuncionalidades() {
         api.on("select", () => setCurrent(api.selectedScrollSnap()));
     }, [api]);
 
+    useEffect(() => {
+        if (!lightbox) return;
+        const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setLightbox(null); };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [lightbox]);
+
     return (
+        <>
         <div className="mx-auto max-w-5xl px-6 py-20">
             <div className="text-center mb-12">
                 <h2 className="text-2xl font-bold tracking-tight mb-2">Veja o sistema em ação</h2>
@@ -136,12 +146,18 @@ export function TabFuncionalidades() {
 
                                             {/* Screenshot area */}
                                             {slide.image ? (
-                                                <img
-                                                    src={slide.image}
-                                                    alt={`Screenshot do módulo ${slide.title}`}
-                                                    className="w-full object-cover object-top"
-                                                    style={{ aspectRatio: "auto" }}
-                                                />
+                                                <button
+                                                    type="button"
+                                                    className="w-full cursor-zoom-in"
+                                                    onClick={() => setLightbox(slide.image!)}
+                                                >
+                                                    <img
+                                                        src={slide.image}
+                                                        alt={`Screenshot do módulo ${slide.title}`}
+                                                        className="w-full object-cover object-top"
+                                                        style={{ aspectRatio: "auto" }}
+                                                    />
+                                                </button>
                                             ) : (
                                                 <div
                                                     className="w-full flex flex-col items-center justify-center gap-4 bg-muted/20"
@@ -180,5 +196,29 @@ export function TabFuncionalidades() {
                 </Carousel>
             </div>
         </div>
+
+        {lightbox && (
+                // biome-ignore lint/a11y/useKeyWithClickEvents: Escape key handled via window listener
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+                    onClick={() => setLightbox(null)}
+                >
+                    <button
+                        type="button"
+                        aria-label="Fechar imagem"
+                        onClick={() => setLightbox(null)}
+                        className="absolute top-4 right-4 flex size-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+                    >
+                        <X className="size-5" />
+                    </button>
+                    <img
+                        src={lightbox}
+                        alt="Screenshot ampliado"
+                        className="max-h-[90vh] max-w-full rounded-lg shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            )}
+        </>
     );
 }
