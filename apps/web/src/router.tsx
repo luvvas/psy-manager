@@ -142,6 +142,6 @@ const desktopOnlyRoutes = [
 ];
 
 export const router = createBrowserRouter([
-    ...appRoutes,
     ...(isElectron ? desktopOnlyRoutes : webOnlyRoutes),
+    ...appRoutes,
 ]);
