@@ -120,6 +120,13 @@
       "when": 1779770284566,
       "tag": "0016_brainy_morlocks",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1780009105010,
+      "tag": "0017_slim_aaron_stack",
+      "breakpoints": true
     }
   ]
 }

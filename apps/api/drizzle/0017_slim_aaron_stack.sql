@@ -1,0 +1,1 @@
+ALTER TABLE "user" ALTER COLUMN "consented_at" SET DATA TYPE text;
