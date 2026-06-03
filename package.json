@@ -27,7 +27,7 @@
     "release:desktop": "bun run build:web && bun run --filter @psy-manager/desktop release"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2",
-    "typescript": "^5.8.3"
+    "concurrently": "^10.0.3",
+    "typescript": "^6.0.3"
   }
 }
