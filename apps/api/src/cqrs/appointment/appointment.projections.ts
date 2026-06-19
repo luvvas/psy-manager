@@ -16,6 +16,8 @@ export const appointmentProjections = {
     async handleAppointmentScheduled(event: DomainEvent): Promise<void> {
         const { id, psychologistId, patientId, date, startTime, endTime, status, sessionType, type, isRecurring, notes, meetingUrl, googleEventId } = event.data;
 
+        const { reminderEnabled, reminderMinutesBefore } = event.data;
+
         await db.insert(appointment).values({
             id,
             psychologistId,
@@ -30,6 +32,8 @@ export const appointmentProjections = {
             notes: encryptField(notes ?? null),
             meetingUrl: meetingUrl ?? null,
             googleEventId: googleEventId ?? null,
+            reminderEnabled: reminderEnabled ?? false,
+            reminderMinutesBefore: reminderMinutesBefore ?? null,
             createdAt: event.createdAt ?? new Date(),
             updatedAt: event.createdAt ?? new Date(),
         }).onConflictDoNothing();
@@ -40,6 +44,8 @@ export const appointmentProjections = {
     async handleAppointmentRescheduled(event: DomainEvent): Promise<void> {
         const { patientId, date, startTime, endTime, status, sessionType, type, isRecurring, notes, meetingUrl, googleEventId } = event.data;
         const id = event.aggregateId;
+
+        const { reminderEnabled, reminderMinutesBefore } = event.data;
 
         await db
             .update(appointment)
@@ -55,6 +61,8 @@ export const appointmentProjections = {
                 notes: encryptField(notes ?? null),
                 meetingUrl: meetingUrl ?? null,
                 googleEventId: googleEventId ?? null,
+                reminderEnabled: reminderEnabled ?? false,
+                reminderMinutesBefore: reminderMinutesBefore ?? null,
                 updatedAt: event.createdAt ?? new Date(),
             })
             .where(eq(appointment.id, id));

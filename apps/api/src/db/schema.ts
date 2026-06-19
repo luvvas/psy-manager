@@ -128,6 +128,9 @@ export const appointment = pgTable("appointment", {
     notes: text("notes"),
     meetingUrl: text("meeting_url"),
     googleEventId: text("google_event_id"),
+    reminderEnabled: boolean("reminder_enabled").notNull().default(false),
+    reminderMinutesBefore: integer("reminder_minutes_before"),
+    reminderSentAt: timestamp("reminder_sent_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

@@ -45,6 +45,9 @@ export const appointmentQueries = {
                 isRecurring: appointment.isRecurring,
                 notes: appointment.notes,
                 meetingUrl: appointment.meetingUrl,
+                reminderEnabled: appointment.reminderEnabled,
+                reminderMinutesBefore: appointment.reminderMinutesBefore,
+                reminderSentAt: appointment.reminderSentAt,
                 createdAt: appointment.createdAt,
                 updatedAt: appointment.updatedAt,
                 patient: {
@@ -106,6 +109,9 @@ export const appointmentQueries = {
             notes: null,
             meetingUrl: null,
             patient: null,
+            reminderEnabled: false,
+            reminderMinutesBefore: null,
+            reminderSentAt: null,
         }));
 
         return [...ownAppointments, ...sharedAppointments];

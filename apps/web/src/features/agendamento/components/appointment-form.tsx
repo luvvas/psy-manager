@@ -15,7 +15,7 @@ import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod/v3";
-import { ExternalLink, Loader2, Video } from "lucide-react";
+import { Bell, ExternalLink, Loader2, Video } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { DatePicker } from "@/components/date-picker";
 import { useSession } from "@/lib/auth-client";
@@ -45,6 +45,8 @@ const appointmentSchema = z.object({
     isRecurring: z.boolean(),
     notes: z.string().optional(),
     meetingUrl: z.string().optional(),
+    reminderEnabled: z.boolean(),
+    reminderMinutesBefore: z.number().int().positive().optional(),
 });
 
 export type AppointmentFormValues = z.infer<typeof appointmentSchema>;
@@ -107,10 +109,13 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
             isRecurring: initialData?.isRecurring || false,
             notes: initialData?.notes || "",
             meetingUrl: initialData?.meetingUrl || "",
+            reminderEnabled: initialData?.reminderEnabled ?? false,
+            reminderMinutesBefore: initialData?.reminderMinutesBefore ?? 60,
         },
     });
 
     const sessionType = watch("sessionType");
+    const reminderEnabled = watch("reminderEnabled");
 
     const onSubmitForm = async (data: AppointmentFormValues) => {
         setIsSubmitting(true);
@@ -325,6 +330,74 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
                         <p className="text-xs text-muted-foreground">
                             Cole aqui o link do Google Meet, Zoom ou Teams gerado externamente.
                         </p>
+                    </div>
+                )}
+
+                {/* WhatsApp Reminder */}
+                {!readOnly && (
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between rounded-lg border p-3">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="reminderEnabled" className="flex items-center gap-1.5 text-sm font-medium">
+                                    <Bell className="size-3.5" />
+                                    Lembrete automático via WhatsApp
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    O paciente receberá uma mensagem antes da sessão
+                                </p>
+                            </div>
+                            <Controller
+                                name="reminderEnabled"
+                                control={control}
+                                render={({ field }) => (
+                                    <Switch
+                                        id="reminderEnabled"
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                        disabled={isSubmitting}
+                                    />
+                                )}
+                            />
+                        </div>
+
+                        {reminderEnabled && (
+                            <div className="grid gap-2">
+                                <Label htmlFor="reminderMinutesBefore">Enviar</Label>
+                                <Controller
+                                    name="reminderMinutesBefore"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select
+                                            value={String(field.value ?? 60)}
+                                            onValueChange={(v) => field.onChange(Number(v))}
+                                            disabled={isSubmitting}
+                                        >
+                                            <SelectTrigger id="reminderMinutesBefore">
+                                                <SelectValue placeholder="Quando enviar" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="15">15 minutos antes</SelectItem>
+                                                <SelectItem value="30">30 minutos antes</SelectItem>
+                                                <SelectItem value="60">1 hora antes</SelectItem>
+                                                <SelectItem value="1440">24 horas antes</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Reminder sent status (read-only view) */}
+                {readOnly && initialData?.reminderEnabled && (
+                    <div className="flex items-center gap-2 rounded-lg border p-3 text-sm">
+                        <Bell className="size-4 shrink-0 text-muted-foreground" />
+                        <span className="text-muted-foreground">
+                            {initialData?.reminderSentAt
+                                ? "Lembrete enviado via WhatsApp"
+                                : `Lembrete agendado (${initialData?.reminderMinutesBefore === 1440 ? "24h" : `${initialData?.reminderMinutesBefore} min`} antes)`}
+                        </span>
                     </div>
                 )}
             </div>

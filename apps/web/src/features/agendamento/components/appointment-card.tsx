@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useSession } from "@/lib/auth-client";
 import { trpc } from "@/lib/trpc";
-import { Clock, ExternalLink, Loader2, MessageSquare, Repeat, Video } from "lucide-react";
+import { Bell, BellCheck, Clock, ExternalLink, Loader2, MessageSquare, Repeat, Video } from "lucide-react";
 import { toast } from "sonner";
 import type { Appointment } from "../types";
 import { APPOINTMENT_TYPE_LABELS } from "../types";
@@ -160,6 +160,12 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
                     <span className="flex items-center gap-1">
                         <MessageSquare className="size-3" />
                         Nota
+                    </span>
+                )}
+                {appointment.reminderEnabled && (
+                    <span className={`flex items-center gap-1 ${appointment.reminderSentAt ? "text-emerald-600" : "text-amber-600"}`}>
+                        {appointment.reminderSentAt ? <BellCheck className="size-3" /> : <Bell className="size-3" />}
+                        {appointment.reminderSentAt ? "Lembrete enviado" : "Lembrete agendado"}
                     </span>
                 )}
             </div>

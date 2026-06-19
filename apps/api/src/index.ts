@@ -19,6 +19,9 @@ import { appointmentProjections } from "./cqrs/appointment/appointment.projectio
 import { storageService } from "./services/storage.service";
 import { handleSignaling } from "./ws/signaling";
 import { eventBus } from "./lib/cqrs";
+import { db } from "./db";
+import { appointment } from "./db/schema";
+import { eq } from "drizzle-orm";
 
 // Initialize CQRS Projections/Subscribers
 patientProjections.init();
@@ -86,6 +89,23 @@ app.get("/api/health", (c) => {
         { status: healthy ? "ok" : "degraded", deadLetterCount: deadLetters.length },
         healthy ? 200 : 503
     );
+});
+
+// Called by Lambda after sending the WhatsApp reminder — stamps reminderSentAt
+app.post("/api/internal/reminder-callback", async (c) => {
+    const secret = c.req.header("x-callback-secret");
+    if (!secret || secret !== process.env.LAMBDA_CALLBACK_SECRET) {
+        return c.json({ error: "Unauthorized" }, 401);
+    }
+    const body = await c.req.json<{ appointmentId: string }>();
+    if (!body?.appointmentId) {
+        return c.json({ error: "Missing appointmentId" }, 400);
+    }
+    await db
+        .update(appointment)
+        .set({ reminderSentAt: new Date() })
+        .where(eq(appointment.id, body.appointmentId));
+    return c.json({ success: true });
 });
 
 app.put("/api/storage/local-upload/:token", (c) => {

@@ -4,9 +4,11 @@ import { router, protectedProcedure } from "../trpc/index";
 import { appointmentCommands } from "../cqrs/appointment/appointment.commands";
 import { appointmentQueries } from "../cqrs/appointment/appointment.queries";
 import { googleCalendarService } from "../services/google-calendar.service";
+import { reminderSchedulerService } from "../services/reminder-scheduler.service";
 import { db } from "../db";
 import { account, patient } from "../db/schema";
 import { eq, and } from "drizzle-orm";
+import { decryptField } from "../lib/encryption";
 
 async function assertPatientOwnership(patientId: string, psychologistId: string) {
     const [row] = await db
@@ -18,6 +20,40 @@ async function assertPatientOwnership(patientId: string, psychologistId: string)
         throw new TRPCError({ code: "FORBIDDEN", message: "Paciente não encontrado." });
     }
 }
+
+async function fetchPatientForReminder(patientId: string) {
+    const [row] = await db
+        .select({ nome: patient.nome, telefone: patient.telefone })
+        .from(patient)
+        .where(eq(patient.id, patientId))
+        .limit(1);
+    if (!row) return null;
+    return {
+        nome: decryptField(row.nome) ?? "",
+        telefone: decryptField(row.telefone) ?? "",
+    };
+}
+
+function normalizePhoneForWhatsApp(phone: string): string {
+    const digits = phone.replace(/\D/g, "");
+    if (digits.startsWith("55") && digits.length >= 12) return `+${digits}`;
+    if (digits.length >= 10) return `+55${digits}`;
+    return `+${digits}`;
+}
+
+function formatDateBR(date: Date): string {
+    return date.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        timeZone: "America/Sao_Paulo",
+    });
+}
+
+const reminderFields = {
+    reminderEnabled: z.boolean().optional().default(false),
+    reminderMinutesBefore: z.number().int().positive().optional(),
+};
 
 export const appointmentRouter = router({
     list: protectedProcedure.query(async ({ ctx }) => {
@@ -37,6 +73,7 @@ export const appointmentRouter = router({
                 isRecurring: z.boolean(),
                 notes: z.string().optional(),
                 meetingUrl: z.string().optional(),
+                ...reminderFields,
             })
         )
         .mutation(async ({ ctx, input }) => {
@@ -45,6 +82,23 @@ export const appointmentRouter = router({
                 ...input,
                 psychologistId: ctx.session.user.id,
             });
+
+            if (input.reminderEnabled && input.reminderMinutesBefore) {
+                const pat = await fetchPatientForReminder(input.patientId);
+                if (pat?.telefone) {
+                    await reminderSchedulerService.createSchedule({
+                        appointmentId: id,
+                        patientPhone: normalizePhoneForWhatsApp(pat.telefone),
+                        patientName: pat.nome,
+                        psychologistName: ctx.session.user.name,
+                        appointmentDate: input.date,
+                        appointmentStartTime: input.startTime,
+                        appointmentDateFormatted: formatDateBR(input.date),
+                        reminderMinutesBefore: input.reminderMinutesBefore,
+                    });
+                }
+            }
+
             return { id, success: true };
         }),
 
@@ -62,6 +116,7 @@ export const appointmentRouter = router({
                 isRecurring: z.boolean(),
                 notes: z.string().optional(),
                 meetingUrl: z.string().optional(),
+                ...reminderFields,
             })
         )
         .mutation(async ({ ctx, input }) => {
@@ -70,6 +125,26 @@ export const appointmentRouter = router({
                 ...input,
                 psychologistId: ctx.session.user.id,
             });
+
+            // Always delete the existing schedule first (date/time or reminder setting may have changed)
+            await reminderSchedulerService.deleteSchedule(input.id);
+
+            if (input.reminderEnabled && input.reminderMinutesBefore) {
+                const pat = await fetchPatientForReminder(input.patientId);
+                if (pat?.telefone) {
+                    await reminderSchedulerService.createSchedule({
+                        appointmentId: input.id,
+                        patientPhone: normalizePhoneForWhatsApp(pat.telefone),
+                        patientName: pat.nome,
+                        psychologistName: ctx.session.user.name,
+                        appointmentDate: input.date,
+                        appointmentStartTime: input.startTime,
+                        appointmentDateFormatted: formatDateBR(input.date),
+                        reminderMinutesBefore: input.reminderMinutesBefore,
+                    });
+                }
+            }
+
             return { success: true };
         }),
 
@@ -84,6 +159,7 @@ export const appointmentRouter = router({
                 id: input.id,
                 psychologistId: ctx.session.user.id,
             });
+            await reminderSchedulerService.deleteSchedule(input.id);
             return { success: true };
         }),
 
@@ -138,7 +214,6 @@ export const appointmentRouter = router({
             const expiresIn = data.expires_in;
             const expiresAt = new Date(now.getTime() + expiresIn * 1000);
 
-            // Save/Update in account table
             const [existing] = await db
                 .select()
                 .from(account)

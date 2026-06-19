@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.958.0",
+    "@aws-sdk/client-scheduler": "^3.958.0",
     "@aws-sdk/s3-request-presigner": "^3.958.0",
     "@better-auth/drizzle-adapter": "^1.6.9",
     "@hono/node-server": "^1.14.1",

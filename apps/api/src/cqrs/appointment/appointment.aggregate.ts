@@ -15,6 +15,8 @@ export interface AppointmentState {
     notes: string | null;
     meetingUrl: string | null;
     googleEventId: string | null;
+    reminderEnabled: boolean;
+    reminderMinutesBefore: number | null;
     isDeleted: boolean;
     createdAt: Date | null;
     updatedAt: Date | null;
@@ -38,6 +40,8 @@ export class AppointmentAggregate extends AggregateRoot<AppointmentState> {
             notes: null,
             meetingUrl: null,
             googleEventId: null,
+            reminderEnabled: false,
+            reminderMinutesBefore: null,
             isDeleted: false,
             createdAt: null,
             updatedAt: null,
@@ -58,6 +62,8 @@ export class AppointmentAggregate extends AggregateRoot<AppointmentState> {
         notes?: string;
         meetingUrl?: string;
         googleEventId?: string;
+        reminderEnabled?: boolean;
+        reminderMinutesBefore?: number;
     }): void {
         if (this._version > 0) {
             throw new Error("Appointment already exists");
@@ -78,6 +84,8 @@ export class AppointmentAggregate extends AggregateRoot<AppointmentState> {
         notes?: string;
         meetingUrl?: string;
         googleEventId?: string;
+        reminderEnabled?: boolean;
+        reminderMinutesBefore?: number;
     }): void {
         if (this._state.isDeleted) {
             throw new Error("Cannot modify a deleted appointment");
@@ -110,6 +118,8 @@ export class AppointmentAggregate extends AggregateRoot<AppointmentState> {
                     notes: event.data.notes ?? null,
                     meetingUrl: event.data.meetingUrl ?? null,
                     googleEventId: event.data.googleEventId ?? null,
+                    reminderEnabled: event.data.reminderEnabled ?? false,
+                    reminderMinutesBefore: event.data.reminderMinutesBefore ?? null,
                     isDeleted: false,
                     createdAt: event.createdAt ?? new Date(),
                     updatedAt: event.createdAt ?? new Date(),
@@ -129,6 +139,8 @@ export class AppointmentAggregate extends AggregateRoot<AppointmentState> {
                     notes: event.data.notes ?? null,
                     meetingUrl: event.data.meetingUrl ?? null,
                     googleEventId: event.data.googleEventId ?? state.googleEventId,
+                    reminderEnabled: event.data.reminderEnabled ?? false,
+                    reminderMinutesBefore: event.data.reminderMinutesBefore ?? null,
                     updatedAt: event.createdAt ?? new Date(),
                 };
 

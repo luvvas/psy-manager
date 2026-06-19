@@ -14,6 +14,8 @@ export interface ScheduleAppointmentCommand {
     notes?: string;
     meetingUrl?: string;
     googleEventId?: string;
+    reminderEnabled?: boolean;
+    reminderMinutesBefore?: number;
 }
 
 export interface RescheduleAppointmentCommand {
@@ -30,6 +32,8 @@ export interface RescheduleAppointmentCommand {
     notes?: string;
     meetingUrl?: string;
     googleEventId?: string;
+    reminderEnabled?: boolean;
+    reminderMinutesBefore?: number;
 }
 
 export interface CancelAppointmentCommand {
@@ -56,6 +60,8 @@ export const appointmentCommands = {
             notes: command.notes,
             meetingUrl: command.meetingUrl,
             googleEventId: command.googleEventId,
+            reminderEnabled: command.reminderEnabled,
+            reminderMinutesBefore: command.reminderMinutesBefore,
         });
 
         await cqrsEventStore.saveEvents(id, 0, aggregate.uncommittedEvents);
@@ -92,6 +98,8 @@ export const appointmentCommands = {
             notes: command.notes,
             meetingUrl: command.meetingUrl,
             googleEventId: command.googleEventId,
+            reminderEnabled: command.reminderEnabled,
+            reminderMinutesBefore: command.reminderMinutesBefore,
         });
 
         await cqrsEventStore.saveEvents(command.id, expectedVersion, aggregate.uncommittedEvents);

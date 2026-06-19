@@ -160,6 +160,9 @@ export function AgendamentoPage() {
                 meetingUrl: app.meetingUrl || undefined,
                 isRecurring: app.isRecurring,
                 sessionType: app.sessionType as any,
+                reminderEnabled: app.reminderEnabled ?? false,
+                reminderMinutesBefore: app.reminderMinutesBefore ?? null,
+                reminderSentAt: app.reminderSentAt ?? null,
             };
         });
     }, [dbAppointments]);
@@ -179,6 +182,8 @@ export function AgendamentoPage() {
                     isRecurring: formData.isRecurring,
                     notes: formData.notes,
                     meetingUrl: formData.meetingUrl || undefined,
+                    reminderEnabled: formData.reminderEnabled,
+                    reminderMinutesBefore: formData.reminderEnabled ? formData.reminderMinutesBefore : undefined,
                 });
             } else {
                 await createMutation.mutateAsync({
@@ -192,6 +197,8 @@ export function AgendamentoPage() {
                     isRecurring: formData.isRecurring,
                     notes: formData.notes,
                     meetingUrl: formData.meetingUrl || undefined,
+                    reminderEnabled: formData.reminderEnabled,
+                    reminderMinutesBefore: formData.reminderEnabled ? formData.reminderMinutesBefore : undefined,
                 });
             }
             setSheetOpen(false);
@@ -370,6 +377,9 @@ export function AgendamentoPage() {
                                             isRecurring: editingAppointment.isRecurring || false,
                                             notes: editingAppointment.notes || "",
                                             meetingUrl: editingAppointment.meetingUrl || "",
+                                            reminderEnabled: editingAppointment.reminderEnabled ?? false,
+                                            reminderMinutesBefore: editingAppointment.reminderMinutesBefore ?? undefined,
+                                            reminderSentAt: editingAppointment.reminderSentAt ?? null,
                                         }
                                         : pendingCreationDate
                                             ? { date: pendingCreationDate }

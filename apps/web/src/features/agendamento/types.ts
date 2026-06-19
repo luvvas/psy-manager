@@ -28,6 +28,9 @@ export interface Appointment {
     meetingUrl?: string;
     isRecurring?: boolean;
     sessionType?: "online" | "in_person";
+    reminderEnabled?: boolean;
+    reminderMinutesBefore?: number | null;
+    reminderSentAt?: Date | string | null;
 }
 
 export const APPOINTMENT_TYPE_LABELS: Record<Appointment["type"], string> = {
