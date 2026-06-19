@@ -126,7 +126,10 @@ jobs:
             TURN_CREDENTIAL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/TURN_CREDENTIAL" --with-decryption --query "Parameter.Value" --output text)
             ENCRYPTION_KEY=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/ENCRYPTION_KEY" --with-decryption --query "Parameter.Value" --output text)
             SENTRY_DSN=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/SENTRY_DSN" --query "Parameter.Value" --output text)
-            ALLOWED_ORIGINS=https://dswfc48bg9ft6.cloudfront.net,app://localhost
+            ALLOWED_ORIGINS=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/ALLOWED_ORIGINS" --query "Parameter.Value" --output text)
+            BETTER_AUTH_URL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/BETTER_AUTH_URL" --query "Parameter.Value" --output text)
+            GOOGLE_CLIENT_ID=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/GOOGLE_CLIENT_ID" --query "Parameter.Value" --output text)
+            GOOGLE_REDIRECT_URI=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/GOOGLE_REDIRECT_URI" --query "Parameter.Value" --output text)
             SMTP_HOST=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/SMTP_HOST" --query "Parameter.Value" --output text)
             SMTP_PORT=587
             SMTP_SECURE=false
