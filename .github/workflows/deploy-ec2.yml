@@ -157,7 +157,7 @@ jobs:
           path: apps/web/dist
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::952078551945:role/psy-manager-github-actions-role
           aws-region: sa-east-1
