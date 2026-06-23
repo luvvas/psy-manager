@@ -97,7 +97,7 @@ jobs:
             --region sa-east-1 \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=["git config --global --add safe.directory /home/ubuntu/psy-manager", "cd /home/ubuntu/psy-manager 2>/dev/null || git clone https://github.com/${{ github.repository }}.git /home/ubuntu/psy-manager", "git -C /home/ubuntu/psy-manager fetch --all", "git -C /home/ubuntu/psy-manager reset --hard origin/master"]' \
+            --parameters 'commands=["if [ -d /home/ubuntu/psy-manager ]; then sudo -u ubuntu git -C /home/ubuntu/psy-manager fetch --all && sudo -u ubuntu git -C /home/ubuntu/psy-manager reset --hard origin/master; else sudo -u ubuntu git clone https://github.com/${{ github.repository }}.git /home/ubuntu/psy-manager; fi"]' \
             --query "Command.CommandId" \
             --output text)
 
