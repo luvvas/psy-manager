@@ -6,7 +6,7 @@ PROJECT_DIR="/home/ubuntu/psy-manager"
 
 echo "==> Fetching secrets from SSM..."
 
-POSTGRES_PASSWORD=$(aws secretsmanager get-secret-value --region "$REGION" --secret-id "psy-manager/prod/postgres" --query SecretString --output text | python3 -c "import sys,json; print(json.load(sys.stdin)['password'])")
+POSTGRES_PASSWORD=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/POSTGRES_PASSWORD" --with-decryption --query "Parameter.Value" --output text)
 
 cat > "$PROJECT_DIR/.env.prod" << EOF
 DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/psy_manager
