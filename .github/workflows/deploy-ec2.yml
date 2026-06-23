@@ -80,67 +80,68 @@ jobs:
     name: Deploy / API
     runs-on: ubuntu-latest
     needs: quality-gate
+    permissions:
+      id-token: write
+      contents: read
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::952078551945:role/psy-manager-github-actions-role
+          aws-region: sa-east-1
 
       - name: Pull latest code on EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
-          script: |
-            cd ~/psy-manager || {
-              git clone https://github.com/${{ github.repository }}.git ~/psy-manager
-              cd ~/psy-manager
-            }
-            git fetch --all
-            git reset --hard origin/master
+        run: |
+          INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
+          COMMAND_ID=$(aws ssm send-command \
+            --region sa-east-1 \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=["cd /home/ubuntu/psy-manager 2>/dev/null || git clone https://github.com/${{ github.repository }}.git /home/ubuntu/psy-manager && cd /home/ubuntu/psy-manager && git fetch --all && git reset --hard origin/master"]' \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "Command ID: $COMMAND_ID"
+          for i in $(seq 1 30); do
+            STATUS=$(aws ssm get-command-invocation --region sa-east-1 --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --query "Status" --output text 2>/dev/null || echo "Pending")
+            echo "Status: $STATUS"
+            if [[ "$STATUS" == "Success" ]]; then break; fi
+            if [[ "$STATUS" == "Failed" || "$STATUS" == "Cancelled" || "$STATUS" == "TimedOut" ]]; then
+              aws ssm get-command-invocation --region sa-east-1 --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --query "StandardErrorContent" --output text
+              exit 1
+            fi
+            sleep 5
+          done
 
       - name: Deploy (secrets + restart + migrate)
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
-          script: |
-            cd ~/psy-manager
+        run: |
+          INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
+          COMMAND_ID=$(aws ssm send-command \
+            --region sa-east-1 \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=["bash /home/ubuntu/psy-manager/scripts/deploy.sh 2>&1"]' \
+            --timeout-seconds 600 \
+            --query "Command.CommandId" \
+            --output text)
 
-            POSTGRES_PASSWORD=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/POSTGRES_PASSWORD" --with-decryption --query "Parameter.Value" --output text)
-            cat > .env.prod << EOF
-            DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/psy_manager
-            POSTGRES_USER=postgres
-            POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-            POSTGRES_DB=psy_manager
-            BETTER_AUTH_SECRET=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/BETTER_AUTH_SECRET" --with-decryption --query "Parameter.Value" --output text)
-            GOOGLE_CLIENT_SECRET=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/GOOGLE_CLIENT_SECRET" --with-decryption --query "Parameter.Value" --output text)
-            STORAGE_DRIVER=s3
-            AWS_REGION=sa-east-1
-            AWS_DOCUMENTS_BUCKET=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/AWS_DOCUMENTS_BUCKET" --query "Parameter.Value" --output text)
-            PUBLIC_URL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/PUBLIC_URL" --query "Parameter.Value" --output text)
-            TURN_URL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/TURN_URL" --query "Parameter.Value" --output text)
-            TURN_USERNAME=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/TURN_USERNAME" --query "Parameter.Value" --output text)
-            TURN_CREDENTIAL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/TURN_CREDENTIAL" --with-decryption --query "Parameter.Value" --output text)
-            ENCRYPTION_KEY=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/ENCRYPTION_KEY" --with-decryption --query "Parameter.Value" --output text)
-            SENTRY_DSN=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/SENTRY_DSN" --query "Parameter.Value" --output text)
-            ALLOWED_ORIGINS=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/ALLOWED_ORIGINS" --query "Parameter.Value" --output text)
-            BETTER_AUTH_URL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/BETTER_AUTH_URL" --query "Parameter.Value" --output text)
-            GOOGLE_CLIENT_ID=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/GOOGLE_CLIENT_ID" --query "Parameter.Value" --output text)
-            GOOGLE_REDIRECT_URI=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/GOOGLE_REDIRECT_URI" --query "Parameter.Value" --output text)
-            SMTP_HOST=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/SMTP_HOST" --query "Parameter.Value" --output text)
-            SMTP_PORT=587
-            SMTP_SECURE=false
-            SMTP_USER=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/SMTP_USER" --query "Parameter.Value" --output text)
-            SMTP_PASS=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/SMTP_PASS" --with-decryption --query "Parameter.Value" --output text)
-            SMTP_FROM=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/SMTP_FROM" --query "Parameter.Value" --output text)
-            DISCORD_FEEDBACK_WEBHOOK_URL=$(aws ssm get-parameter --region sa-east-1 --name "/psy-manager/prod/DISCORD_FEEDBACK_WEBHOOK_URL" --query "Parameter.Value" --output text)
-            EOF
-
-            set -a && source .env.prod && set +a
-            docker compose -f docker-compose.prod.yml up -d --build --force-recreate --remove-orphans
+          echo "Command ID: $COMMAND_ID"
+          for i in $(seq 1 120); do
+            STATUS=$(aws ssm get-command-invocation --region sa-east-1 --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --query "Status" --output text 2>/dev/null || echo "Pending")
+            echo "Status: $STATUS"
+            if [[ "$STATUS" == "Success" ]]; then
+              aws ssm get-command-invocation --region sa-east-1 --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --query "StandardOutputContent" --output text
+              break
+            fi
+            if [[ "$STATUS" == "Failed" || "$STATUS" == "Cancelled" || "$STATUS" == "TimedOut" ]]; then
+              echo "=== OUTPUT ==="
+              aws ssm get-command-invocation --region sa-east-1 --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --query "StandardOutputContent" --output text
+              echo "=== ERRORS ==="
+              aws ssm get-command-invocation --region sa-east-1 --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --query "StandardErrorContent" --output text
+              exit 1
+            fi
+            sleep 5
+          done
 
   deploy-frontend:
     name: Deploy / Web
