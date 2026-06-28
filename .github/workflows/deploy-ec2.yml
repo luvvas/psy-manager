@@ -3,11 +3,12 @@ on:
   push:
     branches:
       - master
-    # Mudanças só de documentação não disparam build/deploy.
+    # Mudanças só de documentação/IaC-de-política não disparam build/deploy.
     paths-ignore:
       - 'docs/**'
       - '**.md'
       - 'ai/**'
+      - 'scripts/*-lifecycle-policy.json'
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
