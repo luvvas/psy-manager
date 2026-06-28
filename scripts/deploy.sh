@@ -4,6 +4,12 @@ set -euo pipefail
 REGION="sa-east-1"
 PROJECT_DIR="/home/ubuntu/psy-manager"
 
+# Image digest built and scanned in CI, e.g.
+#   952078551945.dkr.ecr.sa-east-1.amazonaws.com/psy-manager-api@sha256:...
+API_IMAGE="${1:?Usage: deploy.sh <api-image-ref>}"
+ECR_REGISTRY="${API_IMAGE%%/*}"
+export API_IMAGE
+
 echo "==> Fetching secrets from SSM..."
 
 POSTGRES_PASSWORD=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/POSTGRES_PASSWORD" --with-decryption --query "Parameter.Value" --output text)
@@ -38,10 +44,15 @@ DISCORD_FEEDBACK_WEBHOOK_URL=$(aws ssm get-parameter --region "$REGION" --name "
 REDIS_URL=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/REDIS_URL" --query "Parameter.Value" --output text)
 EOF
 
-echo "==> Starting containers..."
+echo "==> Logging in to ECR..."
+aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+echo "==> Pulling tested image and starting containers..."
 cd "$PROJECT_DIR"
 set -a && source .env.prod && set +a
-docker compose -f docker-compose.prod.yml up -d --build --force-recreate --remove-orphans
+export API_IMAGE
+docker compose -f docker-compose.prod.yml pull api
+docker compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
 
 echo "==> Running migrations..."
 docker compose -f docker-compose.prod.yml exec -T api bun run db:migrate || echo "Migrations: nothing to run"

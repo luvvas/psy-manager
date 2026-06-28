@@ -20,10 +20,10 @@ services:
       retries: 5
 
   api:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.api
-      target: production
+    # Image is built once in CI, scanned, and pushed to ECR by digest.
+    # deploy.sh sets API_IMAGE to that exact digest before `up` — the prod box
+    # pulls and runs the tested artifact instead of rebuilding from source.
+    image: ${API_IMAGE}
     container_name: psy-manager-api
     restart: always
     depends_on:
