@@ -1,0 +1,11 @@
+# Trivy ignore file — CVEs aceitas conscientemente, com justificativa.
+# Cada linha é um ID de CVE que o Trivy deixa de reportar. Revisar periodicamente.
+
+# --- esbuild (binário Go) ---
+# Os dois CVEs abaixo são do runtime Go COMPILADO dentro do binário do esbuild,
+# que é uma ferramenta de BUILD/transpile trazida por drizzle-kit/tsx/@esbuild-kit.
+# Não são alcançáveis pela API em execução (esbuild não atende requisições nem
+# abre conexões TLS no nosso uso). Só serão corrigidos quando o esbuild publicar
+# um release recompilado com Go novo. Reavaliar quando atualizarmos drizzle-kit.
+CVE-2024-24790
+CVE-2025-68121
