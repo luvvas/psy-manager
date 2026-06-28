@@ -3,6 +3,11 @@ on:
   push:
     branches:
       - master
+    # Mudanças só de documentação não disparam build/deploy.
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - 'ai/**'
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
