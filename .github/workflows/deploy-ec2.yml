@@ -82,7 +82,7 @@ jobs:
       # Pinned action version. Fails the build on fixable CRITICAL CVEs.
       # To tighten: add HIGH to `severity`. To make non-blocking: exit-code '0'.
       - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
           format: table
