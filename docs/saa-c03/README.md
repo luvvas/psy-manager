@@ -21,6 +21,12 @@ A ideia: cada coisa que você construiu neste projeto vira material de estudo
 Pra revisão antes da prova: [servicos/](servicos/README.md) — uma ficha por serviço
 AWS (o que é, quando é a resposta certa, pegadinhas, e como usamos no projeto).
 
+## Catálogo de IAM policies
+
+[iam-policies.md](iam-policies.md) — todas as policies do projeto (trust + inline +
+managed), **templatizadas** (seguras pra repo público), com explicação de
+least-privilege. Material denso de Domínio 1 (o de maior peso).
+
 ## Como usar este material
 
 1. **Estude por domínio** quando estiver aprendendo um tema novo (segue a estrutura da prova).

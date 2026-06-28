@@ -7,6 +7,7 @@ Portal central da documentação do projeto. Três pilares:
 | 🛠️ **Progresso** | Estágios de desenvolvimento, cada um com seu documento detalhado (passo a passo, bugs, comandos) | [progress/](progress/README.md) |
 | 🎓 **Estudo SAA-C03** | Material de certificação organizado pelos 4 domínios do exame + fichas de serviço | [saa-c03/](saa-c03/README.md) |
 | 🗺️ **Roadmap** | O que está pronto e o que vem a seguir, com prioridade e custo | [ROADMAP.md](ROADMAP.md) |
+| 🚀 **Go-to-Market** | Estratégia de lançamento, formulário de beta, checklist de onboarding | [go-to-market/](go-to-market/README.md) |
 
 ## Estrutura
 
