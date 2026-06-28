@@ -1,6 +1,6 @@
 # Task: CI/CD — Build Once, Deploy the Same Artifact (Backend)
 
-Status: implemented (AWS setup pending — see step-by-step.md §15-C)
+Status: done — AWS configurado (ECR, IAM push/pull, lifecycle). Ver `docs/progress/14-ecr-build-once.md`.
 
 ## Goal
 
