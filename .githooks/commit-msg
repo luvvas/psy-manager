@@ -1,0 +1,50 @@
+#!/bin/sh
+#
+# Valida a mensagem de commit contra o padrao Conventional Commits.
+# Ative uma vez por clone com:  git config core.hooksPath .githooks
+#
+# Formato:  <tipo>(<escopo opcional>)<! opcional>: <descricao>
+# Exemplo:  feat(agendamento): adiciona lembrete por WhatsApp
+
+msg_file="$1"
+
+# Primeira linha que nao seja comentario nem vazia
+subject=$(grep -v '^#' "$msg_file" | sed '/^[[:space:]]*$/d' | head -1)
+
+# Commits gerados pelo proprio git passam direto
+case "$subject" in
+    "Merge "*|"Revert "*|"fixup!"*|"squash!"*) exit 0 ;;
+esac
+
+tipos="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
+padrao="^($tipos)(\([a-z0-9./-]+\))?!?: .{1,}$"
+
+if printf '%s' "$subject" | grep -qE "$padrao"; then
+    tamanho=$(printf '%s' "$subject" | wc -c)
+    if [ "$tamanho" -gt 72 ]; then
+        echo "Aviso: assunto com $tamanho caracteres (recomendado: ate 72)." >&2
+        echo "  $subject" >&2
+    fi
+    exit 0
+fi
+
+cat >&2 <<EOF
+
+Commit rejeitado: mensagem fora do padrao Conventional Commits.
+
+  Recebido: $subject
+
+  Formato:  <tipo>(<escopo>): <descricao>
+  Tipos:    feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
+  Escopo:   opcional, minusculo (ex: api, web, agendamento, auth)
+  Breaking: acrescente ! antes dos dois-pontos, ex: feat(api)!: ...
+
+  Exemplos:
+    feat(agendamento): adiciona lembrete por WhatsApp
+    fix(auth): corrige expiracao de sessao no refresh
+    chore!: remove aplicativo desktop Electron
+
+  Detalhes em CONTRIBUTING.md
+
+EOF
+exit 1
