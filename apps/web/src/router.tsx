@@ -18,8 +18,6 @@ import { TermsOfUsePage } from "@/pages/terms-of-use";
 import { CreditCard } from "lucide-react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
-const isElectron = typeof window !== "undefined" && "electronAPI" in window;
-
 const appRoutes = [
     {
         path: "/login",
@@ -130,18 +128,7 @@ const webOnlyRoutes = [
     },
 ];
 
-const desktopOnlyRoutes = [
-    {
-        path: "/",
-        element: <Navigate to="/login" replace />,
-    },
-    {
-        path: "*",
-        element: <Navigate to="/login" replace />,
-    },
-];
-
 export const router = createBrowserRouter([
-    ...(isElectron ? desktopOnlyRoutes : webOnlyRoutes),
+    ...webOnlyRoutes,
     ...appRoutes,
 ]);

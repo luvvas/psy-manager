@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { Brain, Download, Loader2, ArrowLeft } from "lucide-react";
+import { Brain, Loader2, ArrowLeft } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod/v3";
@@ -393,16 +393,6 @@ export function AuthPage() {
                     </Tabs>
                 )}
             </Card>
-
-            {import.meta.env.VITE_DESKTOP_DOWNLOAD_URL && (
-                <a
-                    href={import.meta.env.VITE_DESKTOP_DOWNLOAD_URL}
-                    className="mt-4 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                    <Download className="size-4" />
-                    Baixar app para Windows
-                </a>
-            )}
         </div>
     );
 }
