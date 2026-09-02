@@ -99,9 +99,6 @@ export function LandingPage() {
                     </div>
                     <div className="flex items-center gap-4">
                         <p>Gestão clínica para psicólogos brasileiros.</p>
-                        <Link to="/atualizacoes" className="hover:text-foreground transition-colors">
-                            Atualizações
-                        </Link>
                         <Link to="/politica-de-privacidade" className="hover:text-foreground transition-colors">
                             Privacidade
                         </Link>

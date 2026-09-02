@@ -8,7 +8,6 @@ import { JoinPage, PsychologistPage } from "@/features/consulta";
 import { DocumentosPage } from "@/features/documentos";
 import { FinanceiroPage } from "@/features/financeiro";
 import { PacientesPage, PatientDetailsPage } from "@/features/pacientes";
-import { AtualizacoesPage } from "@/pages/atualizacoes";
 import { ComingSoonPage } from "@/pages/coming-soon";
 import { GoogleCallbackPage } from "@/pages/google-callback";
 import { LandingGuard } from "@/pages/landing";
@@ -109,10 +108,6 @@ const webOnlyRoutes = [
     {
         path: "/",
         element: <LandingGuard />,
-    },
-    {
-        path: "/atualizacoes",
-        element: <AtualizacoesPage />,
     },
     {
         path: "/politica-de-privacidade",
