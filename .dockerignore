@@ -1,9 +1,46 @@
-node_modules
-dist
-.git
-.gitignore
+# O estagio de producao faz `COPY . .`, entao tudo que nao for excluido aqui
+# vai parar na imagem publicada no ECR. Trate esta lista como fronteira de
+# seguranca, nao apenas como otimizacao de tamanho.
+
+# --- Segredos e credenciais (NUNCA na imagem) ---
 .env
 .env.*
+!.env.example
+.ssh
+*.pem
+*.key
+
+# --- Dados locais ---
+.csv
+
+# --- Dependencias e artefatos de build ---
+node_modules
+dist
+*.tsbuildinfo
+
+# --- Controle de versao e automacao ---
+.git
+.gitignore
+.gitattributes
+.github
+.githooks
+
+# --- Documentacao e contexto (nao usados em runtime) ---
+docs
+ai
 *.md
+!apps/api/**/*.md
+
+# --- Ambientes virtuais Python (auditoria de seguranca) ---
+.venv
+__pycache__
+
+# --- Infra: a imagem nao precisa dos proprios arquivos de build ---
+docker
+docker-compose*.yml
+scripts
+
+# --- Editores ---
 .vscode
 .idea
+.claude
