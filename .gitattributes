@@ -1,0 +1,5 @@
+# Scripts de shell precisam de LF mesmo em checkout Windows (core.autocrlf=true).
+# Com CRLF, /bin/sh falha com "bad interpreter: ...^M" — tanto no hook local
+# quanto no runner Linux do CI.
+*.sh text eol=lf
+.githooks/** text eol=lf
