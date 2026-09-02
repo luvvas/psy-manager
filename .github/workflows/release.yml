@@ -1,0 +1,46 @@
+name: Release
+
+# Dispara ao publicar uma tag de versao (ex: v1.0.0).
+# A tag e apenas um marcador historico — o deploy continua sendo feito
+# pelo push em master, em deploy-ec2.yml.
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Publica GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth: 0 e obrigatorio — o gerador precisa do historico
+      # completo e das tags para calcular o intervalo da versao anterior.
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gera notas a partir dos commits
+        id: notas
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          bash scripts/release-notes.sh "" "$TAG" > /tmp/release-notes.md
+          echo "--- Notas geradas para $TAG ---"
+          cat /tmp/release-notes.md
+
+      - name: Publica a Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          PRERELEASE=""
+          case "$TAG" in *-*) PRERELEASE="--prerelease" ;; esac
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes-file /tmp/release-notes.md \
+            --verify-tag \
+            $PRERELEASE
