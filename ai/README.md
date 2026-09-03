@@ -36,6 +36,9 @@ Implement the task, keep changes scoped, and run the relevant checks.
 ## Rules For Future AI Work
 
 - Keep user-facing UI text in Brazilian Portuguese.
+- Follow `CONTRIBUTING.md` when writing commits. The repo uses Conventional
+  Commits, the commit history is the source of truth for release notes, and
+  `.githooks/commit-msg` rejects messages that do not match.
 - Do not read or paste secrets from `.env`; use `.env.example` for public config shape.
 - Respect uncommitted user changes. Check `git status --short` before editing.
 - Prefer existing patterns in `apps/api/src/routes`, `apps/api/src/services`, and `apps/web/src/features`.

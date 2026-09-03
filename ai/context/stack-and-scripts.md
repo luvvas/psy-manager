@@ -8,9 +8,10 @@ This is a Bun workspace monorepo.
 apps/
   api/
   web/
-packages/
-  shared/
+  lambda/
+    reminder-sender/
 docker/
+scripts/
 ai/
 ```
 
@@ -27,8 +28,9 @@ ai/
 - Forms: react-hook-form and Zod where already used.
 - CSV import: PapaParse.
 - Storage: local dev storage or S3 presigned URLs.
-- Deployment: EC2 for API, RDS Postgres, S3 + CloudFront for frontend, SSM
-  Parameter Store for secrets.
+- Deployment: EC2 for API, Postgres as a container on the same instance,
+  S3 + CloudFront for frontend, ECR for the API image, SSM Parameter Store
+  for secrets. RDS and ElastiCache were reverted for cost.
 
 ## Root Scripts
 
@@ -64,10 +66,6 @@ Web package:
 - `bun run --filter @psy-manager/web build`
 - `bun run --filter @psy-manager/web lint`
 - `bun run --filter @psy-manager/web preview`
-
-Shared package:
-
-- `bun run --filter @psy-manager/shared typecheck`
 
 ## Local Ports
 
