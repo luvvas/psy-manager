@@ -7,16 +7,35 @@ FROM oven/bun:1-alpine AS base
 WORKDIR /app
 
 # --- Dependencies ---
+# Todos os package.json do workspace entram aqui. Sem eles o bun não consegue
+# validar o monorepo contra o lockfile: ele re-resolve e REESCREVE o bun.lock
+# durante o build, fazendo a imagem rodar uma árvore de dependências que o CI
+# nunca testou. --frozen-lockfile transforma qualquer divergência em erro.
+#
+# --filter instala apenas o subgrafo do @psy-manager/api, então as dependências
+# do frontend não entram na imagem da API.
 FROM base AS deps
 COPY package.json bun.lock ./
 COPY apps/api/package.json apps/api/
-RUN bun install
+COPY apps/web/package.json apps/web/
+RUN bun install --frozen-lockfile --filter=@psy-manager/api
+
+# Poda o ferramental de build. `bun install --production` NAO resolve isto: ele
+# remove devDependencies da raiz, mas nao as de workspace members (verificado).
+#
+# Nada aqui e usado em runtime — as migrations passaram a rodar por
+# src/db/migrate.ts (drizzle-orm), nao mais pelo CLI do drizzle-kit. O ganho
+# principal nao e tamanho (~86MB), e sim eliminar os binarios do esbuild, que
+# eram a origem das duas CVEs que o .trivyignore precisava suprimir.
+#
+# Se algum dia a imagem quebrar por falta de um destes, a causa e que algo em
+# runtime passou a depender de ferramenta de build — resolva la, nao aqui.
+RUN rm -rf node_modules/drizzle-kit node_modules/tsx node_modules/typescript node_modules/esbuild node_modules/@esbuild node_modules/@esbuild-kit
 
 # --- Development ---
 FROM base AS development
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY . .
 WORKDIR /app/apps/api
 EXPOSE 3001
@@ -29,4 +48,5 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 WORKDIR /app/apps/api
 EXPOSE 3001
+# db:migrate agora roda src/db/migrate.ts (drizzle-orm), não o drizzle-kit.
 CMD ["sh", "-c", "bun run db:migrate && bun src/index.ts"]

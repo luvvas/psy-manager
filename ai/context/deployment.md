@@ -81,6 +81,22 @@ Dockerfiles:
 
 `docker/nginx.conf` belongs to that unused containerized web setup.
 
+### Migrations
+
+`apps/api/src/db/migrate.ts` applies migrations with **drizzle-orm's** migrator,
+not the `drizzle-kit` CLI. Both track state in `drizzle.__drizzle_migrations`, so
+they are interchangeable — this was verified against a real database. The reason
+for the switch: `drizzle-kit` is a devDependency, and needing it at runtime
+forced the production image to ship the whole build toolchain.
+
+`bun run db:migrate` now runs that script everywhere — locally and in the
+container. `drizzle-kit` is still used for `db:generate`, `db:push` and
+`db:studio`, which are development-only.
+
+The production image prunes `drizzle-kit`, `tsx`, `typescript` and the `esbuild`
+packages after install. `bun install --production` does not do this: it drops
+root devDependencies but not those of workspace members.
+
 ### `.dockerignore` is a security boundary
 
 The production stage does `COPY . .`, so anything not excluded lands in the
