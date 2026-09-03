@@ -20,7 +20,9 @@ tipos="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
 padrao="^($tipos)(\([a-z0-9./-]+\))?!?: .{1,}$"
 
 if printf '%s' "$subject" | grep -qE "$padrao"; then
-    tamanho=$(printf '%s' "$subject" | wc -c)
+    # LC_ALL=C.UTF-8 e necessario: com LANG vazio o wc conta BYTES, e acentos
+    # do portugues contariam dobrado, gerando aviso falso.
+    tamanho=$(printf '%s' "$subject" | LC_ALL=C.UTF-8 wc -m | tr -d ' ')
     if [ "$tamanho" -gt 72 ]; then
         echo "Aviso: assunto com $tamanho caracteres (recomendado: ate 72)." >&2
         echo "  $subject" >&2
