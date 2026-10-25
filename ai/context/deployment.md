@@ -17,41 +17,57 @@ bun run dev
 
 ## Production Shape
 
-- API on AWS EC2, run with Docker Compose from a prebuilt image.
-- **PostgreSQL runs as a container on the same EC2 instance**
-  (`postgres:17-alpine` in `docker-compose.prod.yml`). RDS was implemented and
-  then reverted for cost; older docs under `docs/` still describe it as live.
-  The same applies to ElastiCache/Redis — there is no cache layer in production.
-- Frontend static build on S3, served through CloudFront.
-- CloudFront also proxies `/api/*` and `/trpc/*` to the EC2 origin, so the SPA
-  and the API share one domain. This is what allows the session cookie to be
-  `SameSite=Lax`.
-- AWS SSM Parameter Store for secrets, read at deploy time by `scripts/deploy.sh`.
-- S3 bucket for private document storage through presigned URLs.
-- ECR stores the API image; deploys are pinned to an immutable digest.
+> Branch `chore/sair-da-aws` moves production off AWS. Until it is merged
+> (runbook: `docs/progress/15-saida-aws-cloudflare.md`), production still runs
+> the previous AWS setup (EC2 + CloudFront + S3 + ECR + SSM).
+
+- One VPS (Hostinger KVM 1, São Paulo, Ubuntu 24.04) running Docker Compose:
+  `db` (`postgres:17-alpine`), `api` and `web` (nginx serving the Vite build and
+  proxying `/api`, `/trpc`, `/ws` to the API).
+- **No inbound ports.** `cloudflared` runs as a host systemd service (not in
+  Compose, so SSH survives a broken Docker) and routes `app.<domain>` →
+  `localhost:8080` (the only published port, bound to 127.0.0.1) and
+  `ssh.<domain>` → `localhost:22`, the latter behind Cloudflare Access.
+- SPA and API share one origin, which keeps the session cookie `SameSite=Lax`.
+  The web build leaves `VITE_API_URL` empty on purpose.
+- Cloudflare in front: TLS, WAF managed rules, Bot Fight Mode, a rate-limit rule
+  on sign-in, cache rules (bypass `/api`, `/trpc`, `/ws`).
+- Client IP comes from `cf-connecting-ip` (trusted because the origin is only
+  reachable through the Tunnel).
+- Documents: Cloudflare R2 through the S3 SDK (`S3_*` env vars, token scoped to
+  one bucket).
+- TURN: Cloudflare Realtime TURN, short-lived credentials generated per call in
+  `apps/api/src/routes/video-session.ts`.
+- Secrets: one GitHub environment secret, `PROD_ENV_FILE` (template:
+  `.env.prod.example`), written to `~/psy-manager/.env.prod` (mode 600) on each
+  deploy.
+- Backups: `scripts/backup-db.sh` (cron, 03:00) → `pg_dump | gzip [| age]` →
+  separate R2 bucket with a 90-day lifecycle rule.
 
 ## GitHub Actions
 
-### `.github/workflows/deploy-ec2.yml`
+### `.github/workflows/deploy.yml`
 
-Trigger: push to `master`, excluding `docs/**`, `**.md`, `ai/**` and the
-lifecycle-policy JSON files.
+Trigger: push to `master` (excluding `docs/**`, `**.md`, `ai/**`) or manual
+dispatch. Serialized by a `deploy-production` concurrency group.
 
 Jobs:
 
 - `quality-gate`: install dependencies, run the API test suite, build the API.
-- `build-api-image`: build `docker/Dockerfile.api` (target `production`) into the
-  local daemon, scan it with Trivy, and only then push to ECR, capturing the
-  immutable digest as the job output.
-- `build-frontend`: build the web app and upload `dist/` as an artifact.
-- `deploy-backend`: needs `quality-gate` and `build-api-image`. Uses **SSM Run
-  Command** (not SSH) to pull the repo on EC2 and run `scripts/deploy.sh` with
-  the image digest.
-- `deploy-frontend`: needs `quality-gate` and `build-frontend`. Syncs assets and
-  app shell to S3 with different cache headers, then invalidates CloudFront.
+- `build-api-image`: build `docker/Dockerfile.api` (target `production`), scan
+  with Trivy, push to GHCR, output the immutable digest.
+- `build-web-image`: build the SPA (with Sentry secrets), package `dist/` +
+  `docker/nginx.conf` into `docker/Dockerfile.web` from a dedicated build
+  context (the root `.dockerignore` excludes `dist/` and `docker/`), scan, push,
+  output the digest.
+- `deploy` (environment `production`): SSH through Cloudflare Access with a
+  service token (`cloudflared access ssh` as ProxyCommand), upload the compose
+  file, scripts and `.env.prod`, log the VPS in to GHCR with the job's
+  `GITHUB_TOKEN` over stdin, run `scripts/deploy.sh <api-digest> <web-digest>`,
+  then log out. `deploy.sh` pulls, restarts, migrates and smoke-tests
+  `/api/health` from inside the `web` container.
 
-AWS access is via OIDC role assumption — there are no long-lived AWS keys in
-GitHub Secrets.
+The VPS keeps no git checkout.
 
 ### `.github/workflows/release.yml`
 
@@ -69,17 +85,14 @@ Local compose:
 
 Production compose:
 
-- `docker-compose.prod.yml` runs Postgres plus the API image referenced by
-  `${API_IMAGE}`. It never builds from source.
+- `docker-compose.prod.yml` runs Postgres, the API image (`${API_IMAGE}`) and
+  the web image (`${WEB_IMAGE}`). It never builds from source.
 
 Dockerfiles:
 
-- `docker/Dockerfile.api` — built by CI, scanned, pushed to ECR.
-- `docker/Dockerfile.web` — **not referenced by any workflow or compose file.**
-  The frontend ships to S3/CloudFront instead. Keep it in sync only if the
-  containerized web setup is revived.
-
-`docker/nginx.conf` belongs to that unused containerized web setup.
+- `docker/Dockerfile.api` — built by CI, scanned, pushed to GHCR.
+- `docker/Dockerfile.web` — nginx + prebuilt `dist/`; built by CI from its own
+  context.
 
 ### Migrations
 
@@ -100,12 +113,13 @@ root devDependencies but not those of workspace members.
 ### `.dockerignore` is a security boundary
 
 The production stage does `COPY . .`, so anything not excluded lands in the
-image published to ECR. `.ssh/`, `*.pem`, `*.key`, `.env*`, `.csv/`, `docs/` and
+image published to GHCR. `.ssh/`, `*.pem`, `*.key`, `.env*`, `.csv/`, `docs/` and
 `ai/` are excluded for that reason, not merely to save space. Before adding a
 new top-level directory holding anything sensitive, add it to `.dockerignore`.
 
 ## Related Docs
 
 - `docs/progress/` — numbered write-ups of each infrastructure milestone.
-  Treat the RDS and Redis entries as historical.
+  Entries 00–14 describe the AWS era and are historical;
+  `15-saida-aws-cloudflare.md` is the current setup and its manual runbook.
 - `CONTRIBUTING.md` — commit convention, versioning, and the release process.

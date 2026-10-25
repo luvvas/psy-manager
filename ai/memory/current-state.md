@@ -90,7 +90,13 @@ scoped by `psychologistId`; clinic-shared appointments strip patient PII.
   boundaries.
 - The documents page currently calls `document.list` with an empty filter; verify
   intended generic-vs-patient filtering before changing document library behavior.
-- `GOOGLE_CLIENT_ID` is not stored in SSM; verify it is set via another mechanism
-  on EC2 or add it as a non-secret SSM parameter.
-- Production runs Postgres in a container on EC2, not RDS, and has no Redis.
-  Several files under `docs/` still describe both as live.
+- **AWS exit in progress** (branch `chore/sair-da-aws`, Oct 2026): code moved to
+  VPS + Cloudflare (R2, Tunnel, Access, TURN) + GHCR, and the WhatsApp reminder
+  feature (EventBridge + Lambda) was removed. As of 2026-10-24 no VPS or domain
+  had been bought yet, so production still runs on AWS (EC2 + CloudFront + S3).
+  The manual runbook is `docs/progress/15-saida-aws-cloudflare.md`. Do not merge
+  the branch before the runbook's step 8: a push to `master` triggers the new
+  deploy.
+- `appointment.reminderEnabled`/`reminderMinutesBefore`/`reminderSentAt` columns
+  are kept (and still accepted by the API) so reminders can come back without a
+  migration; the UI no longer exposes them.
