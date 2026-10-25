@@ -49,9 +49,17 @@ TURN. Os estágios 00–14 ficam como registro histórico do período na AWS.
 
 #### 1. Domínio + Cloudflare
 
-1. Crie a conta na Cloudflare e compre o domínio (Cloudflare Registrar cobra
-   preço de custo; para `.com.br`, compre no Registro.br e troque os nameservers
-   para os que a Cloudflare indicar).
+1. Registre o domínio grátis (1 ano) que vem com a VPS KVM 1 da Hostinger.
+   Crie a conta na Cloudflare, adicione o domínio (*Add a site*, plano Free) e,
+   no hPanel da Hostinger (*Domínios → DNS / Nameservers*), troque os
+   nameservers para os dois que a Cloudflare indicar. O registro continua na
+   Hostinger; DNS, proxy e TLS passam a ser da Cloudflare. A propagação leva de
+   minutos a algumas horas.
+   - Anote o preço de **renovação** do domínio. Antes de vencer, compare com
+     transferir para o Cloudflare Registrar (preço de custo; a transferência só
+     é liberada 60 dias após o registro). `.com.br` não pode ir para a
+     Cloudflare: nesse caso compare com o Registro.br.
+   - Não use os registros DNS da Hostinger depois da troca: eles deixam de valer.
 2. **SSL/TLS** → modo *Full (strict)*; ative *Always Use HTTPS*, *Automatic
    HTTPS Rewrites*, TLS mínimo 1.2 e HSTS (comece com `max-age` baixo).
 3. **Security** → ative *Bot Fight Mode* e o *Cloudflare Free Managed Ruleset*
@@ -65,7 +73,8 @@ TURN. Os estágios 00–14 ficam como registro histórico do período na AWS.
 #### 2. VPS Hostinger
 
 1. Contrate a **KVM 1, São Paulo, Ubuntu 24.04 LTS limpo** (sem painel). Anote o
-   preço de renovação e crie um lembrete 30 dias antes do vencimento.
+   preço de renovação e crie um lembrete 30 dias antes do vencimento. Na mesma
+   compra, resgate o domínio grátis (ele é usado no passo 1).
 2. Primeiro acesso como root (pelo IP, com a senha/chave do painel):
 
 ```bash
@@ -238,7 +247,7 @@ Rode uma vez na mão e **teste a restauração** num Postgres descartável.
 | Item | Custo |
 |---|---|
 | VPS Hostinger KVM 1 (12 meses) | ~R$400/ano (~R$33/mês) |
-| Domínio | ~R$40/ano (`.com.br`) |
+| Domínio | grátis no 1º ano (brinde da Hostinger); depois, a renovação |
 | Cloudflare (DNS, proxy, WAF, Tunnel, Access até 50 usuários) | grátis |
 | R2 (10 GB, 1M escritas, 10M leituras/mês; egress zero) | grátis no volume atual |
 | Realtime TURN | grátis dentro da cota mensal |
