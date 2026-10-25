@@ -9,12 +9,13 @@ interface Options {
     iceServers: RTCIceServer[];
 }
 
-// VITE_WS_URL can point directly to the API host (bypassing CloudFront) when CloudFront
-// doesn't have a /ws/* behavior configured. Falls back to VITE_API_URL otherwise.
+// VITE_WS_URL can point the signaling socket at a different host than the API.
+// In production the SPA and the API share one origin (nginx proxies /ws), so
+// both are left empty and the socket goes to the page's own origin.
 const WS_BASE =
-    (import.meta.env.VITE_WS_URL as string | undefined) ??
-    (import.meta.env.VITE_API_URL as string | undefined) ??
-    "http://localhost:3001";
+    (import.meta.env.VITE_WS_URL as string | undefined) ||
+    (import.meta.env.VITE_API_URL as string | undefined) ||
+    (typeof window !== "undefined" ? window.location.origin : "http://localhost:3001");
 
 function getWsUrl(sessionId: string): string {
     return `${WS_BASE.replace(/^http/, "ws")}/ws/signaling/${sessionId}`;

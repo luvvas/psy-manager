@@ -1,3 +1,10 @@
+# Nenhum serviço publica portas para a internet. O Docker ignora o ufw ao
+# publicar portas, então um `ports: "80:80"` abriria a VPS mesmo com o firewall
+# fechado. A única porta publicada é a do `web`, presa em 127.0.0.1: o
+# cloudflared roda como serviço no host (não no Compose, para o SSH via Tunnel
+# continuar funcionando mesmo se o Docker cair) e encaminha app.<dominio> para
+# localhost:8080.
+
 services:
   db:
     image: postgres:17-alpine
@@ -20,7 +27,7 @@ services:
       retries: 5
 
   api:
-    # Image is built once in CI, scanned, and pushed to ECR by digest.
+    # Image is built once in CI, scanned, and pushed to GHCR by digest.
     # deploy.sh sets API_IMAGE to that exact digest before `up` — the prod box
     # pulls and runs the tested artifact instead of rebuilding from source.
     image: ${API_IMAGE}
@@ -29,32 +36,43 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - "3001:3001"
     environment:
+      NODE_ENV: production
       DATABASE_URL: ${DATABASE_URL}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
-      STORAGE_DRIVER: ${STORAGE_DRIVER}
-      AWS_REGION: ${AWS_REGION}
-      AWS_DOCUMENTS_BUCKET: ${AWS_DOCUMENTS_BUCKET}
+      STORAGE_DRIVER: s3
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_REGION: ${S3_REGION:-auto}
+      S3_BUCKET: ${S3_BUCKET}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
       PUBLIC_URL: ${PUBLIC_URL}
-      TURN_URL: ${TURN_URL}
-      TURN_USERNAME: ${TURN_USERNAME}
-      TURN_CREDENTIAL: ${TURN_CREDENTIAL}
+      CF_TURN_KEY_ID: ${CF_TURN_KEY_ID}
+      CF_TURN_API_TOKEN: ${CF_TURN_API_TOKEN}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       SENTRY_DSN: ${SENTRY_DSN}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_SECURE: ${SMTP_SECURE}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
       SMTP_FROM: ${SMTP_FROM}
       DISCORD_FEEDBACK_WEBHOOK_URL: ${DISCORD_FEEDBACK_WEBHOOK_URL}
+
+  web:
+    # nginx com o build do Vite; também faz proxy de /api, /trpc e /ws.
+    image: ${WEB_IMAGE}
+    container_name: psy-manager-web
+    restart: always
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:8080:80"
 
 volumes:
   postgres_data:

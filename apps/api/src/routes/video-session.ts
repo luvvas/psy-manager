@@ -5,18 +5,39 @@ import { protectedProcedure, publicProcedure, router } from "../trpc/index";
 import { createAuthToken } from "../ws/rooms";
 
 const PUBLIC_URL = process.env.PUBLIC_URL || "http://localhost:5173";
-const TURN_URL = process.env.TURN_URL;
-const TURN_USERNAME = process.env.TURN_USERNAME;
-const TURN_CREDENTIAL = process.env.TURN_CREDENTIAL;
+const CF_TURN_KEY_ID = process.env.CF_TURN_KEY_ID;
+const CF_TURN_API_TOKEN = process.env.CF_TURN_API_TOKEN;
+const TURN_CREDENTIAL_TTL_SECONDS = 4 * 60 * 60;
 
-type IceServer = { urls: string; username?: string; credential?: string };
+type IceServer = { urls: string | string[]; username?: string; credential?: string };
 
-function getIceServers(): IceServer[] {
-    const servers: IceServer[] = [{ urls: "stun:stun.l.google.com:19302" }];
-    if (TURN_URL && TURN_USERNAME && TURN_CREDENTIAL) {
-        servers.push({ urls: TURN_URL, username: TURN_USERNAME, credential: TURN_CREDENTIAL });
+const STUN_ONLY: IceServer[] = [{ urls: "stun:stun.l.google.com:19302" }];
+
+// Cloudflare Realtime TURN issues short-lived credentials per call, so they are
+// safe to hand to the (unauthenticated) patient as well. Falls back to STUN only
+// when TURN is not configured or Cloudflare is unreachable.
+async function getIceServers(): Promise<IceServer[]> {
+    if (!CF_TURN_KEY_ID || !CF_TURN_API_TOKEN) return STUN_ONLY;
+
+    try {
+        const res = await fetch(
+            `https://rtc.live.cloudflare.com/v1/turn/keys/${CF_TURN_KEY_ID}/credentials/generate-ice-servers`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${CF_TURN_API_TOKEN}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ ttl: TURN_CREDENTIAL_TTL_SECONDS }),
+            }
+        );
+        if (!res.ok) throw new Error(`Cloudflare TURN responded ${res.status}`);
+        const body = (await res.json()) as { iceServers?: IceServer[] };
+        return body.iceServers?.length ? body.iceServers : STUN_ONLY;
+    } catch (err) {
+        console.error("[video-session] Failed to generate TURN credentials:", err);
+        return STUN_ONLY;
     }
-    return servers;
 }
 
 export const videoSessionRouter = router({
@@ -37,7 +58,7 @@ export const videoSessionRouter = router({
         .query(async ({ ctx, input }) => {
             const s = await videoSessionService.getById(ctx.session.user.id, input.id);
             if (!s) throw new TRPCError({ code: "NOT_FOUND" });
-            return { ...s, iceServers: getIceServers() };
+            return { ...s, iceServers: await getIceServers() };
         }),
 
     end: protectedProcedure
@@ -71,7 +92,7 @@ export const videoSessionRouter = router({
             return {
                 sessionId: s.id,
                 psychologistName: s.psychologistName,
-                iceServers: [{ urls: "stun:stun.l.google.com:19302" }] as IceServer[],
+                iceServers: await getIceServers(),
             };
         }),
 });
