@@ -44,12 +44,16 @@ TURN. Os estágios 00–14 ficam como registro histórico do período na AWS.
 ### C. Passo a passo manual (fazer nesta ordem)
 
 > Nada abaixo afeta a produção atual na AWS até o passo 9. A branch
-> `chore/sair-da-aws` só deve ir para a `master` no passo 8, porque o push em
-> `master` dispara o novo deploy.
+> `chore/sair-da-aws` só deve ir para a `master` no passo 8 (depois dos passos
+> 1–6), porque o push em `master` dispara o novo deploy. A ordem real é
+> 1–6, 8 e então 7.
 
 #### 1. Domínio + Cloudflare
 
-1. Registre o domínio grátis (1 ano) que vem com a VPS KVM 1 da Hostinger.
+1. Registre o domínio grátis (1 ano) que vem com a VPS KVM 1 da Hostinger
+   (ou um domínio neutro, como o seu nome, até o produto ter nome definitivo:
+   trocar o domínio do app depois é só uma rota nova no Tunnel e as URLs no
+   `PROD_ENV_FILE`).
    Crie a conta na Cloudflare, adicione o domínio (*Add a site*, plano Free) e,
    no hPanel da Hostinger (*Domínios → DNS / Nameservers*), troque os
    nameservers para os dois que a Cloudflare indicar. O registro continua na
@@ -96,7 +100,9 @@ curl -fsSL https://get.docker.com | sh
 usermod -aG docker deploy
 ```
 
-3. Endureça o SSH em `/etc/ssh/sshd_config.d/hardening.conf`:
+3. Endureça o SSH em `/etc/ssh/sshd_config.d/00-hardening.conf`. O prefixo
+   `00-` importa: o sshd usa o **primeiro** valor que encontra, e algumas
+   imagens trazem um `50-cloud-init.conf` com `PasswordAuthentication yes`.
 
 ```
 PermitRootLogin no
@@ -105,7 +111,9 @@ KbdInteractiveAuthentication no
 AllowUsers deploy
 ```
 
-`systemctl restart ssh` e teste `ssh deploy@<ip>` **antes** de fechar a sessão root.
+`sshd -t && systemctl restart ssh`, confira com
+`sshd -T | grep -Ei 'passwordauth|permitroot'` e teste `ssh deploy@<ip>`
+**antes** de fechar a sessão root.
 
 4. Firewall: `ufw default deny incoming && ufw default allow outgoing && ufw allow 22/tcp && ufw enable`.
    A porta 22 só fica aberta até o passo 3. No painel da Hostinger, ative
@@ -190,6 +198,10 @@ As `storageKey` gravadas no banco (`documents/<psicologo>/<uuid>.pdf`) continuam
 
 #### 7. Migração do banco (janela curta de manutenção)
 
+> Faça **depois** do passo 8: o compose e o `.env.prod` só chegam na VPS pelo
+> primeiro deploy. O deploy sobe com o banco vazio; este passo o substitui pelo
+> dump da EC2.
+
 ```bash
 # na EC2 (via SSM Session Manager)
 docker exec psy-manager-db pg_dump -U postgres -Fc psy_manager > psy.dump
@@ -197,8 +209,9 @@ docker exec psy-manager-db pg_dump -U postgres -Fc psy_manager > psy.dump
 
 # na VPS, com o compose já no lugar (passo 8 sobe tudo; para restaurar antes:)
 cd ~/psy-manager
-docker compose --env-file .env.prod -f docker-compose.prod.yml up -d db
-docker exec -i psy-manager-db pg_restore -U postgres -d psy_manager --clean --if-exists < psy.dump
+docker compose --env-file .env.prod -f docker-compose.prod.yml stop api
+docker exec -i psy-manager-db pg_restore -U postgres -d psy_manager --clean --if-exists --no-owner < psy.dump
+docker compose --env-file .env.prod -f docker-compose.prod.yml start api
 ```
 
 #### 8. Primeiro deploy
