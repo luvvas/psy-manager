@@ -19,9 +19,6 @@ import { appointmentProjections } from "./cqrs/appointment/appointment.projectio
 import { storageService } from "./services/storage.service";
 import { handleSignaling } from "./ws/signaling";
 import { eventBus } from "./lib/cqrs";
-import { db } from "./db";
-import { appointment } from "./db/schema";
-import { eq } from "drizzle-orm";
 
 // Initialize CQRS Projections/Subscribers
 patientProjections.init();
@@ -47,8 +44,13 @@ app.use(
     })
 );
 
+// In production the origin is reachable only through Cloudflare Tunnel, so
+// cf-connecting-ip is set by Cloudflare and cannot be spoofed by the client.
 const getIp = (c: { req: { header: (name: string) => string | undefined } }) =>
-    c.req.header("x-forwarded-for")?.split(",")[0].trim() ?? c.req.header("x-real-ip") ?? "unknown";
+    c.req.header("cf-connecting-ip") ??
+    c.req.header("x-forwarded-for")?.split(",")[0].trim() ??
+    c.req.header("x-real-ip") ??
+    "unknown";
 
 const signInRateLimiter = rateLimiter({
     windowMs: 15 * 60 * 1000,
@@ -89,23 +91,6 @@ app.get("/api/health", (c) => {
         { status: healthy ? "ok" : "degraded", deadLetterCount: deadLetters.length },
         healthy ? 200 : 503
     );
-});
-
-// Called by Lambda after sending the WhatsApp reminder — stamps reminderSentAt
-app.post("/api/internal/reminder-callback", async (c) => {
-    const secret = c.req.header("x-callback-secret");
-    if (!secret || secret !== process.env.LAMBDA_CALLBACK_SECRET) {
-        return c.json({ error: "Unauthorized" }, 401);
-    }
-    const body = await c.req.json<{ appointmentId: string }>();
-    if (!body?.appointmentId) {
-        return c.json({ error: "Missing appointmentId" }, 400);
-    }
-    await db
-        .update(appointment)
-        .set({ reminderSentAt: new Date() })
-        .where(eq(appointment.id, body.appointmentId));
-    return c.json({ success: true });
 });
 
 app.put("/api/storage/local-upload/:token", (c) => {

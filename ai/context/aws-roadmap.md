@@ -1,5 +1,9 @@
 # AWS Advanced Roadmap
 
+> **Historical.** The project is leaving AWS (see
+> `docs/progress/15-saida-aws-cloudflare.md`). None of these upgrades are
+> planned anymore; kept for reference only.
+
 This document maps the four planned AWS infrastructure upgrades to concrete product
 features. Each service has a dedicated task file in `ai/tasks/`.
 

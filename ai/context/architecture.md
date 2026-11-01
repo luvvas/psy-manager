@@ -70,7 +70,8 @@ PDF storage supports two drivers:
 
 - `local`: uses temporary in-memory upload/read tokens and files under
   `LOCAL_STORAGE_DIR` or `.storage`.
-- `s3`: uses AWS S3 presigned PUT and GET URLs.
+- `s3`: uses presigned PUT and GET URLs against an S3-compatible bucket
+  (Cloudflare R2 in production, configured via `S3_*` env vars).
 
 Only PDFs up to 10 MB are accepted by the storage service.
 

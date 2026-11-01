@@ -27,10 +27,11 @@ ai/
 - Charts: Recharts.
 - Forms: react-hook-form and Zod where already used.
 - CSV import: PapaParse.
-- Storage: local dev storage or S3 presigned URLs.
-- Deployment: EC2 for API, Postgres as a container on the same instance,
-  S3 + CloudFront for frontend, ECR for the API image, SSM Parameter Store
-  for secrets. RDS and ElastiCache were reverted for cost.
+- Storage: local dev storage or presigned URLs against an S3-compatible bucket
+  (Cloudflare R2 in production).
+- Deployment: a single VPS (Hostinger, São Paulo) running Docker Compose — API,
+  Postgres and an nginx `web` container — behind Cloudflare Tunnel. Images live
+  in GHCR. See `ai/context/deployment.md`.
 
 ## Root Scripts
 
@@ -90,8 +91,8 @@ Important variables:
 - `BETTER_AUTH_URL`
 - `STORAGE_DRIVER`
 - `LOCAL_STORAGE_DIR`
-- `AWS_REGION`
-- `AWS_DOCUMENTS_BUCKET`
+- `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`
+- `CF_TURN_KEY_ID`, `CF_TURN_API_TOKEN`
 - `VITE_API_URL`
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`

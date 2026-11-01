@@ -30,9 +30,11 @@ navegável: estágio → status → arquivos-chave → documento detalhado.
 | 13 | **Estratégia de rotação de chaves** | ✅ | `ai/tasks/task-key-rotation.md` | [12-key-rotation.md](12-key-rotation.md) |
 | 14 | **Deploy sem SSH: SSM Session Manager** | ✅ | `scripts/deploy.sh`, `.github/workflows/deploy-ec2.yml` | [13-ssm-session-manager.md](13-ssm-session-manager.md) |
 | 15 | **Build Once: ECR + Trivy** | ✅ | `.github/workflows/deploy-ec2.yml`, `docker-compose.prod.yml`, `scripts/deploy.sh`, `.trivyignore`, `scripts/ecr-lifecycle-policy.json`, `package.json` | [14-ecr-build-once.md](14-ecr-build-once.md) |
-| 16 | **Domínio próprio: Route 53 + ACM** | 📋 | — | [ROADMAP #12](../ROADMAP.md) |
-| 17 | **Escala horizontal: ASG + ALB** | 📋 | `ai/tasks/task-alb-auto-scaling.md` | [ROADMAP #13](../ROADMAP.md) |
-| 18 | **VPC avançada: subnets privadas + NAT** | 📋 | — | [ROADMAP #14](../ROADMAP.md) |
+| 16 | **Saída da AWS: VPS + Cloudflare (Tunnel, R2, Access, TURN) + GHCR** | 📋 | `.github/workflows/deploy.yml`, `docker-compose.prod.yml`, `docker/nginx.conf`, `scripts/{deploy,backup-db}.sh`, `apps/api/src/utils/storage.utils.ts` | [15-saida-aws-cloudflare.md](15-saida-aws-cloudflare.md) |
+
+> Os estágios 00–15 descrevem o período na AWS e ficam como registro histórico.
+> Os antigos planos 16–18 (Route 53 + ACM, ASG + ALB, VPC avançada) foram
+> abandonados com a saída da AWS.
 
 ## Referência cruzada
 

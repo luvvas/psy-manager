@@ -1,5 +1,5 @@
 # O estagio de producao faz `COPY . .`, entao tudo que nao for excluido aqui
-# vai parar na imagem publicada no ECR. Trate esta lista como fronteira de
+# vai parar na imagem publicada no GHCR. Trate esta lista como fronteira de
 # seguranca, nao apenas como otimizacao de tamanho.
 
 # --- Segredos e credenciais (NUNCA na imagem) ---

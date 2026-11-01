@@ -1,60 +1,49 @@
 #!/bin/bash
 set -euo pipefail
 
-REGION="sa-east-1"
-PROJECT_DIR="/home/ubuntu/psy-manager"
+# Runs on the VPS as the `deploy` user, called by .github/workflows/deploy.yml.
+# The workflow has already uploaded docker-compose.prod.yml, this script and
+# .env.prod (mode 600), and logged Docker in to GHCR.
 
-# Image digest built and scanned in CI, e.g.
-#   952078551945.dkr.ecr.sa-east-1.amazonaws.com/psy-manager-api@sha256:...
-API_IMAGE="${1:?Usage: deploy.sh <api-image-ref>}"
-ECR_REGISTRY="${API_IMAGE%%/*}"
-export API_IMAGE
+PROJECT_DIR="$HOME/psy-manager"
 
-echo "==> Fetching secrets from SSM..."
+# Image digests built and scanned in CI, e.g.
+#   ghcr.io/<owner>/psy-manager-api@sha256:...
+API_IMAGE="${1:?Usage: deploy.sh <api-image-ref> <web-image-ref>}"
+WEB_IMAGE="${2:?Usage: deploy.sh <api-image-ref> <web-image-ref>}"
+export API_IMAGE WEB_IMAGE
 
-POSTGRES_PASSWORD=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/POSTGRES_PASSWORD" --with-decryption --query "Parameter.Value" --output text)
-
-cat > "$PROJECT_DIR/.env.prod" << EOF
-DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/psy_manager
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-POSTGRES_DB=psy_manager
-BETTER_AUTH_SECRET=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/BETTER_AUTH_SECRET" --with-decryption --query "Parameter.Value" --output text)
-GOOGLE_CLIENT_SECRET=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/GOOGLE_CLIENT_SECRET" --with-decryption --query "Parameter.Value" --output text)
-STORAGE_DRIVER=s3
-AWS_REGION=${REGION}
-AWS_DOCUMENTS_BUCKET=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/AWS_DOCUMENTS_BUCKET" --query "Parameter.Value" --output text)
-PUBLIC_URL=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/PUBLIC_URL" --query "Parameter.Value" --output text)
-TURN_URL=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/TURN_URL" --query "Parameter.Value" --output text)
-TURN_USERNAME=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/TURN_USERNAME" --query "Parameter.Value" --output text)
-TURN_CREDENTIAL=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/TURN_CREDENTIAL" --with-decryption --query "Parameter.Value" --output text)
-ENCRYPTION_KEY=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/ENCRYPTION_KEY" --with-decryption --query "Parameter.Value" --output text)
-SENTRY_DSN=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/SENTRY_DSN" --query "Parameter.Value" --output text)
-ALLOWED_ORIGINS=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/ALLOWED_ORIGINS" --query "Parameter.Value" --output text)
-BETTER_AUTH_URL=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/BETTER_AUTH_URL" --query "Parameter.Value" --output text)
-GOOGLE_CLIENT_ID=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/GOOGLE_CLIENT_ID" --query "Parameter.Value" --output text)
-GOOGLE_REDIRECT_URI=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/GOOGLE_REDIRECT_URI" --query "Parameter.Value" --output text)
-SMTP_HOST=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/SMTP_HOST" --query "Parameter.Value" --output text)
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/SMTP_USER" --query "Parameter.Value" --output text)
-SMTP_PASS=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/SMTP_PASS" --with-decryption --query "Parameter.Value" --output text)
-SMTP_FROM=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/SMTP_FROM" --query "Parameter.Value" --output text)
-DISCORD_FEEDBACK_WEBHOOK_URL=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/DISCORD_FEEDBACK_WEBHOOK_URL" --query "Parameter.Value" --output text)
-REDIS_URL=$(aws ssm get-parameter --region "$REGION" --name "/psy-manager/prod/REDIS_URL" --query "Parameter.Value" --output text)
-EOF
-
-echo "==> Logging in to ECR..."
-aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
-
-echo "==> Pulling tested image and starting containers..."
 cd "$PROJECT_DIR"
-set -a && source .env.prod && set +a
-export API_IMAGE
-docker compose -f docker-compose.prod.yml pull api
-docker compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
+
+if [[ ! -f .env.prod ]]; then
+    echo "ERROR: $PROJECT_DIR/.env.prod not found." >&2
+    exit 1
+fi
+
+COMPOSE=(docker compose --env-file .env.prod -f docker-compose.prod.yml)
+
+echo "==> Pulling tested images and starting containers..."
+"${COMPOSE[@]}" pull api web
+"${COMPOSE[@]}" up -d --remove-orphans
 
 echo "==> Running migrations..."
-docker compose -f docker-compose.prod.yml exec -T api bun run db:migrate || echo "Migrations: nothing to run"
+"${COMPOSE[@]}" exec -T api bun run db:migrate || echo "Migrations: nothing to run"
+
+echo "==> Smoke test (web -> api /api/health)..."
+for i in $(seq 1 20); do
+    if "${COMPOSE[@]}" exec -T web wget -qO- http://api:3001/api/health >/dev/null 2>&1; then
+        echo "API healthy."
+        break
+    fi
+    if [[ "$i" == 20 ]]; then
+        echo "ERROR: API did not become healthy." >&2
+        "${COMPOSE[@]}" logs --tail 50 api >&2
+        exit 1
+    fi
+    sleep 3
+done
+
+echo "==> Pruning old images..."
+docker image prune -f >/dev/null
 
 echo "==> Deploy complete."

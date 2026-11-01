@@ -2,7 +2,7 @@ name: Release
 
 # Dispara ao publicar uma tag de versao (ex: v1.0.0).
 # A tag e apenas um marcador historico — o deploy continua sendo feito
-# pelo push em master, em deploy-ec2.yml.
+# pelo push em master, em deploy.yml.
 on:
   push:
     tags:

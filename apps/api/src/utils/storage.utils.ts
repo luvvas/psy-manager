@@ -9,21 +9,32 @@ export const URL_TTL_MS = URL_TTL_SECONDS * 1000;
 export type StorageDriver = "local" | "s3";
 
 export function getDriver(): StorageDriver {
-    return process.env.STORAGE_DRIVER === "s3" || !!process.env.AWS_DOCUMENTS_BUCKET
+    return process.env.STORAGE_DRIVER === "s3" || !!process.env.S3_BUCKET
         ? "s3"
         : "local";
 }
 
+// S3-compatible client. In production this points at Cloudflare R2
+// (S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com, S3_REGION=auto);
+// leaving S3_ENDPOINT empty talks to AWS S3.
 export function getS3Client() {
+    const accessKeyId = process.env.S3_ACCESS_KEY_ID;
+    const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
+
     return new S3Client({
-        region: process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "sa-east-1",
+        region: process.env.S3_REGION ?? "auto",
+        endpoint: process.env.S3_ENDPOINT || undefined,
+        credentials: accessKeyId && secretAccessKey ? { accessKeyId, secretAccessKey } : undefined,
+        // R2 rejects the default CRC32 checksum the SDK adds to presigned PUTs.
+        requestChecksumCalculation: "WHEN_REQUIRED",
+        responseChecksumValidation: "WHEN_REQUIRED",
     });
 }
 
 export function getBucketName() {
-    const bucket = process.env.AWS_DOCUMENTS_BUCKET;
+    const bucket = process.env.S3_BUCKET;
     if (!bucket) {
-        throw new Error("AWS_DOCUMENTS_BUCKET precisa estar configurado para usar STORAGE_DRIVER=s3.");
+        throw new Error("S3_BUCKET precisa estar configurado para usar STORAGE_DRIVER=s3.");
     }
     return bucket;
 }

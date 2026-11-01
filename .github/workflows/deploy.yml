@@ -1,0 +1,262 @@
+name: Deploy to VPS
+on:
+  push:
+    branches:
+      - master
+    # Mudanças só de documentação não disparam build/deploy.
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - 'ai/**'
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  API_IMAGE: ghcr.io/${{ github.repository }}-api
+  WEB_IMAGE: ghcr.io/${{ github.repository }}-web
+
+# Nunca dois deploys ao mesmo tempo na mesma VPS.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  quality-gate:
+    name: CI / API
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: ${{ runner.os }}-bun-
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run API Unit Tests
+        run: bun run test
+
+      - name: Build API
+        run: bun run build:api
+
+  # Build the API image ONCE, scan it, and push it to GHCR by digest.
+  # Runs in parallel with quality-gate; the deploy job waits on BOTH so a
+  # failing test never reaches production, while the build never blocks tests.
+  build-api-image:
+    name: CI / API Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.image.outputs.ref }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Build and load into the local Docker daemon (push: false) so Trivy
+      # scans the EXACT image before it ever reaches the registry.
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.api
+          target: production
+          load: true
+          tags: ${{ env.API_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      # Pinned action version. Fails the build on fixable CRITICAL CVEs.
+      # To tighten: add HIGH to `severity`. To make non-blocking: exit-code '0'.
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.API_IMAGE }}:${{ github.sha }}
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          exit-code: '1'
+
+      # Push only after the scan passes, then capture the immutable digest.
+      # The digest (repo@sha256:...) is what gets deployed — not a mutable tag.
+      - name: Push image and capture digest
+        id: image
+        run: |
+          IMAGE="${{ env.API_IMAGE }}:${{ github.sha }}"
+          docker push "$IMAGE"
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE")
+          echo "ref=$DIGEST" >> "$GITHUB_OUTPUT"
+          echo "Pushed and pinned: $DIGEST"
+
+  # Builds the SPA (needs the Sentry secrets for source maps) and packages it
+  # into the nginx image. Same scan-then-push-by-digest flow as the API.
+  build-web-image:
+    name: CI / Web Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.image.outputs.ref }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: ${{ runner.os }}-bun-
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      # VITE_API_URL fica vazio de propósito: SPA e API são servidos pela
+      # mesma origem, então o cookie de sessão é same-site (SameSite=Lax).
+      - name: Build Frontend
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        run: bun run --cwd apps/web build
+
+      # O .dockerignore da raiz exclui dist/ e docker/, então a imagem é
+      # construída a partir de um contexto próprio, só com o necessário.
+      - name: Prepare web image context
+        run: |
+          mkdir -p web-image
+          cp -r apps/web/dist web-image/dist
+          cp docker/nginx.conf web-image/nginx.conf
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build web image
+        uses: docker/build-push-action@v6
+        with:
+          context: web-image
+          file: docker/Dockerfile.web
+          load: true
+          tags: ${{ env.WEB_IMAGE }}:${{ github.sha }}
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.WEB_IMAGE }}:${{ github.sha }}
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          exit-code: '1'
+
+      - name: Push image and capture digest
+        id: image
+        run: |
+          IMAGE="${{ env.WEB_IMAGE }}:${{ github.sha }}"
+          docker push "$IMAGE"
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE")
+          echo "ref=$DIGEST" >> "$GITHUB_OUTPUT"
+          echo "Pushed and pinned: $DIGEST"
+
+  # SSH through Cloudflare Access: the VPS has no inbound port open. The runner
+  # authenticates to Access with a service token, and cloudflared carries the
+  # SSH session through the Tunnel.
+  deploy:
+    name: Deploy / VPS
+    runs-on: ubuntu-latest
+    needs: [quality-gate, build-api-image, build-web-image]
+    environment: production
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install cloudflared
+        run: |
+          curl -fsSL -o cloudflared.deb https://github.com/cloudflare/cloudflared/releases/download/2026.10.3/cloudflared-linux-amd64.deb
+          sudo dpkg -i cloudflared.deb
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.VPS_SSH_KNOWN_HOSTS }}
+          SSH_HOST: ${{ secrets.VPS_SSH_HOST }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host vps
+            HostName ${SSH_HOST}
+            User deploy
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            ProxyCommand cloudflared access ssh --hostname %h --service-token-id ${CF_ACCESS_CLIENT_ID} --service-token-secret ${CF_ACCESS_CLIENT_SECRET}
+          EOF
+          chmod 600 ~/.ssh/config
+
+      # The box keeps no git checkout: it only needs the compose file, the
+      # scripts and the env file. Secrets live in one GitHub secret
+      # (PROD_ENV_FILE, see .env.prod.example) and land on disk as mode 600.
+      - name: Upload compose, scripts and env file
+        env:
+          PROD_ENV_FILE: ${{ secrets.PROD_ENV_FILE }}
+        run: |
+          ssh vps 'mkdir -p ~/psy-manager/scripts'
+          scp docker-compose.prod.yml vps:psy-manager/docker-compose.prod.yml
+          scp scripts/deploy.sh scripts/backup-db.sh vps:psy-manager/scripts/
+          printf '%s\n' "$PROD_ENV_FILE" | ssh vps 'umask 077 && cat > ~/psy-manager/.env.prod'
+
+      # Token goes over stdin so it never shows up in a process list.
+      - name: Log the VPS in to GHCR
+        run: printf '%s' "${{ secrets.GITHUB_TOKEN }}" | ssh vps "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"
+
+      - name: Deploy (pull images + restart + migrate + smoke test)
+        run: ssh vps "bash ~/psy-manager/scripts/deploy.sh '${{ needs.build-api-image.outputs.image }}' '${{ needs.build-web-image.outputs.image }}'"
+
+      # GITHUB_TOKEN expires with the job anyway; don't leave it on disk.
+      - name: Log the VPS out of GHCR
+        if: always()
+        run: ssh vps 'docker logout ghcr.io' || true
