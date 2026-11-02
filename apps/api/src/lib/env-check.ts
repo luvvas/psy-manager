@@ -1,3 +1,5 @@
+import { createHash } from "crypto";
+
 // Startup guard for the secrets the API cannot run safely without (issue #40).
 // A wrong ENCRYPTION_KEY used to surface only at the first cipher operation,
 // and decryptField would then quietly hand back ciphertext; now the process
@@ -13,6 +15,17 @@ const KNOWN_DEFAULTS = new Set([
     "your-google-client-id.apps.googleusercontent.com",
     "your-google-client-secret",
 ]);
+
+// SHA-256 of secrets that were published (e.g. in docs of this public repo).
+// Stored as hashes so the values are not repeated here. Refused in every
+// environment: a leaked secret is never acceptable (audit F2).
+export const COMPROMISED_SECRET_SHA256 = new Set([
+    "515be9f2930a21bdad2a1d7b0e5f4b3bca46e02c790032879dba44496f29405b", // BETTER_AUTH_SECRET do guia docs/progress/00-base-infra.md
+]);
+
+function isCompromised(value: string) {
+    return COMPROMISED_SECRET_SHA256.has(createHash("sha256").update(value).digest("hex"));
+}
 
 type Env = Record<string, string | undefined>;
 
@@ -50,6 +63,8 @@ export function checkServerEnv(env: Env): string[] {
         errors.push("BETTER_AUTH_SECRET não definida.");
     } else if (authSecret.length < 32) {
         errors.push("BETTER_AUTH_SECRET deve ter pelo menos 32 caracteres.");
+    } else if (isCompromised(authSecret)) {
+        errors.push("BETTER_AUTH_SECRET é um valor que já foi publicado; gere um novo (openssl rand -base64 32).");
     }
 
     if (env.NODE_ENV === "production") {
