@@ -92,7 +92,9 @@ fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /
 echo '/swapfile none swap sw 0 0' >> /etc/fstab
 
 # atualizações de segurança automáticas
-apt update && apt -y upgrade && apt -y install unattended-upgrades ufw rclone age
+apt update && apt -y upgrade && apt -y install unattended-upgrades ufw age
+# rclone oficial: o do apt (1.60) recebe 501 NotImplemented do R2 no `rcat`
+curl -fsSLO https://downloads.rclone.org/rclone-current-linux-amd64.deb && dpkg -i rclone-current-linux-amd64.deb && rm rclone-current-linux-amd64.deb
 dpkg-reconfigure -plow unattended-upgrades
 
 # Docker
