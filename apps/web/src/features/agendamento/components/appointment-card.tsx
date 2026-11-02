@@ -9,6 +9,7 @@ import { useSession } from "@/lib/auth-client";
 import { trpc } from "@/lib/trpc";
 import { Clock, ExternalLink, Loader2, MessageSquare, Repeat, Video } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import type { Appointment } from "../types";
 import { APPOINTMENT_TYPE_LABELS } from "../types";
 import { StatusBadge } from "./status-badge";
@@ -56,14 +57,17 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
     const createSession = trpc.videoSession.create.useMutation({
         onError: () => toast.error("Não foi possível iniciar a videochamada."),
     });
+    const navigate = useNavigate();
 
     async function handleStartVideo(e: React.MouseEvent) {
         e.stopPropagation();
         if (!window.confirm("Deseja iniciar a videochamada com este paciente?")) return;
         const result = await createSession.mutateAsync({ appointmentId: appointment.id });
-        const params = new URLSearchParams({ token: result.wsAuthToken });
-        if (result.patientJoinUrl) params.set("joinUrl", result.patientJoinUrl);
-        window.open(`/consulta/${result.sessionId}?${params.toString()}`, "_blank");
+        // Same tab, token in router state: it must not land in the URL
+        // (browser history, Sentry breadcrumbs), and a new tab would lose it.
+        navigate(`/consulta/${result.sessionId}`, {
+            state: { wsAuthToken: result.wsAuthToken, patientJoinUrl: result.patientJoinUrl },
+        });
     }
 
     if (compact) {
