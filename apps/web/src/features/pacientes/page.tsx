@@ -77,7 +77,7 @@ export function PacientesPage() {
         nome: p.nome,
         email: p.email,
         telefone: p.telefone,
-        dataNascimento: new Date(p.dataNascimento),
+        dataNascimento: p.dataNascimento ? new Date(p.dataNascimento) : null,
         cidade: p.cidade,
         cpf: p.cpf,
         valorSessao: p.valorSessao ?? null,
@@ -165,11 +165,14 @@ export function PacientesPage() {
                 .filter(row => row.some((cell: any) => cell !== null && cell !== ""))
                 .map(row => ({
                     nome: getCell(row, "nome") ?? "",
-                    email: getCell(row, "email") ?? "",
-                    telefone: getCell(row, "telefone") ?? "",
-                    dataNascimento: parseDate(getCell(row, "dataNascimento") ?? ""),
-                    cpf: getCell(row, "cpf") ?? "",
-                    cidade: getCell(row, "cidade") ?? "",
+                    email: getCell(row, "email"),
+                    telefone: getCell(row, "telefone"),
+                    dataNascimento: (() => {
+                        const v = getCell(row, "dataNascimento");
+                        return v ? parseDate(v) : null;
+                    })(),
+                    cpf: getCell(row, "cpf") || null,
+                    cidade: getCell(row, "cidade"),
                     valorSessao: getCell(row, "valorSessao"),
                     modeloCobranca: getCell(row, "modeloCobranca"),
                     nomeSocial: getCell(row, "nomeSocial"),

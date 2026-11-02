@@ -4,6 +4,33 @@ import { patientCommands } from "../cqrs/patient/patient.commands";
 import { patientQueries } from "../cqrs/patient/patient.queries";
 import { TRPCError } from "@trpc/server";
 
+// Só o nome é obrigatório no cadastro do paciente. Campos opcionais chegam
+// vazios do formulário e viram null; quando preenchidos, o formato é validado.
+const optionalText = z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .transform((v) => (v ? v : null));
+
+const optionalEmail = optionalText.refine(
+    (v) => v === null || z.string().email().safeParse(v).success,
+    "E-mail inválido",
+);
+
+const optionalCpf = optionalText.refine(
+    (v) => v === null || v.replace(/\D/g, "").length === 11,
+    "CPF inválido",
+);
+
+const optionalDate = z
+    .string()
+    .or(z.date())
+    .optional()
+    .nullable()
+    .transform((v) => (v ? new Date(v) : null))
+    .refine((d) => d === null || !Number.isNaN(d.getTime()), "Data inválida");
+
 export const patientRouter = router({
     list: protectedProcedure.query(async ({ ctx }) => {
         return patientQueries.list(ctx.session.user.id);
@@ -26,11 +53,11 @@ export const patientRouter = router({
         .input(
             z.object({
                 nome: z.string().min(1),
-                email: z.string().email(),
-                telefone: z.string().min(1),
-                dataNascimento: z.string().or(z.date()).transform((val) => new Date(val)),
-                cidade: z.string().min(1),
-                cpf: z.string().min(1),
+                email: optionalEmail,
+                telefone: optionalText,
+                dataNascimento: optionalDate,
+                cidade: optionalText,
+                cpf: optionalCpf,
                 valorSessao: z.string().or(z.number()).optional().nullable(),
                 modeloCobranca: z.string().optional().nullable(),
                 // Extended Registration Fields
@@ -70,11 +97,11 @@ export const patientRouter = router({
             z.object({
                 id: z.string(),
                 nome: z.string().min(1),
-                email: z.string().email(),
-                telefone: z.string().min(1),
-                dataNascimento: z.string().or(z.date()).transform((val) => new Date(val)),
-                cidade: z.string().min(1),
-                cpf: z.string().min(1),
+                email: optionalEmail,
+                telefone: optionalText,
+                dataNascimento: optionalDate,
+                cidade: optionalText,
+                cpf: optionalCpf,
                 valorSessao: z.string().or(z.number()).optional().nullable(),
                 modeloCobranca: z.string().optional().nullable(),
                 // Extended Registration Fields
@@ -129,11 +156,11 @@ export const patientRouter = router({
             z.array(
                 z.object({
                     nome: z.string().min(1),
-                    email: z.string().email(),
-                    telefone: z.string().min(1),
-                    dataNascimento: z.string().or(z.date()).transform((val) => new Date(val)),
-                    cidade: z.string().min(1),
-                    cpf: z.string().min(1),
+                    email: optionalEmail,
+                    telefone: optionalText,
+                    dataNascimento: optionalDate,
+                    cidade: optionalText,
+                    cpf: optionalCpf,
                     valorSessao: z.string().or(z.number()).optional().nullable(),
                     modeloCobranca: z.string().optional().nullable(),
                     nomeSocial: z.string().optional().nullable(),

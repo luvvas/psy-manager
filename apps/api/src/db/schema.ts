@@ -27,11 +27,12 @@ export const user = pgTable("user", {
 export const patient = pgTable("patient", {
     id: text("id").primaryKey(),
     nome: text("nome").notNull(),
-    email: text("email").notNull(),
-    telefone: text("telefone").notNull(),
-    dataNascimento: text("data_nascimento").notNull(),
-    cidade: text("cidade").notNull(),
-    cpf: text("cpf").notNull(),
+    // Só o nome é obrigatório: o psicólogo nem sempre tem os demais dados no primeiro cadastro.
+    email: text("email"),
+    telefone: text("telefone"),
+    dataNascimento: text("data_nascimento"),
+    cidade: text("cidade"),
+    cpf: text("cpf"),
     psychologistId: text("psychologist_id")
         .notNull()
         .references(() => user.id, { onDelete: "cascade" }),

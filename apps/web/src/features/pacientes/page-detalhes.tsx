@@ -141,7 +141,7 @@ export function PatientDetailsPage() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground font-medium">CPF</p>
-                                        <p className="font-medium mt-0.5">{patient.cpf}</p>
+                                        <p className="font-medium mt-0.5">{patient.cpf || "—"}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground font-medium">RG</p>
@@ -149,7 +149,7 @@ export function PatientDetailsPage() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground font-medium">Data de Nascimento</p>
-                                        <p className="font-medium mt-0.5">{format(new Date(patient.dataNascimento), "dd/MM/yyyy", { locale: ptBR })}</p>
+                                        <p className="font-medium mt-0.5">{patient.dataNascimento ? format(new Date(patient.dataNascimento), "dd/MM/yyyy", { locale: ptBR }) : "—"}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground font-medium">Profissão</p>
@@ -167,11 +167,11 @@ export function PatientDetailsPage() {
                                 <CardContent className="pt-5 grid grid-cols-2 gap-y-5 gap-x-4 text-sm">
                                     <div className="col-span-2">
                                         <p className="text-xs text-muted-foreground font-medium">E-mail</p>
-                                        <p className="font-medium mt-0.5">{patient.email}</p>
+                                        <p className="font-medium mt-0.5">{patient.email || "—"}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground font-medium">Telefone / WhatsApp</p>
-                                        <p className="font-medium mt-0.5">{patient.telefone}</p>
+                                        <p className="font-medium mt-0.5">{patient.telefone || "—"}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground font-medium">CEP</p>
@@ -183,7 +183,7 @@ export function PatientDetailsPage() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground font-medium">Cidade</p>
-                                        <p className="font-medium mt-0.5">{patient.cidade}</p>
+                                        <p className="font-medium mt-0.5">{patient.cidade || "—"}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground font-medium">UF</p>

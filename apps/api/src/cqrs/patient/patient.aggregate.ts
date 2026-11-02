@@ -4,11 +4,11 @@ import type { DomainEvent } from "../../lib/cqrs";
 export interface PatientState {
     id: string;
     nome: string;
-    email: string;
-    telefone: string;
+    email?: string | null;
+    telefone?: string | null;
     dataNascimento: Date | null;
-    cidade: string;
-    cpf: string;
+    cidade?: string | null;
+    cpf?: string | null;
     psychologistId: string;
     valorSessao?: number | string | null;
     modeloCobranca?: string | null;
@@ -51,7 +51,7 @@ export class PatientAggregate extends AggregateRoot<PatientState> {
             telefone: "",
             dataNascimento: null,
             cidade: "",
-            cpf: "",
+            cpf: null,
             psychologistId: "",
             valorSessao: undefined,
             modeloCobranca: undefined,
@@ -87,11 +87,11 @@ export class PatientAggregate extends AggregateRoot<PatientState> {
     public create(data: {
         id: string;
         nome: string;
-        email: string;
-        telefone: string;
-        dataNascimento: Date;
-        cidade: string;
-        cpf: string;
+        email?: string | null;
+        telefone?: string | null;
+        dataNascimento?: Date | null;
+        cidade?: string | null;
+        cpf?: string | null;
         psychologistId: string;
         valorSessao?: number | string | null;
         modeloCobranca?: string | null;
@@ -120,7 +120,7 @@ export class PatientAggregate extends AggregateRoot<PatientState> {
             throw new Error("Patient aggregate already initialized");
         }
         if (!data.nome) throw new Error("Patient name is required");
-        if (!data.email.includes("@")) throw new Error("Invalid patient email");
+        if (data.email && !data.email.includes("@")) throw new Error("Invalid patient email");
 
         this._id = data.id;
         this.raise("PATIENT_CREATED", data);
@@ -131,11 +131,11 @@ export class PatientAggregate extends AggregateRoot<PatientState> {
      */
     public update(data: {
         nome: string;
-        email: string;
-        telefone: string;
-        dataNascimento: Date;
-        cidade: string;
-        cpf: string;
+        email?: string | null;
+        telefone?: string | null;
+        dataNascimento?: Date | null;
+        cidade?: string | null;
+        cpf?: string | null;
         valorSessao?: number | string | null;
         modeloCobranca?: string | null;
         nomeSocial?: string | null;
@@ -190,7 +190,7 @@ export class PatientAggregate extends AggregateRoot<PatientState> {
                     nome: event.data.nome,
                     email: event.data.email,
                     telefone: event.data.telefone,
-                    dataNascimento: new Date(event.data.dataNascimento),
+                    dataNascimento: event.data.dataNascimento ? new Date(event.data.dataNascimento) : null,
                     cidade: event.data.cidade,
                     cpf: event.data.cpf,
                     psychologistId: event.data.psychologistId,
@@ -228,7 +228,7 @@ export class PatientAggregate extends AggregateRoot<PatientState> {
                     nome: event.data.nome,
                     email: event.data.email,
                     telefone: event.data.telefone,
-                    dataNascimento: new Date(event.data.dataNascimento),
+                    dataNascimento: event.data.dataNascimento ? new Date(event.data.dataNascimento) : null,
                     cidade: event.data.cidade,
                     cpf: event.data.cpf,
                     valorSessao: event.data.valorSessao,
