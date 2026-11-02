@@ -1,4 +1,4 @@
-import { Mail, Phone, CreditCard, Calendar, MapPin, Pencil, Trash2, Users, Eye } from "lucide-react";
+import { Mail, Phone, CreditCard, Calendar, MapPin, Pencil, Trash2, Users, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
 
@@ -110,18 +110,6 @@ export function PatientsTable({ patients, onEdit, onDelete, onViewProfile }: Pat
                         variant="ghost"
                         size="icon"
                         className="size-8"
-                        title="Ver Perfil"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onViewProfile(patient);
-                        }}
-                    >
-                        <Eye className="size-3.5 text-blue-600 hover:text-blue-700 transition-colors" />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8"
                         title="Editar"
                         onClick={(e) => {
                             e.stopPropagation();
@@ -129,6 +117,18 @@ export function PatientsTable({ patients, onEdit, onDelete, onViewProfile }: Pat
                         }}
                     >
                         <Pencil className="size-3.5 text-muted-foreground hover:text-foreground transition-colors" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8"
+                        title="Prontuário"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onViewProfile(patient);
+                        }}
+                    >
+                        <ClipboardList className="size-3.5 text-blue-600 hover:text-blue-700 transition-colors" />
                     </Button>
                     <Button
                         variant="ghost"

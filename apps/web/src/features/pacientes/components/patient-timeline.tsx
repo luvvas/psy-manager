@@ -111,7 +111,7 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
                         </p>
                     </div>
                 ) : (
-                    <div className="relative border-l-2 border-muted ml-3 space-y-8 pb-8">
+                    <div className="relative border-l-2 border-muted ml-6 space-y-8 pb-8">
                         {records.map((record) => {
                             const Icon = CATEGORY_ICONS[record.category] || FileText;
                             const isFinalized = record.status === "finalized";
@@ -120,7 +120,7 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
                             return (
                                 <div key={record.id} className="relative pl-8">
                                     {/* Timeline dot */}
-                                    <div className="absolute -left-[17px] top-1 rounded-full p-1">
+                                    <div className="absolute -left-[21px] top-0 rounded-full bg-background p-1">
                                         <div className="rounded-full bg-primary p-2">
                                             <Icon className="w-4 h-4 text-primary-foreground" />
                                         </div>

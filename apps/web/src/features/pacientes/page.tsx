@@ -224,6 +224,7 @@ export function PacientesPage() {
                         />
                         <Button
                             variant="outline"
+                            size="sm"
                             className="gap-1.5 hidden sm:flex"
                             onClick={() => fileInputRef.current?.click()}
                         >

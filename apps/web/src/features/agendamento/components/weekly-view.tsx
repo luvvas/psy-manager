@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Appointment } from "../types";
 import { AppointmentCard } from "./appointment-card";
 
@@ -81,18 +80,34 @@ export function WeeklyView({ appointments, selectedDate, onDayClick }: WeeklyVie
     }, [appointments, weekDays]);
 
     return (
-        <ScrollArea className="flex-1 h-full">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-7 gap-px bg-border min-h-[400px] h-full">
+        /* Plain overflow container instead of ScrollArea: Radix wraps the children in a
+           display:table div with no height, so the grid (and the day dividers)
+           could never stretch to the full height available. */
+        <div className="flex-1 min-h-0 overflow-y-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-7 min-h-full">
                 {weekDays.map((day, i) => {
                     const key = day.toISOString().split("T")[0];
                     const dayAppointments = groupedAppointments.get(key) || [];
                     const isToday = isSameDay(day, today);
                     const isWeekend = i >= 5;
 
+                    /* Day dividers are real borders, not a 1px grid gap over bg-border:
+                       with fractional column widths the browser rounded every other
+                       gap away. The last column of each layout drops its right border
+                       so it doesn't double up with the container's. */
+                    const dividerClasses = [
+                        "border-b lg:border-b-0 sm:border-r",
+                        i % 2 === 1 && "sm:max-lg:border-r-0",
+                        i === 4 && "lg:max-xl:border-r-0",
+                        i === 6 && "xl:border-r-0",
+                    ]
+                        .filter(Boolean)
+                        .join(" ");
+
                     return (
                         <div
                             key={key}
-                            className={`flex flex-col bg-card transition-colors cursor-pointer ${isWeekend ? "hidden xl:flex" : ""
+                            className={`flex flex-col bg-card transition-colors cursor-pointer ${dividerClasses} ${isWeekend ? "hidden xl:flex" : ""
                                 }`}
                             onClick={(e) => {
                                 const target = e.target as HTMLElement;
@@ -155,6 +170,6 @@ export function WeeklyView({ appointments, selectedDate, onDayClick }: WeeklyVie
                     );
                 })}
             </div>
-        </ScrollArea>
+        </div>
     );
 }

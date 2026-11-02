@@ -28,7 +28,7 @@ export function LandingGuard() {
     }
 
     if (session) {
-        return <Navigate to="/agendamento" replace />;
+        return <Navigate to="/inicio" replace />;
     }
 
     return <LandingPage />;

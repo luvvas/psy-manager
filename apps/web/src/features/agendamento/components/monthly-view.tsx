@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Appointment } from "../types";
 import { AppointmentCard } from "./appointment-card";
 
@@ -71,8 +70,13 @@ export function MonthlyView({ appointments, selectedDate, onDayClick }: MonthlyV
     }, [appointments]);
 
     return (
-        <ScrollArea className="flex-1 rounded-xl bg-card shadow-sm overflow-hidden">
-            <div className="min-w-[600px] select-none">
+        /* Plain overflow container instead of ScrollArea: Radix wraps the children in a
+           display:table div that grows to the content's max-content width (long patient
+           names), pushing the last column past the right edge and hiding its border. */
+        <div className="flex flex-1 min-h-0 flex-col overflow-auto rounded-xl bg-card shadow-sm">
+            {/* flex-1 stretches the month to the available height; on short screens the
+                rows keep their 100px minimum and the container scrolls instead. */}
+            <div className="flex flex-1 flex-col min-w-[600px] select-none">
                 {/* Header days */}
                 <div className="grid grid-cols-7 border-b bg-muted/40">
                     {WEEKDAY_HEADERS.map((day) => (
@@ -86,7 +90,7 @@ export function MonthlyView({ appointments, selectedDate, onDayClick }: MonthlyV
                 </div>
 
                 {/* Day grid */}
-                <div className="grid grid-cols-7 border-l bg-card">
+                <div className="grid flex-1 grid-cols-7 grid-rows-[repeat(6,minmax(100px,1fr))] border-l bg-card">
                     {gridDays.map((day) => {
                         const key = day.toISOString().split("T")[0];
                         const dayApts = groupedAppointments.get(key) || [];
@@ -97,7 +101,7 @@ export function MonthlyView({ appointments, selectedDate, onDayClick }: MonthlyV
                         return (
                             <div
                                 key={key}
-                                className={`relative flex min-h-[100px] flex-col border-b border-r p-1 transition-colors cursor-pointer hover:bg-accent/30 ${!isCurrentMonth ? "bg-muted/20" : ""
+                                className={`relative flex min-h-0 flex-col border-b border-r p-1 transition-colors cursor-pointer hover:bg-accent/30 ${!isCurrentMonth ? "bg-muted/20" : ""
                                     } ${isWeekend && isCurrentMonth ? "bg-muted/10" : ""}`}
                                 onClick={(e) => {
                                     const card = (e.target as HTMLElement).closest("[data-appointment-id]");
@@ -145,6 +149,6 @@ export function MonthlyView({ appointments, selectedDate, onDayClick }: MonthlyV
                     })}
                 </div>
             </div>
-        </ScrollArea>
+        </div>
     );
 }

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FileInput } from "@/components/file-input";
 import { Label } from "@/components/ui/label";
 import {
     Select,
@@ -155,12 +156,10 @@ export function GenericDocumentForm({ onSave, onCancel, initialData }: GenericDo
                 </Label>
 
                 <div className="grid w-full max-w-sm items-center gap-1.5">
-                    <Input
+                    <FileInput
                         id="pdfFile"
-                        type="file"
                         accept="application/pdf"
                         onChange={handleFileChange}
-                        className="cursor-pointer"
                     />
                 </div>
 

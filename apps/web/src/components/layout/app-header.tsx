@@ -17,7 +17,9 @@ export function AppHeader({ title, description, icon: Icon, actions }: AppHeader
         <header
             className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b px-4 transition-colors duration-300"
             style={{
-                backgroundColor: "var(--app-header-bg, transparent)",
+                // Sem cor de tema, usa o fundo da página: transparente deixava o
+                // conteúdo aparecer por baixo do header fixo ao rolar.
+                backgroundColor: "var(--app-header-bg, var(--background))",
             }}
         >
             <div className="flex flex-1 items-center justify-between">
