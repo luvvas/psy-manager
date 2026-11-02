@@ -59,7 +59,7 @@ jobs:
       contents: read
       packages: write
     outputs:
-      image: ${{ steps.image.outputs.ref }}
+      digest: ${{ steps.image.outputs.digest }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -106,9 +106,11 @@ jobs:
         run: |
           IMAGE="${{ env.API_IMAGE }}:${{ github.sha }}"
           docker push "$IMAGE"
-          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE")
-          echo "ref=$DIGEST" >> "$GITHUB_OUTPUT"
-          echo "Pushed and pinned: $DIGEST"
+          REF=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE")
+          # Only the sha256 goes out as a job output: GitHub drops outputs that
+          # contain a secret value, and the image name contains SENTRY_PROJECT.
+          echo "digest=${REF#*@}" >> "$GITHUB_OUTPUT"
+          echo "Pushed and pinned: $REF"
 
   # Builds the SPA (needs the Sentry secrets for source maps) and packages it
   # into the nginx image. Same scan-then-push-by-digest flow as the API.
@@ -119,7 +121,7 @@ jobs:
       contents: read
       packages: write
     outputs:
-      image: ${{ steps.image.outputs.ref }}
+      digest: ${{ steps.image.outputs.digest }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -190,9 +192,11 @@ jobs:
         run: |
           IMAGE="${{ env.WEB_IMAGE }}:${{ github.sha }}"
           docker push "$IMAGE"
-          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE")
-          echo "ref=$DIGEST" >> "$GITHUB_OUTPUT"
-          echo "Pushed and pinned: $DIGEST"
+          REF=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE")
+          # Only the sha256 goes out as a job output: GitHub drops outputs that
+          # contain a secret value, and the image name contains SENTRY_PROJECT.
+          echo "digest=${REF#*@}" >> "$GITHUB_OUTPUT"
+          echo "Pushed and pinned: $REF"
 
   # SSH through Cloudflare Access: the VPS has no inbound port open. The runner
   # authenticates to Access with a service token, and cloudflared carries the
@@ -254,7 +258,7 @@ jobs:
         run: printf '%s' "${{ secrets.GITHUB_TOKEN }}" | ssh vps "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"
 
       - name: Deploy (pull images + restart + migrate + smoke test)
-        run: ssh vps "bash ~/psy-manager/scripts/deploy.sh '${{ needs.build-api-image.outputs.image }}' '${{ needs.build-web-image.outputs.image }}'"
+        run: ssh vps "bash ~/psy-manager/scripts/deploy.sh '${{ env.API_IMAGE }}@${{ needs.build-api-image.outputs.digest }}' '${{ env.WEB_IMAGE }}@${{ needs.build-web-image.outputs.digest }}'"
 
       # GITHUB_TOKEN expires with the job anyway; don't leave it on disk.
       - name: Log the VPS out of GHCR
