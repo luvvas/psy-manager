@@ -7,6 +7,7 @@ import { googleCalendarService } from "../services/google-calendar.service";
 import { db } from "../db";
 import { account, patient } from "../db/schema";
 import { eq, and } from "drizzle-orm";
+import { optionalHttpUrl } from "../utils/url.utils";
 
 async function assertPatientOwnership(patientId: string, psychologistId: string) {
     const [row] = await db
@@ -41,7 +42,7 @@ export const appointmentRouter = router({
                 type: z.string().min(1),
                 isRecurring: z.boolean(),
                 notes: z.string().optional(),
-                meetingUrl: z.string().optional(),
+                meetingUrl: optionalHttpUrl,
                 ...reminderFields,
             })
         )
@@ -68,7 +69,7 @@ export const appointmentRouter = router({
                 type: z.string().min(1),
                 isRecurring: z.boolean(),
                 notes: z.string().optional(),
-                meetingUrl: z.string().optional(),
+                meetingUrl: optionalHttpUrl,
                 ...reminderFields,
             })
         )

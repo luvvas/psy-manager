@@ -23,7 +23,7 @@ describe("clinical record API", () => {
         expect(storageService.createUploadTarget).toHaveBeenCalledWith(USER_ID, upload);
 
         await expect(caller().clinicalRecord.getDownloadUrl({ id: "record-1" })).resolves.toEqual({
-            url: "inline-file",
+            url: "https://files.example.com/record.pdf",
         });
         await expect(caller().clinicalRecord.list({ patientId: "patient-1" })).resolves.toMatchObject([
             { id: "record-1" },

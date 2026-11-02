@@ -3,6 +3,7 @@ import { router, protectedProcedure } from "../trpc/index";
 import { clinicalRecordService } from "../services/clinical-record.service";
 import { TRPCError } from "@trpc/server";
 import { storageService } from "../services/storage.service";
+import { isSafeDocumentUrl, optionalHttpUrl } from "../utils/url.utils";
 
 export const clinicalRecordRouter = router({
     prepareUpload: protectedProcedure
@@ -27,7 +28,7 @@ export const clinicalRecordRouter = router({
                 return { url: await storageService.createReadUrl(record.storageKey, ctx.session.user.id) };
             }
 
-            return { url: record.fileUrl };
+            return { url: record.fileUrl && isSafeDocumentUrl(record.fileUrl) ? record.fileUrl : null };
         }),
 
     list: protectedProcedure
@@ -53,7 +54,7 @@ export const clinicalRecordRouter = router({
                 patientId: z.string().min(1),
                 category: z.string().optional(),
                 textContent: z.string().optional(),
-                fileUrl: z.string().optional(),
+                fileUrl: optionalHttpUrl,
                 storageKey: z.string().optional(),
                 fileName: z.string().optional(),
                 mimeType: z.string().optional(),
@@ -77,7 +78,7 @@ export const clinicalRecordRouter = router({
                 title: z.string().optional(),
                 category: z.string().optional(),
                 textContent: z.string().optional(),
-                fileUrl: z.string().optional(),
+                fileUrl: optionalHttpUrl,
                 storageKey: z.string().optional(),
                 fileName: z.string().optional(),
                 mimeType: z.string().optional(),

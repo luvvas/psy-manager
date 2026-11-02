@@ -3,6 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { FileText, Lock, FileCheck, ClipboardCopy, Download, Eye, ArrowLeft, Paperclip, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
+import { safeUrl } from "@/utils/safe-url";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
@@ -52,9 +53,10 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
     };
 
     const handleDownload = (content: string | null | undefined, title: string) => {
-        if (!content) return;
+        const url = safeUrl(content, { allowPdfDataUrl: true });
+        if (!url) return;
         const link = document.createElement("a");
-        link.href = content;
+        link.href = url;
         link.download = `${title}.pdf`;
         link.click();
     };
@@ -64,7 +66,7 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
     }
 
     if (viewingDoc) {
-        const documentUrl = downloadData?.url || viewingDoc.fileUrl;
+        const documentUrl = safeUrl(downloadData?.url || viewingDoc.fileUrl, { allowPdfDataUrl: true });
 
         return (
             <div className="flex flex-col h-full relative">

@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../trpc/index";
 import { documentService } from "../services/document.service";
 import { storageService } from "../services/storage.service";
+import { isSafeDocumentUrl } from "../utils/url.utils";
 
 export const documentRouter = router({
     prepareUpload: protectedProcedure
@@ -27,7 +28,8 @@ export const documentRouter = router({
                 return { url: await storageService.createReadUrl(doc.storageKey, ctx.session.user.id) };
             }
 
-            return { url: doc.content };
+            // content is free text; only hand it out as a URL when it is one.
+            return { url: doc.content && isSafeDocumentUrl(doc.content) ? doc.content : null };
         }),
 
     list: protectedProcedure

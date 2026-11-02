@@ -255,8 +255,9 @@ export function resetRouterTestState() {
     }
 
     state.patientById = { id: "patient-1", nome: "Ana Silva" };
-    state.documentById = { id: "document-1", content: "inline-content" };
-    state.clinicalRecordById = { id: "record-1", fileUrl: "inline-file" };
+    // Legacy rows: inline PDF (pre-storage) and an external https file.
+    state.documentById = { id: "document-1", content: "data:application/pdf;base64,SU5MSU5F" };
+    state.clinicalRecordById = { id: "record-1", fileUrl: "https://files.example.com/record.pdf" };
     state.videoSessionById = {
         id: "video-1",
         psychologistId: USER_ID,

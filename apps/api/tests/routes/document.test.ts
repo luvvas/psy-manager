@@ -23,7 +23,7 @@ describe("document API", () => {
         expect(storageService.createUploadTarget).toHaveBeenCalledWith(USER_ID, upload);
 
         await expect(caller().document.getDownloadUrl({ id: "document-1" })).resolves.toEqual({
-            url: "inline-content",
+            url: "data:application/pdf;base64,SU5MSU5F",
         });
         await expect(caller().document.list({ patientId: "patient-1", isTemplate: false })).resolves.toMatchObject([
             { id: "document-1" },

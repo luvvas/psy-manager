@@ -9,6 +9,7 @@ import { useSession } from "@/lib/auth-client";
 import { trpc } from "@/lib/trpc";
 import { Clock, ExternalLink, Loader2, MessageSquare, Repeat, Video } from "lucide-react";
 import { toast } from "sonner";
+import { safeUrl } from "@/utils/safe-url";
 import { useNavigate } from "react-router-dom";
 import type { Appointment } from "../types";
 import { APPOINTMENT_TYPE_LABELS } from "../types";
@@ -58,6 +59,7 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
         onError: () => toast.error("Não foi possível iniciar a videochamada."),
     });
     const navigate = useNavigate();
+    const safeMeetingUrl = safeUrl(appointment.meetingUrl);
 
     async function handleStartVideo(e: React.MouseEvent) {
         e.stopPropagation();
@@ -178,12 +180,12 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
             {/* Video call — available 15 min before start until 15 min after end */}
             {canStartVideo && (
                 <div className="mt-2 pt-2 border-t">
-                    {appointment.meetingUrl ? (
+                    {safeMeetingUrl ? (
                         <Button
                             variant="outline"
                             size="sm"
                             className="w-full gap-1.5 text-xs h-7"
-                            onClick={(e) => { e.stopPropagation(); window.open(appointment.meetingUrl, "_blank"); }}
+                            onClick={(e) => { e.stopPropagation(); window.open(safeMeetingUrl, "_blank", "noopener"); }}
                         >
                             <ExternalLink className="size-3" />
                             Entrar na videochamada
