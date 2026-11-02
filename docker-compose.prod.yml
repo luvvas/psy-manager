@@ -5,10 +5,19 @@
 # continuar funcionando mesmo se o Docker cair) e encaminha app.<dominio> para
 # localhost:8080.
 
+# Sem limite, o driver json-file do Docker cresce até encher o disco (e
+# derrubar o Postgres junto). 3 arquivos de 10 MB por container.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   db:
     image: postgres:17-alpine
     container_name: psy-manager-db
+    logging: *default-logging
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -32,6 +41,7 @@ services:
     # pulls and runs the tested artifact instead of rebuilding from source.
     image: ${API_IMAGE}
     container_name: psy-manager-api
+    logging: *default-logging
     restart: always
     depends_on:
       db:
@@ -68,6 +78,7 @@ services:
     # nginx com o build do Vite; também faz proxy de /api, /trpc e /ws.
     image: ${WEB_IMAGE}
     container_name: psy-manager-web
+    logging: *default-logging
     restart: always
     depends_on:
       - api
