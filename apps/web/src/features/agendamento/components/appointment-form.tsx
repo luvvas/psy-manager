@@ -20,6 +20,7 @@ import { trpc } from "@/lib/trpc";
 import { DatePicker } from "@/components/date-picker";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "sonner";
+import { isHttpUrl, safeUrl } from "@/utils/safe-url";
 import { useNavigate } from "react-router-dom";
 
 function isVideoCallAvailable(date: Date, startTime: string, endTime: string): boolean {
@@ -45,7 +46,10 @@ const appointmentSchema = z.object({
     type: z.enum(["individual", "casal", "infantil", "avaliacao"]),
     isRecurring: z.boolean(),
     notes: z.string().optional(),
-    meetingUrl: z.string().optional(),
+    meetingUrl: z
+        .string()
+        .optional()
+        .refine((v) => !v || isHttpUrl(v), "Informe o link completo, começando com https://"),
     reminderEnabled: z.boolean(),
     reminderMinutesBefore: z.number().int().positive().optional(),
 });
@@ -78,6 +82,7 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
         onError: () => toast.error("Não foi possível iniciar a videochamada."),
     });
     const navigate = useNavigate();
+    const safeMeetingUrl = safeUrl(initialData?.meetingUrl);
 
     async function handleStartVideo() {
         if (!window.confirm("Deseja iniciar a videochamada com este paciente?")) return;
@@ -330,6 +335,9 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
                             disabled={isSubmitting || readOnly}
                             {...register("meetingUrl")}
                         />
+                        {errors.meetingUrl && (
+                            <p className="text-xs text-destructive">{errors.meetingUrl.message}</p>
+                        )}
                         <p className="text-xs text-muted-foreground">
                             Cole aqui o link do Google Meet, Zoom ou Teams gerado externamente.
                         </p>
@@ -338,12 +346,12 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
             </div>
 
             <div className="mt-auto space-y-3">
-                {canStartVideo && initialData?.meetingUrl ? (
+                {canStartVideo && safeMeetingUrl ? (
                     <Button
                         type="button"
                         variant="outline"
                         className="w-full gap-1.5"
-                        onClick={() => window.open(initialData.meetingUrl, "_blank")}
+                        onClick={() => window.open(safeMeetingUrl, "_blank", "noopener")}
                     >
                         <ExternalLink className="size-4" />
                         Entrar na videochamada

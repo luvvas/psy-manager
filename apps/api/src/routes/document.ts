@@ -4,6 +4,7 @@ import { router, protectedProcedure } from "../trpc/index";
 import { documentService } from "../services/document.service";
 import { storageService } from "../services/storage.service";
 import { isOwnStorageKey } from "../utils/storage.utils";
+import { isSafeDocumentUrl } from "../utils/url.utils";
 import { assertPatientOwnership } from "../lib/ownership";
 
 // See isOwnStorageKey (issue #38).
@@ -37,7 +38,8 @@ export const documentRouter = router({
                 return { url: await storageService.createReadUrl(doc.storageKey, ctx.session.user.id) };
             }
 
-            return { url: doc.content };
+            // content is free text; only hand it out as a URL when it is one.
+            return { url: doc.content && isSafeDocumentUrl(doc.content) ? doc.content : null };
         }),
 
     list: protectedProcedure

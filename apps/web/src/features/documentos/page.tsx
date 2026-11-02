@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
 import { uploadFileToTarget } from "@/utils/upload";
+import { safeUrl } from "@/utils/safe-url";
 import { ArrowLeft, Download, Files, FileText, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -123,7 +124,7 @@ export function DocumentosPage() {
     };
 
     const handleDownload = () => {
-        const url = downloadData?.url || viewingDoc?.content;
+        const url = safeUrl(downloadData?.url || viewingDoc?.content, { allowPdfDataUrl: true });
         if (!url || !viewingDoc) return;
         const link = document.createElement("a");
         link.href = url;
@@ -133,7 +134,7 @@ export function DocumentosPage() {
 
     const handleDownloadDocument = async (doc: DBGenericDocument) => {
         const data = await utils.document.getDownloadUrl.fetch({ id: doc.id });
-        const url = data?.url || doc.content;
+        const url = safeUrl(data?.url || doc.content, { allowPdfDataUrl: true });
         if (!url) return;
 
         const link = document.createElement("a");
@@ -143,6 +144,7 @@ export function DocumentosPage() {
     };
 
     if (viewingDoc) {
+        const viewerUrl = safeUrl(downloadData?.url || viewingDoc.content, { allowPdfDataUrl: true });
         return (
             <>
                 <AppHeader
@@ -171,9 +173,9 @@ export function DocumentosPage() {
                         </>
                     }
                 />
-                {(downloadData?.url || viewingDoc.content) ? (
+                {viewerUrl ? (
                     <iframe
-                        src={`${downloadData?.url || viewingDoc.content}#toolbar=0`}
+                        src={`${viewerUrl}#toolbar=0`}
                         className="w-full h-full border-none"
                         title={viewingDoc.title}
                     />

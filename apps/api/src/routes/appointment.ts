@@ -7,6 +7,7 @@ import { db } from "../db";
 import { account } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import { assertPatientOwnership } from "../lib/ownership";
+import { optionalHttpUrl } from "../utils/url.utils";
 
 const reminderFields = {
     reminderEnabled: z.boolean().optional().default(false),
@@ -30,7 +31,7 @@ export const appointmentRouter = router({
                 type: z.string().min(1),
                 isRecurring: z.boolean(),
                 notes: z.string().optional(),
-                meetingUrl: z.string().optional(),
+                meetingUrl: optionalHttpUrl,
                 ...reminderFields,
             })
         )
@@ -57,7 +58,7 @@ export const appointmentRouter = router({
                 type: z.string().min(1),
                 isRecurring: z.boolean(),
                 notes: z.string().optional(),
-                meetingUrl: z.string().optional(),
+                meetingUrl: optionalHttpUrl,
                 ...reminderFields,
             })
         )
