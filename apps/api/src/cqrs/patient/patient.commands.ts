@@ -1,5 +1,10 @@
 import { cqrsEventStore, eventBus } from "../../lib/cqrs";
 import { PatientAggregate } from "./patient.aggregate";
+import { TRPCError } from "@trpc/server";
+
+// "Doesn't exist" and "belongs to someone else" get the same answer, so the
+// response does not reveal which IDs exist in other accounts (audit F7).
+const notFound = () => new TRPCError({ code: "NOT_FOUND", message: "Paciente não encontrado." });
 
 export interface CreatePatientCommand {
     nome: string;
@@ -106,7 +111,7 @@ export const patientCommands = {
         // 1. Load historical events from the Event Store
         const history = await cqrsEventStore.getEvents(command.id);
         if (history.length === 0) {
-            throw new Error(`Patient with ID ${command.id} not found`);
+            throw notFound();
         }
 
         const aggregate = new PatientAggregate();
@@ -116,7 +121,7 @@ export const patientCommands = {
 
         // Authorization check: Ensure psychologist owns this aggregate
         if (aggregate.state.psychologistId !== command.psychologistId) {
-            throw new Error("Unauthorized: You do not own this patient record");
+            throw notFound();
         }
 
         const expectedVersion = aggregate.version;
@@ -141,14 +146,14 @@ export const patientCommands = {
     async delete(command: DeletePatientCommand): Promise<void> {
         const history = await cqrsEventStore.getEvents(command.id);
         if (history.length === 0) {
-            throw new Error(`Patient with ID ${command.id} not found`);
+            throw notFound();
         }
 
         const aggregate = new PatientAggregate();
         aggregate.loadFromHistory(history);
 
         if (aggregate.state.psychologistId !== command.psychologistId) {
-            throw new Error("Unauthorized: You do not own this patient record");
+            throw notFound();
         }
 
         const expectedVersion = aggregate.version;

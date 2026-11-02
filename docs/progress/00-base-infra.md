@@ -69,10 +69,10 @@ mkdir -p ~/psy-manager
 # Criar o arquivo .env lá dentro
 cat << 'EOF' > ~/psy-manager/.env
 POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
+POSTGRES_PASSWORD=<gerar com: openssl rand -hex 32>
 POSTGRES_DB=psy_manager
-BETTER_AUTH_SECRET=9sK3mX7qA2vF5wD8eR1tY4uI0oP3lL6k
-BETTER_AUTH_URL=http://56.125.229.202
+BETTER_AUTH_SECRET=<gerar com: openssl rand -base64 32>
+BETTER_AUTH_URL=http://<ip-publico-da-ec2>
 EOF
 ```
 

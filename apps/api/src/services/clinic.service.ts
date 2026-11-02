@@ -20,7 +20,7 @@ export const clinicService = {
             })
             .from(clinic)
             .innerJoin(psychologistClinic, eq(clinic.id, psychologistClinic.clinicId))
-            .where(eq(psychologistClinic.psychologistId, psychologistId));
+            .where(and(eq(psychologistClinic.psychologistId, psychologistId), eq(psychologistClinic.status, "active")));
 
         if (clinics.length === 0) return [];
 
@@ -36,7 +36,7 @@ export const clinicService = {
             })
             .from(psychologistClinic)
             .innerJoin(user, eq(psychologistClinic.psychologistId, user.id))
-            .where(inArray(psychologistClinic.clinicId, clinicIds));
+            .where(and(inArray(psychologistClinic.clinicId, clinicIds), eq(psychologistClinic.status, "active")));
 
         // Group members by clinicId in memory
         const membersByClinic = new Map<string, typeof members>();
@@ -127,6 +127,10 @@ export const clinicService = {
         return deletedClinic ?? null;
     },
 
+    // Linking used to add the member immediately, letting anyone pull another
+    // psychologist into their clinic and read their agenda (audit F1). Now it
+    // only creates a pending invite that the invitee must accept. The response
+    // is the same whether or not the e-mail has an account.
     async linkPsychologist(requesterId: string, clinicId: string, psychologistEmail: string) {
         const [ownerClinic] = await db
             .select({ id: clinic.id })
@@ -138,38 +142,101 @@ export const clinicService = {
         }
 
         const [targetUser] = await db
-            .select()
+            .select({ id: user.id })
             .from(user)
             .where(eq(user.email, psychologistEmail));
 
-        if (!targetUser) {
-            throw new Error("Psicólogo com este e-mail não encontrado");
+        if (targetUser) {
+            const [existingLink] = await db
+                .select({ id: psychologistClinic.id })
+                .from(psychologistClinic)
+                .where(
+                    and(
+                        eq(psychologistClinic.clinicId, clinicId),
+                        eq(psychologistClinic.psychologistId, targetUser.id)
+                    )
+                );
+
+            if (!existingLink) {
+                await db.insert(psychologistClinic).values({
+                    id: crypto.randomUUID(),
+                    clinicId,
+                    psychologistId: targetUser.id,
+                    status: "pending",
+                });
+            }
         }
 
-        const [existingLink] = await db
-            .select()
+        return { success: true };
+    },
+
+    async listInvites(psychologistId: string) {
+        return db
+            .select({
+                clinicId: clinic.id,
+                name: clinic.name,
+                city: clinic.city,
+                invitedAt: psychologistClinic.createdAt,
+            })
             .from(psychologistClinic)
+            .innerJoin(clinic, eq(clinic.id, psychologistClinic.clinicId))
+            .where(
+                and(
+                    eq(psychologistClinic.psychologistId, psychologistId),
+                    eq(psychologistClinic.status, "pending")
+                )
+            );
+    },
+
+    async acceptInvite(psychologistId: string, clinicId: string) {
+        const [accepted] = await db
+            .update(psychologistClinic)
+            .set({ status: "active", updatedAt: new Date() })
             .where(
                 and(
                     eq(psychologistClinic.clinicId, clinicId),
-                    eq(psychologistClinic.psychologistId, targetUser.id)
+                    eq(psychologistClinic.psychologistId, psychologistId),
+                    eq(psychologistClinic.status, "pending")
                 )
-            );
+            )
+            .returning();
+        return accepted ?? null;
+    },
 
-        if (existingLink) {
-            return existingLink;
+    async declineInvite(psychologistId: string, clinicId: string) {
+        const [declined] = await db
+            .delete(psychologistClinic)
+            .where(
+                and(
+                    eq(psychologistClinic.clinicId, clinicId),
+                    eq(psychologistClinic.psychologistId, psychologistId),
+                    eq(psychologistClinic.status, "pending")
+                )
+            )
+            .returning();
+        return declined ?? null;
+    },
+
+    async leave(psychologistId: string, clinicId: string) {
+        const [ownClinic] = await db
+            .select({ id: clinic.id })
+            .from(clinic)
+            .where(and(eq(clinic.id, clinicId), eq(clinic.createdById, psychologistId)));
+
+        if (ownClinic) {
+            throw new Error("O dono não pode sair da própria clínica. Exclua a clínica, se for o caso.");
         }
 
-        const [newLink] = await db
-            .insert(psychologistClinic)
-            .values({
-                id: crypto.randomUUID(),
-                clinicId,
-                psychologistId: targetUser.id,
-            })
+        const [left] = await db
+            .delete(psychologistClinic)
+            .where(
+                and(
+                    eq(psychologistClinic.clinicId, clinicId),
+                    eq(psychologistClinic.psychologistId, psychologistId)
+                )
+            )
             .returning();
-
-        return newLink;
+        return left ?? null;
     },
 
     async unlinkPsychologist(requesterId: string, clinicId: string, psychologistId: string) {
@@ -180,6 +247,10 @@ export const clinicService = {
 
         if (!ownerClinic) {
             throw new Error("Clínica não encontrada ou sem permissão.");
+        }
+
+        if (psychologistId === requesterId) {
+            throw new Error("O dono não pode se remover da própria clínica.");
         }
 
         const [deletedLink] = await db

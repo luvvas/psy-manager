@@ -8,6 +8,8 @@ import { account } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import { assertPatientOwnership } from "../lib/ownership";
 import { optionalHttpUrl } from "../utils/url.utils";
+import { consumeOAuthState, issueOAuthState } from "../lib/oauth-state";
+import { TRPCError } from "@trpc/server";
 
 const reminderFields = {
     reminderEnabled: z.boolean().optional().default(false),
@@ -105,14 +107,20 @@ export const appointmentRouter = router({
             scope: scope,
             access_type: "offline",
             prompt: "consent",
-            state: ctx.session.user.id,
+            state: issueOAuthState(ctx.session.user.id),
         }).toString();
         return { url };
     }),
 
     connectGoogleCalendar: protectedProcedure
-        .input(z.object({ code: z.string() }))
+        .input(z.object({ code: z.string(), state: z.string() }))
         .mutation(async ({ ctx, input }) => {
+            if (!consumeOAuthState(input.state, ctx.session.user.id)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Link de conexão inválido ou expirado. Clique em conectar novamente.",
+                });
+            }
             const now = new Date();
             const response = await fetch("https://oauth2.googleapis.com/token", {
                 method: "POST",

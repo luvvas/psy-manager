@@ -1,5 +1,10 @@
 import { cqrsEventStore, eventBus } from "../../lib/cqrs";
 import { AppointmentAggregate } from "./appointment.aggregate";
+import { TRPCError } from "@trpc/server";
+
+// "Doesn't exist" and "belongs to someone else" get the same answer, so the
+// response does not reveal which IDs exist in other accounts (audit F7).
+const notFound = () => new TRPCError({ code: "NOT_FOUND", message: "Agendamento não encontrado." });
 
 export interface ScheduleAppointmentCommand {
     psychologistId: string;
@@ -74,14 +79,14 @@ export const appointmentCommands = {
     async reschedule(command: RescheduleAppointmentCommand): Promise<void> {
         const history = await cqrsEventStore.getEvents(command.id);
         if (history.length === 0) {
-            throw new Error(`Appointment with ID ${command.id} not found`);
+            throw notFound();
         }
 
         const aggregate = new AppointmentAggregate();
         aggregate.loadFromHistory(history);
 
         if (aggregate.state.psychologistId !== command.psychologistId) {
-            throw new Error("Unauthorized: You do not own this appointment");
+            throw notFound();
         }
 
         const expectedVersion = aggregate.version;
@@ -110,14 +115,14 @@ export const appointmentCommands = {
     async cancel(command: CancelAppointmentCommand): Promise<void> {
         const history = await cqrsEventStore.getEvents(command.id);
         if (history.length === 0) {
-            throw new Error(`Appointment with ID ${command.id} not found`);
+            throw notFound();
         }
 
         const aggregate = new AppointmentAggregate();
         aggregate.loadFromHistory(history);
 
         if (aggregate.state.psychologistId !== command.psychologistId) {
-            throw new Error("Unauthorized: You do not own this appointment");
+            throw notFound();
         }
 
         const expectedVersion = aggregate.version;

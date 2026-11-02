@@ -64,4 +64,31 @@ describe("clinic API", () => {
             caller().clinic.unlinkPsychologist({ clinicId: "clinic-1", psychologistId: "psy-1" })
         ).rejects.toMatchObject({ code: "BAD_REQUEST", message: "not linked" });
     });
+
+    // Audit F1: vínculo virou convite com aceite; o membro pode sair.
+    describe("convites de clínica", () => {
+        test("lista, aceita e recusa convites do próprio usuário", async () => {
+            await expect(caller().clinic.listInvites()).resolves.toMatchObject([{ clinicId: "clinic-2" }]);
+            expect(clinicService.listInvites).toHaveBeenCalledWith(USER_ID);
+
+            await expect(caller().clinic.acceptInvite({ clinicId: "clinic-2" })).resolves.toEqual({ success: true });
+            expect(clinicService.acceptInvite).toHaveBeenCalledWith(USER_ID, "clinic-2");
+            await expect(caller().clinic.declineInvite({ clinicId: "clinic-2" })).resolves.toEqual({ success: true });
+            expect(clinicService.declineInvite).toHaveBeenCalledWith(USER_ID, "clinic-2");
+        });
+
+        test("convite inexistente (ou de outro usuário) retorna NOT_FOUND", async () => {
+            state.clinicInviteResult = null;
+            await expect(caller().clinic.acceptInvite({ clinicId: "clinic-x" })).rejects.toMatchObject({ code: "NOT_FOUND" });
+            await expect(caller().clinic.declineInvite({ clinicId: "clinic-x" })).rejects.toMatchObject({ code: "NOT_FOUND" });
+        });
+
+        test("leave: membro sai; dono recebe BAD_REQUEST", async () => {
+            await expect(caller().clinic.leave({ clinicId: "clinic-2" })).resolves.toEqual({ success: true });
+            expect(clinicService.leave).toHaveBeenCalledWith(USER_ID, "clinic-2");
+
+            state.clinicLeaveError = new Error("O dono não pode sair da própria clínica.");
+            await expect(caller().clinic.leave({ clinicId: "clinic-1" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+        });
+    });
 });

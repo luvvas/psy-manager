@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AppHeader } from "@/components/layout/app-header";
 import { Button } from "@/components/ui/button";
-import { Building2, Plus } from "lucide-react";
+import { Building2, Check, Plus, X } from "lucide-react";
 import { NewClinicForm, type ClinicFormValues } from "./components/clinic-form";
 import { ClinicsTable, type DBClinic } from "./components/clinics-table";
 import { AppSheet } from "@/components/layout/app-sheet";
@@ -16,6 +16,35 @@ export function ClinicasPage() {
     // Load clinics via tRPC
     const { data: dbClinics, refetch } = trpc.clinic.list.useQuery(undefined, {
         retry: false,
+    });
+
+    const { data: invites, refetch: refetchInvites } = trpc.clinic.listInvites.useQuery(undefined, {
+        retry: false,
+    });
+
+    const acceptInviteMutation = trpc.clinic.acceptInvite.useMutation({
+        onSuccess: () => {
+            toast.success("Convite aceito. A clínica foi adicionada à sua lista.");
+            refetch();
+            refetchInvites();
+        },
+        onError: (err) => toast.error(err.message),
+    });
+
+    const declineInviteMutation = trpc.clinic.declineInvite.useMutation({
+        onSuccess: () => {
+            toast.success("Convite recusado.");
+            refetchInvites();
+        },
+        onError: (err) => toast.error(err.message),
+    });
+
+    const leaveMutation = trpc.clinic.leave.useMutation({
+        onSuccess: () => {
+            toast.success("Você saiu da clínica.");
+            refetch();
+        },
+        onError: (err) => toast.error(err.message),
     });
 
     const createMutation = trpc.clinic.create.useMutation({
@@ -125,6 +154,12 @@ export function ClinicasPage() {
         }
     };
 
+    const handleLeaveClinic = (id: string, name: string) => {
+        if (window.confirm(`Sair da clínica "${name}"? Você deixa de ver a agenda compartilhada e ela deixa de ver a sua.`)) {
+            leaveMutation.mutate({ clinicId: id });
+        }
+    };
+
     const handleLinkPsychologist = async (email: string) => {
         if (!editingClinic) return;
         await linkMutation.mutateAsync({
@@ -199,6 +234,39 @@ export function ClinicasPage() {
             />
 
             <div className="flex flex-1 flex-col gap-4 p-4 lg:p-6">
+                {(invites ?? []).length > 0 && (
+                    <div className="rounded-lg border bg-muted/30 divide-y">
+                        {invites!.map((invite) => (
+                            <div key={invite.clinicId} className="flex flex-wrap items-center justify-between gap-3 p-3 text-sm">
+                                <div>
+                                    <p className="font-medium">Convite para a clínica {invite.name}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {invite.city}. Ao aceitar, os membros veem os horários da sua agenda (sem dados de pacientes).
+                                    </p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button
+                                        size="sm"
+                                        className="gap-1.5"
+                                        disabled={acceptInviteMutation.isPending}
+                                        onClick={() => acceptInviteMutation.mutate({ clinicId: invite.clinicId })}
+                                    >
+                                        <Check className="size-4" /> Aceitar
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="gap-1.5"
+                                        disabled={declineInviteMutation.isPending}
+                                        onClick={() => declineInviteMutation.mutate({ clinicId: invite.clinicId })}
+                                    >
+                                        <X className="size-4" /> Recusar
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
                 <ClinicsTable
                     clinics={allClinics}
                     onEdit={(clinic) => {
@@ -206,6 +274,7 @@ export function ClinicasPage() {
                         setSheetOpen(true);
                     }}
                     onDelete={handleDeleteClinic}
+                    onLeave={handleLeaveClinic}
                 />
             </div>
         </>

@@ -18,6 +18,11 @@ import {
 
 beforeEach(resetRouterTestState);
 
+async function googleState(c = caller()) {
+    const { url } = await c.appointment.getGoogleAuthUrl();
+    return new URL(url).searchParams.get("state")!;
+}
+
 describe("appointment API", () => {
     test("lists, creates, updates, and deletes appointments", async () => {
         await expect(caller().appointment.list()).resolves.toMatchObject([{ id: "appointment-1" }]);
@@ -58,14 +63,16 @@ describe("appointment API", () => {
         const { url } = await caller().appointment.getGoogleAuthUrl();
         const parsed = new URL(url);
         expect(parsed.searchParams.get("client_id")).toBe("google-client");
-        expect(parsed.searchParams.get("state")).toBe(USER_ID);
+        // state aleatório de uso único, não mais o id do usuário (auditoria F3)
+        expect(parsed.searchParams.get("state")).not.toBe(USER_ID);
+        expect(parsed.searchParams.get("state")!.length).toBeGreaterThanOrEqual(40);
 
         expect(googleCalendarService.isConnected).toHaveBeenCalledWith(USER_ID);
         expect(googleCalendarService.syncEvents).toHaveBeenCalledWith(USER_ID);
     });
 
     test("connects Google Calendar by inserting a new account", async () => {
-        await expect(caller().appointment.connectGoogleCalendar({ code: "oauth-code" })).resolves.toEqual({
+        await expect(caller().appointment.connectGoogleCalendar({ code: "oauth-code", state: await googleState() })).resolves.toEqual({
             success: true,
         });
 
@@ -113,7 +120,7 @@ describe("appointment API", () => {
             )
         );
 
-        await expect(caller().appointment.connectGoogleCalendar({ code: "oauth-code" })).resolves.toEqual({
+        await expect(caller().appointment.connectGoogleCalendar({ code: "oauth-code", state: await googleState() })).resolves.toEqual({
             success: true,
         });
 
@@ -121,5 +128,30 @@ describe("appointment API", () => {
         expect(updated.accessToken).toBe("new-access-token");
         expect(updated.refreshToken).toBe("old-refresh-token");
         expect(dbInsertValues).not.toHaveBeenCalled();
+    });
+
+    describe("state do OAuth do Google (auditoria F3)", () => {
+        test("recusa state ausente na URL, forjado, de outro usuário ou reutilizado", async () => {
+            await expect(
+                caller().appointment.connectGoogleCalendar({ code: "oauth-code", state: "forjado" })
+            ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+            const stateDeOutro = await googleState(callerWithId("user-456"));
+            await expect(
+                caller().appointment.connectGoogleCalendar({ code: "oauth-code", state: stateDeOutro })
+            ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+            const valido = await googleState();
+            await expect(
+                caller().appointment.connectGoogleCalendar({ code: "oauth-code", state: valido })
+            ).resolves.toEqual({ success: true });
+            await expect(
+                caller().appointment.connectGoogleCalendar({ code: "oauth-code", state: valido })
+            ).rejects.toMatchObject({ code: "FORBIDDEN" });
+        });
+
+        test("cada URL de autorização tem um state diferente", async () => {
+            expect(await googleState()).not.toBe(await googleState());
+        });
     });
 });

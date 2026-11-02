@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "../../db";
 import { appointment, patient, psychologistClinic, user } from "../../db/schema";
 import { decryptField } from "../../lib/encryption";
@@ -9,7 +9,7 @@ export const appointmentQueries = {
         const psychologistClinics = await db
             .select({ clinicId: psychologistClinic.clinicId })
             .from(psychologistClinic)
-            .where(eq(psychologistClinic.psychologistId, psychologistId));
+            .where(and(eq(psychologistClinic.psychologistId, psychologistId), eq(psychologistClinic.status, "active")));
 
         const clinicIds = psychologistClinics.map((c) => c.clinicId);
 
@@ -19,7 +19,7 @@ export const appointmentQueries = {
             const sharedClinicsPsychologists = await db
                 .select({ psychologistId: psychologistClinic.psychologistId })
                 .from(psychologistClinic)
-                .where(inArray(psychologistClinic.clinicId, clinicIds));
+                .where(and(inArray(psychologistClinic.clinicId, clinicIds), eq(psychologistClinic.status, "active")));
 
             sharedPsychologistIds = Array.from(
                 new Set(

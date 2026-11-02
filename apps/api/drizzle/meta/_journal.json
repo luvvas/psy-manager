@@ -134,6 +134,13 @@
       "when": 1781761025836,
       "tag": "0018_clever_ghost_rider",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793594565828,
+      "tag": "0019_premium_next_avengers",
+      "breakpoints": true
     }
   ]
 }
