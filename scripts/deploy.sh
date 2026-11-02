@@ -20,7 +20,12 @@ if [[ ! -f .env.prod ]]; then
     exit 1
 fi
 
-COMPOSE=(docker compose --env-file .env.prod -f docker-compose.prod.yml)
+# Record the deployed images so manual `docker compose` runs on the box (logs,
+# restart, exec) resolve ${API_IMAGE}/${WEB_IMAGE} too:
+#   docker compose --env-file .env.prod --env-file .env.images -f docker-compose.prod.yml ...
+printf 'API_IMAGE=%s\nWEB_IMAGE=%s\n' "$API_IMAGE" "$WEB_IMAGE" > .env.images
+
+COMPOSE=(docker compose --env-file .env.prod --env-file .env.images -f docker-compose.prod.yml)
 
 echo "==> Pulling tested images and starting containers..."
 "${COMPOSE[@]}" pull api web

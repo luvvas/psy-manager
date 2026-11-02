@@ -209,9 +209,9 @@ docker exec psy-manager-db pg_dump -U postgres -Fc psy_manager > psy.dump
 
 # na VPS, com o compose já no lugar (passo 8 sobe tudo; para restaurar antes:)
 cd ~/psy-manager
-docker compose --env-file .env.prod -f docker-compose.prod.yml stop api
+docker stop psy-manager-api
 docker exec -i psy-manager-db pg_restore -U postgres -d psy_manager --clean --if-exists --no-owner < psy.dump
-docker compose --env-file .env.prod -f docker-compose.prod.yml start api
+docker start psy-manager-api
 ```
 
 #### 8. Primeiro deploy
@@ -220,6 +220,13 @@ Faça merge de `chore/sair-da-aws` na `master` (ou rode o workflow *Deploy to
 VPS* manualmente pela branch). O pipeline constrói e escaneia as imagens,
 publica no GHCR, envia compose + scripts + `.env.prod` e roda o
 `scripts/deploy.sh`, que termina com um smoke test em `/api/health`.
+
+Para comandos manuais do Compose na VPS, inclua o arquivo com as imagens em
+uso, que o `deploy.sh` grava a cada deploy:
+
+```bash
+docker compose --env-file .env.prod --env-file .env.images -f docker-compose.prod.yml logs -f api
+```
 
 Depois configure o backup diário (na VPS, `crontab -e` como `deploy`):
 
