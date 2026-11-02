@@ -112,6 +112,7 @@ export function TransactionForm({ type, initialData, onSave, onCancel }: Transac
                         control={control}
                         render={({ field }) => (
                             <DatePicker
+                                id="date"
                                 date={field.value}
                                 setDate={field.onChange}
                             />

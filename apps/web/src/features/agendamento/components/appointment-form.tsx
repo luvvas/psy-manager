@@ -192,7 +192,8 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
                                 <DatePicker
                                     date={field.value as any}
                                     setDate={field.onChange}
-                                    className={readOnly ? "pointer-events-none opacity-80" : ""}
+                                    id="date"
+                                    disabled={isSubmitting || readOnly}
                                 />
                             )}
                         />
