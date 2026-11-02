@@ -5,14 +5,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 export const PATIENT_REQUIRED_FIELDS = [
     { id: "nome", label: "Nome" },
-    { id: "email", label: "E-mail" },
-    { id: "telefone", label: "Telefone" },
-    { id: "dataNascimento", label: "Data de Nascimento" },
-    { id: "cpf", label: "CPF" },
-    { id: "cidade", label: "Cidade" },
 ] as const;
 
 export const PATIENT_OPTIONAL_FIELDS = [
+    { id: "email", label: "E-mail" },
+    { id: "telefone", label: "Telefone" },
+    { id: "dataNascimento", label: "Data de Nascimento" },
+    { id: "cidade", label: "Cidade" },
+    { id: "cpf", label: "CPF" },
     { id: "valorSessao", label: "Valor da Sessão" },
     { id: "modeloCobranca", label: "Modelo de Cobrança" },
     { id: "nomeSocial", label: "Nome Social" },

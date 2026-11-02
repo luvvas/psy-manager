@@ -5,11 +5,11 @@ import { DataTable, type DataTableColumn } from "@/components/data-table";
 export interface DBPatient {
     id: string;
     nome: string;
-    email: string;
-    telefone: string;
-    dataNascimento: Date;
-    cidade: string;
-    cpf: string;
+    email: string | null;
+    telefone: string | null;
+    dataNascimento: Date | null;
+    cidade: string | null;
+    cpf: string | null;
     valorSessao: string | number | null;
     modeloCobranca: string | null;
     createdAt: Date;
@@ -33,9 +33,11 @@ export function PatientsTable({ patients, onEdit, onDelete, onViewProfile }: Pat
                     <span className="font-medium text-foreground block">
                         {patient.nome}
                     </span>
-                    <span className="text-xs text-muted-foreground block md:hidden">
-                        {patient.email}
-                    </span>
+                    {patient.email && (
+                        <span className="text-xs text-muted-foreground block md:hidden">
+                            {patient.email}
+                        </span>
+                    )}
                 </div>
             ),
         },
@@ -44,14 +46,21 @@ export function PatientsTable({ patients, onEdit, onDelete, onViewProfile }: Pat
             className: "w-[28%]",
             render: (patient) => (
                 <div className="flex flex-col gap-0.5">
-                    <span className="flex items-center gap-1.5 text-muted-foreground text-xs md:text-sm">
-                        <Mail className="size-3.5 shrink-0" />
-                        {patient.email}
-                    </span>
-                    <span className="flex items-center gap-1.5 text-muted-foreground text-xs">
-                        <Phone className="size-3.5 shrink-0" />
-                        {patient.telefone}
-                    </span>
+                    {patient.email && (
+                        <span className="flex items-center gap-1.5 text-muted-foreground text-xs md:text-sm">
+                            <Mail className="size-3.5 shrink-0" />
+                            {patient.email}
+                        </span>
+                    )}
+                    {patient.telefone && (
+                        <span className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                            <Phone className="size-3.5 shrink-0" />
+                            {patient.telefone}
+                        </span>
+                    )}
+                    {!patient.email && !patient.telefone && (
+                        <span className="text-xs text-muted-foreground">—</span>
+                    )}
                 </div>
             ),
         },
@@ -61,7 +70,7 @@ export function PatientsTable({ patients, onEdit, onDelete, onViewProfile }: Pat
             render: (patient) => (
                 <span className="font-mono text-xs flex items-center gap-1.5 text-muted-foreground">
                     <CreditCard className="size-3.5" />
-                    {patient.cpf}
+                    {patient.cpf || "—"}
                 </span>
             ),
         },
@@ -71,12 +80,14 @@ export function PatientsTable({ patients, onEdit, onDelete, onViewProfile }: Pat
             render: (patient) => (
                 <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Calendar className="size-3.5" />
-                    {patient.dataNascimento.toLocaleDateString("pt-BR", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                        timeZone: "UTC"
-                    })}
+                    {patient.dataNascimento
+                        ? patient.dataNascimento.toLocaleDateString("pt-BR", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                              timeZone: "UTC"
+                          })
+                        : "—"}
                 </span>
             ),
         },
@@ -86,7 +97,7 @@ export function PatientsTable({ patients, onEdit, onDelete, onViewProfile }: Pat
             render: (patient) => (
                 <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <MapPin className="size-3.5" />
-                    {patient.cidade}
+                    {patient.cidade || "—"}
                 </span>
             ),
         },
@@ -145,8 +156,8 @@ export function PatientsTable({ patients, onEdit, onDelete, onViewProfile }: Pat
                 const term = query.toLowerCase();
                 return (
                     patient.nome.toLowerCase().includes(term) ||
-                    patient.cpf.includes(term) ||
-                    patient.email.toLowerCase().includes(term)
+                    (patient.cpf ?? "").includes(term) ||
+                    (patient.email ?? "").toLowerCase().includes(term)
                 );
             }}
             emptyState={{

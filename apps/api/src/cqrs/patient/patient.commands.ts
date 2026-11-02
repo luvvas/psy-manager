@@ -8,11 +8,11 @@ const notFound = () => new TRPCError({ code: "NOT_FOUND", message: "Paciente nã
 
 export interface CreatePatientCommand {
     nome: string;
-    email: string;
-    telefone: string;
-    dataNascimento: Date;
-    cidade: string;
-    cpf: string;
+    email?: string | null;
+    telefone?: string | null;
+    dataNascimento?: Date | null;
+    cidade?: string | null;
+    cpf?: string | null;
     psychologistId: string;
     valorSessao?: number | string | null;
     modeloCobranca?: string | null;
@@ -42,11 +42,11 @@ export interface CreatePatientCommand {
 export interface UpdatePatientCommand {
     id: string;
     nome: string;
-    email: string;
-    telefone: string;
-    dataNascimento: Date;
-    cidade: string;
-    cpf: string;
+    email?: string | null;
+    telefone?: string | null;
+    dataNascimento?: Date | null;
+    cidade?: string | null;
+    cpf?: string | null;
     psychologistId: string;
     valorSessao?: number | string | null;
     modeloCobranca?: string | null;

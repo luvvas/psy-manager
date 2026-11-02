@@ -141,6 +141,13 @@
       "when": 1793594565828,
       "tag": "0019_premium_next_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793634942638,
+      "tag": "0020_burly_ironclad",
+      "breakpoints": true
     }
   ]
 }

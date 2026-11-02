@@ -19,13 +19,21 @@ import {
 } from "@/components/ui/select";
 
 const patientSchema = z.object({
-    // Base Obrigatória
+    // Só o nome é obrigatório; os demais são validados apenas se preenchidos.
     nome: z.string().min(3, "O nome deve ter pelo menos 3 caracteres"),
-    email: z.string().min(1, "O e-mail é obrigatório").email("Formato de e-mail inválido"),
-    telefone: z.string().min(10, "Telefone inválido"),
-    dataNascimento: z.date({ required_error: "A data de nascimento é obrigatória" }),
-    cidade: z.string().min(2, "A cidade é obrigatória"),
-    cpf: z.string().min(11, "CPF inválido"),
+    email: z.string().email("Formato de e-mail inválido").or(z.literal("")).optional().nullable(),
+    telefone: z
+        .string()
+        .optional()
+        .nullable()
+        .refine((v) => !v || v.replace(/\D/g, "").length >= 10, "Telefone inválido"),
+    dataNascimento: z.date().optional().nullable(),
+    cidade: z.string().optional().nullable(),
+    cpf: z
+        .string()
+        .optional()
+        .nullable()
+        .refine((v) => !v || v.replace(/\D/g, "").length === 11, "CPF inválido"),
 
     // Extensão Identidade
     nomeSocial: z.string().optional().nullable(),
@@ -169,11 +177,11 @@ export function NewPatientForm({ onSave, onCancel, initialData }: NewPatientForm
 
                     <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
-                            <Label htmlFor="dataNascimento">Data de Nascimento *</Label>
+                            <Label htmlFor="dataNascimento">Data de Nascimento</Label>
                             <Controller
                                 name="dataNascimento"
                                 control={control}
-                                render={({ field }) => <DatePicker date={field.value as any} setDate={field.onChange} />}
+                                render={({ field }) => <DatePicker id="dataNascimento" date={field.value ?? undefined} setDate={field.onChange} />}
                             />
                             {errors.dataNascimento && <p className="text-xs text-destructive">{errors.dataNascimento.message}</p>}
                         </div>
@@ -185,11 +193,11 @@ export function NewPatientForm({ onSave, onCancel, initialData }: NewPatientForm
 
                     <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
-                            <Label htmlFor="cpf">CPF *</Label>
+                            <Label htmlFor="cpf">CPF</Label>
                             <Input
                                 id="cpf"
                                 placeholder="000.000.000-00"
-                                value={cpfWatch}
+                                value={cpfWatch || ""}
                                 onChange={(e) => setValue("cpf", formatCPF(e.target.value), { shouldValidate: true })}
                             />
                             {errors.cpf && <p className="text-xs text-destructive">{errors.cpf.message}</p>}
@@ -210,16 +218,16 @@ export function NewPatientForm({ onSave, onCancel, initialData }: NewPatientForm
                 <TabsContent value="local" className="flex-1 space-y-4 overflow-y-auto px-1 pt-4">
                     <div className="grid grid-cols-1 gap-3">
                         <div className="space-y-1.5">
-                            <Label htmlFor="email">E-mail *</Label>
+                            <Label htmlFor="email">E-mail</Label>
                             <Input id="email" type="email" placeholder="paciente@email.com" {...register("email")} />
                             {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="telefone">Telefone/WhatsApp *</Label>
+                            <Label htmlFor="telefone">Telefone/WhatsApp</Label>
                             <Input 
                                 id="telefone" 
                                 placeholder="(00) 00000-0000" 
-                                value={telefoneWatch}
+                                value={telefoneWatch || ""}
                                 onChange={(e) => setValue("telefone", formatPhone(e.target.value), { shouldValidate: true })}
                             />
                             {errors.telefone && <p className="text-xs text-destructive">{errors.telefone.message}</p>}
@@ -233,7 +241,7 @@ export function NewPatientForm({ onSave, onCancel, initialData }: NewPatientForm
 
                     <div className="grid grid-cols-3 gap-2">
                         <div className="col-span-2 space-y-1.5">
-                            <Label htmlFor="cidade">Cidade *</Label>
+                            <Label htmlFor="cidade">Cidade</Label>
                             <Input id="cidade" placeholder="Nome da cidade" {...register("cidade")} />
                             {errors.cidade && <p className="text-xs text-destructive">{errors.cidade.message}</p>}
                         </div>
@@ -313,11 +321,11 @@ export function NewPatientForm({ onSave, onCancel, initialData }: NewPatientForm
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <Label>Início do Acompanhamento</Label>
+                            <Label htmlFor="dataInicioAcompanhamento">Início do Acompanhamento</Label>
                             <Controller
                                 name="dataInicioAcompanhamento"
                                 control={control}
-                                render={({ field }) => <DatePicker date={field.value as any} setDate={field.onChange} />}
+                                render={({ field }) => <DatePicker id="dataInicioAcompanhamento" date={field.value as any} setDate={field.onChange} />}
                             />
                         </div>
                     </div>
