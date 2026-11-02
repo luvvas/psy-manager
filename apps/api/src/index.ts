@@ -1,4 +1,5 @@
 import "./load-env";
+import "./check-env";
 import "./instrument";
 
 import * as Sentry from "@sentry/hono/node";
