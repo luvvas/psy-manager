@@ -129,7 +129,7 @@ export const psychologistService = {
         ].filter((k): k is string => !!k);
 
         if (storageKeys.length > 0) {
-            await Promise.allSettled(storageKeys.map((k) => storageService.deleteObject(k)));
+            await Promise.allSettled(storageKeys.map((k) => storageService.deleteObject(k, id)));
         }
     },
 };

@@ -44,12 +44,13 @@ describe("clinical record API", () => {
     });
 
     test("creates signed download URLs for stored records and returns null for missing records", async () => {
-        state.clinicalRecordById = { id: "record-1", storageKey: "stored/record.pdf" };
+        const key = `documents/${USER_ID}/record.pdf`;
+        state.clinicalRecordById = { id: "record-1", storageKey: key };
 
         await expect(caller().clinicalRecord.getDownloadUrl({ id: "record-1" })).resolves.toEqual({
-            url: "/api/storage/local-download/stored/record.pdf",
+            url: `/api/storage/local-download/${key}`,
         });
-        expect(storageService.createReadUrl).toHaveBeenCalledWith("stored/record.pdf", USER_ID);
+        expect(storageService.createReadUrl).toHaveBeenCalledWith(key, USER_ID);
 
         state.clinicalRecordById = null;
         await expect(caller().clinicalRecord.getDownloadUrl({ id: "missing" })).resolves.toBeNull();
@@ -78,6 +79,36 @@ describe("clinical record API", () => {
         await expect(caller().clinicalRecord.delete({ id: "record-1" })).rejects.toMatchObject({
             code: "FORBIDDEN",
             message: "cannot delete",
+        });
+    });
+
+    describe("storageKey de outro psicólogo (issue #38)", () => {
+        const forged = "documents/other-psychologist/victim.pdf";
+
+        test("getDownloadUrl recusa chave fora do prefixo do usuário", async () => {
+            state.clinicalRecordById = { id: "record-1", storageKey: forged };
+
+            await expect(caller().clinicalRecord.getDownloadUrl({ id: "record-1" })).rejects.toMatchObject({
+                code: "FORBIDDEN",
+            });
+            expect(storageService.createReadUrl).not.toHaveBeenCalled();
+        });
+
+        test("create e update recusam chave forjada e aceitam a do próprio usuário", async () => {
+            await expect(caller().clinicalRecord.create(clinicalRecordInput({ storageKey: forged }))).rejects.toMatchObject({
+                code: "FORBIDDEN",
+            });
+            await expect(caller().clinicalRecord.update({ id: "record-1", storageKey: forged })).rejects.toMatchObject({
+                code: "FORBIDDEN",
+            });
+
+            const own = `documents/${USER_ID}/0b7c1d2e-3f40-4a5b-8c6d-7e8f90a1b2c3.pdf`;
+            await expect(caller().clinicalRecord.create(clinicalRecordInput({ storageKey: own }))).resolves.toMatchObject({
+                id: "record-1",
+            });
+            await expect(caller().clinicalRecord.update({ id: "record-1", storageKey: own })).resolves.toMatchObject({
+                id: "record-1",
+            });
         });
     });
 });

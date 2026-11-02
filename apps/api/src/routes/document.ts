@@ -3,6 +3,14 @@ import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../trpc/index";
 import { documentService } from "../services/document.service";
 import { storageService } from "../services/storage.service";
+import { isOwnStorageKey } from "../utils/storage.utils";
+
+// See isOwnStorageKey (issue #38).
+function assertStorageKeyOwnership(psychologistId: string, storageKey: string | null | undefined) {
+    if (storageKey && !isOwnStorageKey(psychologistId, storageKey)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Arquivo não encontrado." });
+    }
+}
 
 export const documentRouter = router({
     prepareUpload: protectedProcedure
@@ -24,6 +32,7 @@ export const documentRouter = router({
             if (!doc) return null;
 
             if (doc.storageKey) {
+                assertStorageKeyOwnership(ctx.session.user.id, doc.storageKey);
                 return { url: await storageService.createReadUrl(doc.storageKey, ctx.session.user.id) };
             }
 
@@ -63,6 +72,7 @@ export const documentRouter = router({
             })
         )
         .mutation(async ({ ctx, input }) => {
+            assertStorageKeyOwnership(ctx.session.user.id, input.storageKey);
             return documentService.create(ctx.session.user.id, {
                 ...input,
                 patientId: input.patientId ?? undefined
@@ -87,6 +97,7 @@ export const documentRouter = router({
         )
         .mutation(async ({ ctx, input }) => {
             const { id, ...data } = input;
+            assertStorageKeyOwnership(ctx.session.user.id, data.storageKey);
             try {
                 return await documentService.update(ctx.session.user.id, id, {
                     ...data,
