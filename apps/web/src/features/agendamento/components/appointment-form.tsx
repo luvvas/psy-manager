@@ -18,6 +18,7 @@ import * as z from "zod/v3";
 import { ExternalLink, Loader2, Video } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { DatePicker } from "@/components/date-picker";
+import { TimeInput, TIME_24H_REGEX } from "@/components/time-input";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { isHttpUrl, safeUrl } from "@/utils/safe-url";
@@ -39,8 +40,14 @@ function isVideoCallAvailable(date: Date, startTime: string, endTime: string): b
 const appointmentSchema = z.object({
     patientId: z.string().min(1, "O paciente é obrigatório"),
     date: z.date({ required_error: "A data é obrigatória" }),
-    startTime: z.string().min(1, "O horário de início é obrigatório"),
-    endTime: z.string().min(1, "O horário de término é obrigatório"),
+    startTime: z
+        .string()
+        .min(1, "O horário de início é obrigatório")
+        .regex(TIME_24H_REGEX, "Use o formato HH:MM (ex.: 14:30)"),
+    endTime: z
+        .string()
+        .min(1, "O horário de término é obrigatório")
+        .regex(TIME_24H_REGEX, "Use o formato HH:MM (ex.: 14:30)"),
     status: z.enum(["pending", "confirmed", "cancelled", "completed"]),
     sessionType: z.enum(["online", "in_person"]),
     type: z.enum(["individual", "casal", "infantil", "avaliacao"]),
@@ -196,14 +203,26 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
                     <div className="grid grid-cols-2 gap-3">
                         <div className="grid gap-2">
                             <Label htmlFor="startTime">Início</Label>
-                            <Input id="startTime" type="time" disabled={isSubmitting || readOnly} {...register("startTime")} />
+                            <Controller
+                                name="startTime"
+                                control={control}
+                                render={({ field }) => (
+                                    <TimeInput id="startTime" disabled={isSubmitting || readOnly} {...field} />
+                                )}
+                            />
                             {errors.startTime && (
                                 <p className="text-xs text-destructive">{errors.startTime.message}</p>
                             )}
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="endTime">Fim</Label>
-                            <Input id="endTime" type="time" disabled={isSubmitting || readOnly} {...register("endTime")} />
+                            <Controller
+                                name="endTime"
+                                control={control}
+                                render={({ field }) => (
+                                    <TimeInput id="endTime" disabled={isSubmitting || readOnly} {...field} />
+                                )}
+                            />
                             {errors.endTime && (
                                 <p className="text-xs text-destructive">{errors.endTime.message}</p>
                             )}
