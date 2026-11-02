@@ -20,6 +20,7 @@ import { trpc } from "@/lib/trpc";
 import { DatePicker } from "@/components/date-picker";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 function isVideoCallAvailable(date: Date, startTime: string, endTime: string): boolean {
     const now = new Date();
@@ -76,13 +77,16 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
     const createSession = trpc.videoSession.create.useMutation({
         onError: () => toast.error("Não foi possível iniciar a videochamada."),
     });
+    const navigate = useNavigate();
 
     async function handleStartVideo() {
         if (!window.confirm("Deseja iniciar a videochamada com este paciente?")) return;
         const result = await createSession.mutateAsync({ appointmentId: initialData.id });
-        const params = new URLSearchParams({ token: result.wsAuthToken });
-        if (result.patientJoinUrl) params.set("joinUrl", result.patientJoinUrl);
-        window.open(`/consulta/${result.sessionId}?${params.toString()}`, "_blank");
+        // Same tab, token in router state: it must not land in the URL
+        // (browser history, Sentry breadcrumbs), and a new tab would lose it.
+        navigate(`/consulta/${result.sessionId}`, {
+            state: { wsAuthToken: result.wsAuthToken, patientJoinUrl: result.patientJoinUrl },
+        });
     }
 
     // Load actual patients for select dropdown
