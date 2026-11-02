@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../trpc/index";
 import { documentService } from "../services/document.service";
 import { storageService } from "../services/storage.service";
+import { assertPatientOwnership } from "../lib/ownership";
 
 export const documentRouter = router({
     prepareUpload: protectedProcedure
@@ -63,6 +64,7 @@ export const documentRouter = router({
             })
         )
         .mutation(async ({ ctx, input }) => {
+            if (input.patientId) await assertPatientOwnership(input.patientId, ctx.session.user.id);
             return documentService.create(ctx.session.user.id, {
                 ...input,
                 patientId: input.patientId ?? undefined
@@ -87,6 +89,7 @@ export const documentRouter = router({
         )
         .mutation(async ({ ctx, input }) => {
             const { id, ...data } = input;
+            if (data.patientId) await assertPatientOwnership(data.patientId, ctx.session.user.id);
             try {
                 return await documentService.update(ctx.session.user.id, id, {
                     ...data,

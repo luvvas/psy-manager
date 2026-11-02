@@ -3,6 +3,7 @@ import { z } from "zod";
 import { videoSessionService } from "../services/video-session.service";
 import { protectedProcedure, publicProcedure, router } from "../trpc/index";
 import { createAuthToken } from "../ws/rooms";
+import { assertAppointmentOwnership } from "../lib/ownership";
 
 const PUBLIC_URL = process.env.PUBLIC_URL || "http://localhost:5173";
 const CF_TURN_KEY_ID = process.env.CF_TURN_KEY_ID;
@@ -44,6 +45,7 @@ export const videoSessionRouter = router({
     create: protectedProcedure
         .input(z.object({ appointmentId: z.string().optional() }))
         .mutation(async ({ ctx, input }) => {
+            if (input.appointmentId) await assertAppointmentOwnership(input.appointmentId, ctx.session.user.id);
             const { id, patientToken } = await videoSessionService.create(
                 ctx.session.user.id,
                 input.appointmentId

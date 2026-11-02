@@ -1,23 +1,12 @@
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../trpc/index";
 import { appointmentCommands } from "../cqrs/appointment/appointment.commands";
 import { appointmentQueries } from "../cqrs/appointment/appointment.queries";
 import { googleCalendarService } from "../services/google-calendar.service";
 import { db } from "../db";
-import { account, patient } from "../db/schema";
+import { account } from "../db/schema";
 import { eq, and } from "drizzle-orm";
-
-async function assertPatientOwnership(patientId: string, psychologistId: string) {
-    const [row] = await db
-        .select({ id: patient.id })
-        .from(patient)
-        .where(and(eq(patient.id, patientId), eq(patient.psychologistId, psychologistId)))
-        .limit(1);
-    if (!row) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Paciente não encontrado." });
-    }
-}
+import { assertPatientOwnership } from "../lib/ownership";
 
 const reminderFields = {
     reminderEnabled: z.boolean().optional().default(false),

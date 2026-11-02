@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc/index";
 import { financialService } from "../services/financial.service";
+import { assertPatientOwnership } from "../lib/ownership";
 
 export const financialRouter = router({
     list: protectedProcedure
@@ -27,6 +28,7 @@ export const financialRouter = router({
             })
         )
         .mutation(async ({ ctx, input }) => {
+            if (input.patientId) await assertPatientOwnership(input.patientId, ctx.session.user.id);
             return financialService.create(ctx.session.user.id, input);
         }),
 
@@ -62,6 +64,7 @@ export const financialRouter = router({
         )
         .mutation(async ({ ctx, input }) => {
             const { id, type, description, amount, date, category, patientId, status } = input;
+            if (patientId) await assertPatientOwnership(patientId, ctx.session.user.id);
             return financialService.update(ctx.session.user.id, id, {
                 type, description, amount, date, category, patientId, status,
             });

@@ -3,6 +3,7 @@ import { router, protectedProcedure } from "../trpc/index";
 import { clinicalRecordService } from "../services/clinical-record.service";
 import { TRPCError } from "@trpc/server";
 import { storageService } from "../services/storage.service";
+import { assertAppointmentOwnership } from "../lib/ownership";
 
 export const clinicalRecordRouter = router({
     prepareUpload: protectedProcedure
@@ -63,6 +64,7 @@ export const clinicalRecordRouter = router({
             })
         )
         .mutation(async ({ ctx, input }) => {
+            if (input.appointmentId) await assertAppointmentOwnership(input.appointmentId, ctx.session.user.id);
             try {
                 return await clinicalRecordService.create(ctx.session.user.id, input);
             } catch (err: any) {
