@@ -91,4 +91,23 @@ describe("clinic API", () => {
             await expect(caller().clinic.leave({ clinicId: "clinic-1" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
         });
     });
+
+    test("gerencia salas pelo dono e devolve NOT_FOUND para quem não é", async () => {
+        await expect(caller().clinic.addRoom({ clinicId: "clinic-1", name: " Sala 1 " })).resolves.toMatchObject({
+            id: "room-1",
+        });
+        expect(clinicService.addRoom).toHaveBeenCalledWith(USER_ID, "clinic-1", "Sala 1");
+        await caller().clinic.renameRoom({ roomId: "room-1", name: "Sala Azul" });
+        expect(clinicService.renameRoom).toHaveBeenCalledWith(USER_ID, "room-1", "Sala Azul");
+        await expect(caller().clinic.removeRoom({ roomId: "room-1" })).resolves.toEqual({ success: true });
+
+        state.roomResult = null;
+        await expect(caller().clinic.addRoom({ clinicId: "clinic-x", name: "Sala" })).rejects.toMatchObject({
+            code: "NOT_FOUND",
+        });
+        await expect(caller().clinic.removeRoom({ roomId: "room-x" })).rejects.toMatchObject({ code: "NOT_FOUND" });
+        await expect(caller().clinic.addRoom({ clinicId: "clinic-1", name: "   " })).rejects.toMatchObject({
+            code: "BAD_REQUEST",
+        });
+    });
 });

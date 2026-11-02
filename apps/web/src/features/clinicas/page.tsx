@@ -121,6 +121,7 @@ export function ClinicasPage() {
         createdAt: new Date(cl.createdAt),
         updatedAt: new Date(cl.updatedAt),
         psychologists: cl.psychologists || [],
+        rooms: cl.rooms || [],
     }));
 
     const activeEditingClinic = editingClinic
@@ -155,7 +156,7 @@ export function ClinicasPage() {
     };
 
     const handleLeaveClinic = (id: string, name: string) => {
-        if (window.confirm(`Sair da clínica "${name}"? Você deixa de ver a agenda compartilhada e ela deixa de ver a sua.`)) {
+        if (window.confirm(`Sair da clínica "${name}"? Você deixa de ver as sessões marcadas nas salas dela e não pode mais reservar salas. As sessões que você já marcou nas salas continuam reservadas.`)) {
             leaveMutation.mutate({ clinicId: id });
         }
     };
@@ -222,6 +223,7 @@ export function ClinicasPage() {
                                               address: activeEditingClinic.address,
                                               city: activeEditingClinic.city,
                                               psychologists: activeEditingClinic.psychologists,
+                                              rooms: activeEditingClinic.rooms,
                                           }
                                         : undefined
                                 }
@@ -241,7 +243,7 @@ export function ClinicasPage() {
                                 <div>
                                     <p className="font-medium">Convite para a clínica {invite.name}</p>
                                     <p className="text-xs text-muted-foreground">
-                                        {invite.city}. Ao aceitar, os membros veem os horários da sua agenda (sem dados de pacientes).
+                                        {invite.city}. Ao aceitar, você pode reservar as salas da clínica. As sessões marcadas nas salas aparecem para os membros (só horário e psicóloga, sem dados de pacientes).
                                     </p>
                                 </div>
                                 <div className="flex gap-2">

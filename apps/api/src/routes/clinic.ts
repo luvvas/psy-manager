@@ -54,6 +54,30 @@ export const clinicRouter = router({
             return result;
         }),
 
+    addRoom: protectedProcedure
+        .input(z.object({ clinicId: z.string().min(1), name: z.string().trim().min(1).max(60) }))
+        .mutation(async ({ ctx, input }) => {
+            const room = await clinicService.addRoom(ctx.session.user.id, input.clinicId, input.name);
+            if (!room) throw new TRPCError({ code: "NOT_FOUND", message: "Clínica não encontrada." });
+            return room;
+        }),
+
+    renameRoom: protectedProcedure
+        .input(z.object({ roomId: z.string().min(1), name: z.string().trim().min(1).max(60) }))
+        .mutation(async ({ ctx, input }) => {
+            const room = await clinicService.renameRoom(ctx.session.user.id, input.roomId, input.name);
+            if (!room) throw new TRPCError({ code: "NOT_FOUND", message: "Sala não encontrada." });
+            return room;
+        }),
+
+    removeRoom: protectedProcedure
+        .input(z.object({ roomId: z.string().min(1) }))
+        .mutation(async ({ ctx, input }) => {
+            const result = await clinicService.archiveRoom(ctx.session.user.id, input.roomId);
+            if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Sala não encontrada." });
+            return result;
+        }),
+
     linkPsychologist: protectedProcedure
         .input(
             z.object({

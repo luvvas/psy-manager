@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc/index";
 import { psychologistService } from "../services/psychologist.service";
+import { workScheduleSchema } from "../lib/work-schedule";
 
 export const psychologistRouter = router({
     me: protectedProcedure.query(async ({ ctx }) => {
@@ -20,6 +21,7 @@ export const psychologistRouter = router({
                     button: z.string().optional(),
                     tableHeader: z.string().optional(),
                 }).optional().nullable(),
+                workSchedule: workScheduleSchema.optional().nullable(),
             })
         )
         .mutation(async ({ ctx, input }) => {

@@ -148,6 +148,20 @@
       "when": 1793634942638,
       "tag": "0020_burly_ironclad",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793641358383,
+      "tag": "0021_work_schedule",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793643657816,
+      "tag": "0022_clinic_rooms",
+      "breakpoints": true
     }
   ]
 }

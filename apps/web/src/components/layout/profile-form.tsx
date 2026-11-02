@@ -15,12 +15,14 @@ import { signOut } from "@/lib/auth-client";
 import { applyTheme, type ThemeConfig } from "@/lib/theme";
 import { trpc } from "@/lib/trpc";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Download, Loader2, Palette, Shield, TriangleAlert, User, X } from "lucide-react";
+import { Clock, Download, Loader2, Palette, Shield, TriangleAlert, User, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import * as z from "zod/v3";
+import { validateWorkSchedule, type WorkSchedule } from "@/lib/work-schedule";
+import { WorkScheduleEditor } from "./work-schedule-editor";
 
 const profileSchema = z.object({
     name: z.string().min(3, "Nome completo é obrigatório"),
@@ -96,13 +98,17 @@ function ColorPickerField({
 
 interface ProfileFormProps {
     onSuccess?: () => void;
+    /** Aba aberta ao montar (ex.: "expediente" quando vem da agenda). */
+    defaultTab?: "perfil" | "expediente" | "customizacao" | "seguranca";
 }
 
-export function ProfileForm({ onSuccess }: ProfileFormProps) {
+export function ProfileForm({ onSuccess, defaultTab = "perfil" }: ProfileFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeletingAccount, setIsDeletingAccount] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [themeConfig, setThemeConfig] = useState<ThemeConfig>({});
+    const [workSchedule, setWorkSchedule] = useState<WorkSchedule | null>(null);
+    const [activeTab, setActiveTab] = useState<string>(defaultTab);
     const utils = trpc.useUtils();
     const navigate = useNavigate();
 
@@ -112,6 +118,9 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
         onSuccess: () => {
             toast.success("Perfil atualizado com sucesso!");
             utils.psychologist.me.invalidate();
+            // Horários livres e avisos da agenda dependem do expediente.
+            utils.appointment.freeSlots.invalidate();
+            utils.appointment.checkSlot.invalidate();
             onSuccess?.();
         },
         onError: (err) => {
@@ -163,6 +172,7 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
     useEffect(() => {
         if (profile) {
             setThemeConfig((profile.themeConfig ?? {}) as ThemeConfig);
+            setWorkSchedule(profile.workSchedule ?? null);
             reset({
                 name: profile.name || "",
                 phone: profile.phone || "",
@@ -179,6 +189,12 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
     }
 
     const onSubmit = async (data: ProfileValues) => {
+        const scheduleError = workSchedule ? validateWorkSchedule(workSchedule) : null;
+        if (scheduleError) {
+            setActiveTab("expediente");
+            toast.error(scheduleError);
+            return;
+        }
         setIsSubmitting(true);
         try {
             // Only persist valid hex values; strip partial/empty entries
@@ -194,6 +210,7 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
                 crp: data.crp || undefined,
                 city: data.city || undefined,
                 themeConfig: config,
+                workSchedule,
             });
             applyTheme(config);
         } finally {
@@ -211,10 +228,13 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full">
-            <Tabs defaultValue="perfil" className="flex-1 flex flex-col w-full space-y-4">
-                <TabsList className="grid w-full grid-cols-3 h-auto p-1 bg-muted/50">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col w-full space-y-4">
+                <TabsList className="grid w-full grid-cols-4 h-auto p-1 bg-muted/50">
                     <TabsTrigger value="perfil" className="flex-col gap-1 py-2 text-[10px] xs:text-xs">
                         <User className="h-4 w-4" /> Perfil
+                    </TabsTrigger>
+                    <TabsTrigger value="expediente" className="flex-col gap-1 py-2 text-[10px] xs:text-xs">
+                        <Clock className="h-4 w-4" /> Expediente
                     </TabsTrigger>
                     <TabsTrigger value="customizacao" className="flex-col gap-1 py-2 text-[10px] xs:text-xs">
                         <Palette className="h-4 w-4" /> Customização
@@ -247,6 +267,11 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
                             <Input id="city" {...register("city")} placeholder="Sua Cidade" />
                         </div>
                     </div>
+                </TabsContent>
+
+                {/* ── Tab Expediente ──────────────────────────────────────────── */}
+                <TabsContent value="expediente" className="flex-1 space-y-4 overflow-y-auto px-1 pt-4">
+                    <WorkScheduleEditor value={workSchedule} onChange={setWorkSchedule} />
                 </TabsContent>
 
                 {/* ── Tab Customização ────────────────────────────────────────── */}

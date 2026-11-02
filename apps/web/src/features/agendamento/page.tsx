@@ -49,6 +49,8 @@ function formatDayLabel(date: Date): string {
     });
 }
 
+const ONLY_MINE_KEY = "agenda:only-mine";
+
 export function AgendamentoPage() {
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [view, setView] = useState<ViewMode>("semana");
@@ -57,6 +59,23 @@ export function AgendamentoPage() {
     const [pendingCreationDate, setPendingCreationDate] = useState<Date | null>(null);
 
     const { data: session } = useSession();
+
+    // Filtro "só os meus": lembrado por navegador (conveniência; sem storage, começa desligado).
+    const [onlyMine, setOnlyMine] = useState<boolean>(() => {
+        try {
+            return localStorage.getItem(ONLY_MINE_KEY) === "1";
+        } catch {
+            return false;
+        }
+    });
+    const handleOnlyMineChange = useCallback((value: boolean) => {
+        setOnlyMine(value);
+        try {
+            localStorage.setItem(ONLY_MINE_KEY, value ? "1" : "0");
+        } catch {
+            /* storage indisponível: o filtro vale só nesta visita */
+        }
+    }, []);
 
     const isReadOnly = useMemo(() => {
         if (!editingAppointment) return false;
@@ -160,12 +179,22 @@ export function AgendamentoPage() {
                 meetingUrl: app.meetingUrl || undefined,
                 isRecurring: app.isRecurring,
                 sessionType: app.sessionType as any,
+                clinicId: app.clinicId ?? null,
+                roomId: app.roomId ?? null,
+                roomName: app.roomName ?? null,
                 reminderEnabled: app.reminderEnabled ?? false,
                 reminderMinutesBefore: app.reminderMinutesBefore ?? null,
                 reminderSentAt: app.reminderSentAt ?? null,
             };
         });
     }, [dbAppointments]);
+
+    const myId = session?.user?.id;
+    const hasOthersAppointments = mappedAppointments.some((a) => a.psychologistId !== myId);
+    const calendarAppointments = useMemo(
+        () => (onlyMine && myId ? mappedAppointments.filter((a) => a.psychologistId === myId) : mappedAppointments),
+        [mappedAppointments, onlyMine, myId]
+    );
 
     const handleSaveAppointment = async (formData: any) => {
         try {
@@ -184,6 +213,8 @@ export function AgendamentoPage() {
                     meetingUrl: formData.meetingUrl || undefined,
                     reminderEnabled: formData.reminderEnabled,
                     reminderMinutesBefore: formData.reminderEnabled ? formData.reminderMinutesBefore : undefined,
+                    allowScheduleConflicts: formData.allowScheduleConflicts ?? false,
+                    roomId: formData.roomId || null,
                 });
             } else {
                 await createMutation.mutateAsync({
@@ -199,6 +230,8 @@ export function AgendamentoPage() {
                     meetingUrl: formData.meetingUrl || undefined,
                     reminderEnabled: formData.reminderEnabled,
                     reminderMinutesBefore: formData.reminderEnabled ? formData.reminderMinutesBefore : undefined,
+                    allowScheduleConflicts: formData.allowScheduleConflicts ?? false,
+                    roomId: formData.roomId || null,
                 });
             }
             setSheetOpen(false);
@@ -373,6 +406,8 @@ export function AgendamentoPage() {
                                                             ? "completed"
                                                             : "pending",
                                             sessionType: editingAppointment.sessionType || "online",
+                                            clinicId: editingAppointment.clinicId ?? null,
+                                            roomId: editingAppointment.roomId ?? null,
                                             type: editingAppointment.type,
                                             isRecurring: editingAppointment.isRecurring || false,
                                             notes: editingAppointment.notes || "",
@@ -403,8 +438,11 @@ export function AgendamentoPage() {
                     dateLabel={dateLabel}
                     onNavigate={navigate}
                     onGoToToday={goToToday}
-                    appointments={mappedAppointments}
+                    appointments={calendarAppointments}
                     onDayClick={handleMonthDayClick}
+                    showOwnershipFilter={hasOthersAppointments || onlyMine}
+                    onlyMine={onlyMine}
+                    onOnlyMineChange={handleOnlyMineChange}
                 />
             </div>
         </>

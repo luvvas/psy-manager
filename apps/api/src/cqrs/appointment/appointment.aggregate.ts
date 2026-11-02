@@ -15,6 +15,8 @@ export interface AppointmentState {
     notes: string | null;
     meetingUrl: string | null;
     googleEventId: string | null;
+    clinicId: string | null;
+    roomId: string | null;
     reminderEnabled: boolean;
     reminderMinutesBefore: number | null;
     isDeleted: boolean;
@@ -40,6 +42,8 @@ export class AppointmentAggregate extends AggregateRoot<AppointmentState> {
             notes: null,
             meetingUrl: null,
             googleEventId: null,
+            clinicId: null,
+            roomId: null,
             reminderEnabled: false,
             reminderMinutesBefore: null,
             isDeleted: false,
@@ -62,6 +66,8 @@ export class AppointmentAggregate extends AggregateRoot<AppointmentState> {
         notes?: string;
         meetingUrl?: string;
         googleEventId?: string;
+        clinicId?: string | null;
+        roomId?: string | null;
         reminderEnabled?: boolean;
         reminderMinutesBefore?: number;
     }): void {
@@ -84,6 +90,8 @@ export class AppointmentAggregate extends AggregateRoot<AppointmentState> {
         notes?: string;
         meetingUrl?: string;
         googleEventId?: string;
+        clinicId?: string | null;
+        roomId?: string | null;
         reminderEnabled?: boolean;
         reminderMinutesBefore?: number;
     }): void {
@@ -118,6 +126,8 @@ export class AppointmentAggregate extends AggregateRoot<AppointmentState> {
                     notes: event.data.notes ?? null,
                     meetingUrl: event.data.meetingUrl ?? null,
                     googleEventId: event.data.googleEventId ?? null,
+                    clinicId: event.data.clinicId ?? null,
+                    roomId: event.data.roomId ?? null,
                     reminderEnabled: event.data.reminderEnabled ?? false,
                     reminderMinutesBefore: event.data.reminderMinutesBefore ?? null,
                     isDeleted: false,
@@ -139,6 +149,8 @@ export class AppointmentAggregate extends AggregateRoot<AppointmentState> {
                     notes: event.data.notes ?? null,
                     meetingUrl: event.data.meetingUrl ?? null,
                     googleEventId: event.data.googleEventId ?? state.googleEventId,
+                    clinicId: event.data.clinicId ?? null,
+                    roomId: event.data.roomId ?? null,
                     reminderEnabled: event.data.reminderEnabled ?? false,
                     reminderMinutesBefore: event.data.reminderMinutesBefore ?? null,
                     updatedAt: event.createdAt ?? new Date(),

@@ -19,6 +19,8 @@ export interface ScheduleAppointmentCommand {
     notes?: string;
     meetingUrl?: string;
     googleEventId?: string;
+    clinicId?: string | null;
+    roomId?: string | null;
     reminderEnabled?: boolean;
     reminderMinutesBefore?: number;
 }
@@ -37,6 +39,8 @@ export interface RescheduleAppointmentCommand {
     notes?: string;
     meetingUrl?: string;
     googleEventId?: string;
+    clinicId?: string | null;
+    roomId?: string | null;
     reminderEnabled?: boolean;
     reminderMinutesBefore?: number;
 }
@@ -65,6 +69,8 @@ export const appointmentCommands = {
             notes: command.notes,
             meetingUrl: command.meetingUrl,
             googleEventId: command.googleEventId,
+            clinicId: command.clinicId ?? null,
+            roomId: command.roomId ?? null,
             reminderEnabled: command.reminderEnabled,
             reminderMinutesBefore: command.reminderMinutesBefore,
         });
@@ -103,6 +109,8 @@ export const appointmentCommands = {
             notes: command.notes,
             meetingUrl: command.meetingUrl,
             googleEventId: command.googleEventId,
+            clinicId: command.clinicId ?? null,
+            roomId: command.roomId ?? null,
             reminderEnabled: command.reminderEnabled,
             reminderMinutesBefore: command.reminderMinutesBefore,
         });

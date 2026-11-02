@@ -1,6 +1,6 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, ne } from "drizzle-orm";
 import { db } from "../../db";
-import { appointment, patient, psychologistClinic, user } from "../../db/schema";
+import { appointment, clinicRoom, patient, psychologistClinic, user } from "../../db/schema";
 import { decryptField } from "../../lib/encryption";
 import { decryptPatientSummary } from "../patient/patient.queries";
 
@@ -12,23 +12,6 @@ export const appointmentQueries = {
             .where(and(eq(psychologistClinic.psychologistId, psychologistId), eq(psychologistClinic.status, "active")));
 
         const clinicIds = psychologistClinics.map((c) => c.clinicId);
-
-        let sharedPsychologistIds: string[] = [];
-
-        if (clinicIds.length > 0) {
-            const sharedClinicsPsychologists = await db
-                .select({ psychologistId: psychologistClinic.psychologistId })
-                .from(psychologistClinic)
-                .where(and(inArray(psychologistClinic.clinicId, clinicIds), eq(psychologistClinic.status, "active")));
-
-            sharedPsychologistIds = Array.from(
-                new Set(
-                    sharedClinicsPsychologists
-                        .map((p) => p.psychologistId)
-                        .filter((id) => id !== psychologistId)
-                )
-            );
-        }
 
         // Own appointments — full data including patient PII
         const ownRows = await db
@@ -43,6 +26,9 @@ export const appointmentQueries = {
                 sessionType: appointment.sessionType,
                 type: appointment.type,
                 isRecurring: appointment.isRecurring,
+                clinicId: appointment.clinicId,
+                roomId: appointment.roomId,
+                roomName: clinicRoom.name,
                 notes: appointment.notes,
                 meetingUrl: appointment.meetingUrl,
                 reminderEnabled: appointment.reminderEnabled,
@@ -65,6 +51,7 @@ export const appointmentQueries = {
             .from(appointment)
             .innerJoin(patient, eq(appointment.patientId, patient.id))
             .innerJoin(user, eq(appointment.psychologistId, user.id))
+            .leftJoin(clinicRoom, eq(appointment.roomId, clinicRoom.id))
             .where(eq(appointment.psychologistId, psychologistId));
 
         const ownAppointments = ownRows.map((r) => ({
@@ -74,11 +61,15 @@ export const appointmentQueries = {
             patient: decryptPatientSummary(r.patient),
         }));
 
-        if (sharedPsychologistIds.length === 0) {
+        if (clinicIds.length === 0) {
             return ownAppointments;
         }
 
-        // Shared clinic appointments — slot info only; patient data must never cross ownership boundaries
+        // Sessões de colegas: só as que ocupam uma sala das minhas clínicas. A agenda
+        // compartilhada existe para coordenar o uso das salas; sessão online de casa
+        // ou em consultório próprio não interessa à clínica e não deve aparecer.
+        // Vale também para quem já saiu da clínica: a sala marcada continua ocupada.
+        // Só dados do horário — dados do paciente nunca atravessam a fronteira de dono.
         const sharedRows = await db
             .select({
                 id: appointment.id,
@@ -90,6 +81,9 @@ export const appointmentQueries = {
                 sessionType: appointment.sessionType,
                 type: appointment.type,
                 isRecurring: appointment.isRecurring,
+                clinicId: appointment.clinicId,
+                roomId: appointment.roomId,
+                roomName: clinicRoom.name,
                 createdAt: appointment.createdAt,
                 updatedAt: appointment.updatedAt,
                 psychologist: {
@@ -100,7 +94,14 @@ export const appointmentQueries = {
             })
             .from(appointment)
             .innerJoin(user, eq(appointment.psychologistId, user.id))
-            .where(inArray(appointment.psychologistId, sharedPsychologistIds));
+            .leftJoin(clinicRoom, eq(appointment.roomId, clinicRoom.id))
+            .where(
+                and(
+                    inArray(appointment.clinicId, clinicIds),
+                    isNotNull(appointment.roomId),
+                    ne(appointment.psychologistId, psychologistId)
+                )
+            );
 
         const sharedAppointments = sharedRows.map((r) => ({
             ...r,

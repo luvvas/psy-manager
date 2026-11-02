@@ -1,6 +1,7 @@
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarDays, ChevronLeft, ChevronRight, LayoutGrid, List, CalendarRange } from "lucide-react";
@@ -21,6 +22,10 @@ interface CalendarViewProps {
     onGoToToday: () => void;
     appointments: Appointment[];
     onDayClick: (date: Date) => void;
+    /** Mostra o filtro só quando há sessões de colegas da clínica na agenda. */
+    showOwnershipFilter?: boolean;
+    onlyMine?: boolean;
+    onOnlyMineChange?: (onlyMine: boolean) => void;
 }
 
 export function CalendarDashboard({
@@ -32,14 +37,14 @@ export function CalendarDashboard({
     onNavigate,
     onGoToToday,
     appointments,
-    onDayClick
+    onDayClick,
+    showOwnershipFilter = false,
+    onlyMine = false,
+    onOnlyMineChange,
 }: CalendarViewProps) {
-    const fillHeight = view !== "mes";
-
     return (
-        /* In week/day mode the dashboard fills whatever space the parent gives it.
-           In month mode it sizes to content so the month calendar isn't stretched. */
-        <div className={cn("flex flex-col gap-4", fillHeight && "flex-1 min-h-0")}>
+        /* The dashboard fills whatever height the parent gives it, in every view mode. */
+        <div className="flex flex-col gap-4 flex-1 min-h-0">
             {/* Toolbar */}
             <div className="flex flex-wrap items-center justify-between gap-3">
                 {/* Navigation */}
@@ -96,6 +101,16 @@ export function CalendarDashboard({
                     </Button>
                 </div>
 
+                <div className="flex flex-wrap items-center gap-4">
+                {showOwnershipFilter && (
+                    <div className="flex items-center gap-2">
+                        <Switch id="only-mine" checked={onlyMine} onCheckedChange={onOnlyMineChange} />
+                        <Label htmlFor="only-mine" className="cursor-pointer text-sm font-normal">
+                            Só os meus agendamentos
+                        </Label>
+                    </div>
+                )}
+
                 {/* View toggle */}
                 <Tabs value={view} onValueChange={(v) => onViewChange(v as ViewMode)}>
                     <TabsList>
@@ -113,15 +128,11 @@ export function CalendarDashboard({
                         </TabsTrigger>
                     </TabsList>
                 </Tabs>
+                </div>
             </div>
 
             {/* Content */}
-            <div
-                className={cn(
-                    "rounded-lg border bg-card flex flex-col overflow-hidden",
-                    fillHeight ? "flex-1 min-h-0" : "min-h-100"
-                )}
-            >
+            <div className="rounded-lg border bg-card flex flex-col overflow-hidden flex-1 min-h-0">
                 {view === "mes" && (
                     <MonthlyView
                         appointments={appointments}

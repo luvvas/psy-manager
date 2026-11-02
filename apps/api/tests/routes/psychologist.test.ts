@@ -27,6 +27,19 @@ describe("psychologist API", () => {
         });
     });
 
+    test("salva o expediente e recusa turno inválido", async () => {
+        const days = [[], [{ start: "08:00", end: "12:00" }], [], [], [], [], []];
+        await caller().psychologist.updateProfile({ workSchedule: { sessionMinutes: 50, bufferMinutes: 10, days } });
+        expect(psychologistService.updateProfile).toHaveBeenCalledWith(USER_ID, {
+            workSchedule: { sessionMinutes: 50, bufferMinutes: 10, days },
+        });
+
+        const invalid = [[], [{ start: "12:00", end: "08:00" }], [], [], [], [], []];
+        await expect(
+            caller().psychologist.updateProfile({ workSchedule: { sessionMinutes: 50, bufferMinutes: 10, days: invalid } })
+        ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    });
+
     // Issue #37: listar todos os usuários expunha nome, CRP e cidade de toda a
     // plataforma (e os IDs usados como prefixo no storage).
     test("não expõe mais o diretório de psicólogos", async () => {

@@ -28,6 +28,9 @@ export interface Appointment {
     meetingUrl?: string;
     isRecurring?: boolean;
     sessionType?: "online" | "in_person";
+    clinicId?: string | null;
+    roomId?: string | null;
+    roomName?: string | null;
     reminderEnabled?: boolean;
     reminderMinutesBefore?: number | null;
     reminderSentAt?: Date | string | null;

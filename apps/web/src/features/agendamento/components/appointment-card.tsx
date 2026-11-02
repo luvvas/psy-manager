@@ -1,19 +1,19 @@
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
     Tooltip,
-    TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { useSession } from "@/lib/auth-client";
 import { trpc } from "@/lib/trpc";
-import { Clock, ExternalLink, Loader2, MessageSquare, Repeat, Video } from "lucide-react";
+import { Clock, DoorOpen, ExternalLink, Loader2, Repeat, Video } from "lucide-react";
 import { toast } from "sonner";
 import { safeUrl } from "@/utils/safe-url";
 import { useNavigate } from "react-router-dom";
 import type { Appointment } from "../types";
 import { APPOINTMENT_TYPE_LABELS } from "../types";
 import { StatusBadge } from "./status-badge";
+import { cn } from "@/lib/utils";
 
 function isVideoCallAvailable(date: Date, startTime: string, endTime: string): boolean {
     const now = new Date();
@@ -32,13 +32,6 @@ interface AppointmentCardProps {
     appointment: Appointment;
     compact?: boolean;
 }
-
-const TYPE_COLORS: Record<Appointment["type"], string> = {
-    individual: "border-l-emerald-500",
-    casal: "border-l-violet-500",
-    infantil: "border-l-amber-500",
-    avaliacao: "border-l-sky-500",
-};
 
 const TYPE_DOT_COLORS: Record<Appointment["type"], string> = {
     individual: "bg-emerald-500",
@@ -77,7 +70,10 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
             <Tooltip>
                 <TooltipTrigger asChild>
                     <div
-                        className="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[11px] leading-tight cursor-pointer transition-colors hover:bg-accent group/pill"
+                        className={cn(
+                            "flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[11px] leading-tight cursor-pointer transition-colors hover:bg-accent group/pill",
+                            isOthers && "text-muted-foreground opacity-60 grayscale"
+                        )}
                         data-appointment-id={appointment.id}
                     >
                         <span
@@ -91,91 +87,35 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
                         </span>
                     </div>
                 </TooltipTrigger>
-                <TooltipContent side="right" className="max-w-[240px]">
-                    <div className="space-y-1.5">
-                        <div className="flex items-center justify-between gap-3">
-                            <p className="font-medium text-sm">{appointment.patient.name}</p>
-                            <StatusBadge status={appointment.status} />
-                        </div>
-                        <div className="flex flex-wrap gap-1.5 items-center">
-                            <p className="text-xs text-muted-foreground">
-                                {APPOINTMENT_TYPE_LABELS[appointment.type]}
-                            </p>
-                            {isOthers && appointment.psychologist && (
-                                <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary leading-none">
-                                    Psi: {appointment.psychologist.name}
-                                </span>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Clock className="size-3" />
-                            {appointment.startTime} — {appointment.endTime}
-                        </div>
-                        {appointment.notes && (
-                            <p className="text-xs text-muted-foreground/80 italic border-t pt-1">
-                                {appointment.notes}
-                            </p>
-                        )}
-                    </div>
-                </TooltipContent>
+                {/* Cartão claro (mesmo visual de popover/card) em vez do tooltip
+                    preto padrão, que destoava do calendário. */}
+                <TooltipPrimitive.Portal>
+                    <TooltipPrimitive.Content
+                        side="right"
+                        sideOffset={6}
+                        className="z-50 w-64 rounded-lg bg-popover p-3 text-popover-foreground shadow-md ring-1 ring-foreground/10 data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=delayed-open]:zoom-in-95 data-[state=instant-open]:animate-in data-[state=instant-open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0"
+                    >
+                        <AppointmentDetails appointment={appointment} isOthers={isOthers} />
+                    </TooltipPrimitive.Content>
+                </TooltipPrimitive.Portal>
             </Tooltip>
         );
     }
 
+    // Semana e Dia: mesmo visual do tooltip do modo Mês (cartão claro, borda
+    // suave, sombra), com o botão de videochamada quando disponível.
     return (
-        <Card
-            className="group relative cursor-pointer border-l-[3px] p-3 transition-all hover:shadow-md hover:bg-accent/50 gap-0"
-            style={{ borderLeftColor: undefined }}
+        <div
+            className={cn(
+                "group cursor-pointer rounded-lg p-3 transition-shadow",
+                // Sessão de colega da clínica: só leitura, então fica apagada para não competir com as minhas.
+                isOthers
+                    ? "border border-dashed bg-muted/60 text-muted-foreground opacity-75 grayscale hover:opacity-100"
+                    : "bg-popover text-popover-foreground shadow-md ring-1 ring-foreground/10 hover:shadow-lg"
+            )}
             data-appointment-id={appointment.id}
         >
-            <div className={`absolute inset-y-0 left-0 w-[3px] rounded-l-md ${TYPE_COLORS[appointment.type].replace("border-l-", "bg-")}`} />
-
-            {/* Header: Patient + Status */}
-            <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                    <div className="min-w-0">
-                        <p className="text-sm font-medium truncate leading-tight">
-                            {appointment.patient.name}
-                        </p>
-                        <div className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-1.5 mt-0.5">
-                            <span>{APPOINTMENT_TYPE_LABELS[appointment.type]}</span>
-                            {isOthers && appointment.psychologist && (
-                                <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary leading-none whitespace-nowrap">
-                                    Psi: {appointment.psychologist.name}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                </div>
-                <StatusBadge status={appointment.status} />
-            </div>
-
-            {/* Time */}
-            <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                    <Clock className="size-3" />
-                    {appointment.startTime} — {appointment.endTime}
-                </span>
-                {appointment.isRecurring && (
-                    <span className="flex items-center gap-1 text-primary/70">
-                        <Repeat className="size-3" />
-                        Semanal
-                    </span>
-                )}
-                {appointment.notes && (
-                    <span className="flex items-center gap-1">
-                        <MessageSquare className="size-3" />
-                        Nota
-                    </span>
-                )}
-            </div>
-
-            {/* Notes preview */}
-            {appointment.notes && (
-                <p className="mt-1.5 text-[11px] text-muted-foreground/80 line-clamp-1 italic">
-                    {appointment.notes}
-                </p>
-            )}
+            <AppointmentDetails appointment={appointment} isOthers={isOthers} clampNotes />
 
             {/* Video call — available 15 min before start until 15 min after end */}
             {canStartVideo && (
@@ -208,6 +148,57 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
                     )}
                 </div>
             )}
-        </Card>
+        </div>
+    );
+}
+
+interface AppointmentDetailsProps {
+    appointment: Appointment;
+    isOthers: boolean;
+    /** Nos cartões da agenda a observação fica em até 2 linhas; o tooltip mostra inteira. */
+    clampNotes?: boolean;
+}
+
+/** Conteúdo do agendamento: tooltip do Mês e cartões de Semana/Dia. */
+function AppointmentDetails({ appointment, isOthers, clampNotes }: AppointmentDetailsProps) {
+    return (
+        <div className="space-y-1.5">
+            <div className="flex items-center justify-between gap-3">
+                <p className="min-w-0 truncate text-sm font-medium">{appointment.patient.name}</p>
+                <StatusBadge status={appointment.status} />
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+                <span className={`size-1.5 shrink-0 rounded-full ${TYPE_DOT_COLORS[appointment.type]}`} />
+                <p className="text-xs text-muted-foreground">{APPOINTMENT_TYPE_LABELS[appointment.type]}</p>
+                {isOthers && appointment.psychologist && (
+                    <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium leading-none text-primary">
+                        Psi: {appointment.psychologist.name}
+                    </span>
+                )}
+            </div>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                    <Clock className="size-3" />
+                    {appointment.startTime} — {appointment.endTime}
+                </span>
+                {appointment.roomName && (
+                    <span className="flex min-w-0 items-center gap-1">
+                        <DoorOpen className="size-3 shrink-0" />
+                        <span className="truncate">{appointment.roomName}</span>
+                    </span>
+                )}
+                {appointment.isRecurring && (
+                    <span className="flex items-center gap-1 text-primary/70">
+                        <Repeat className="size-3" />
+                        Semanal
+                    </span>
+                )}
+            </div>
+            {appointment.notes && (
+                <p className={`border-t pt-1 text-xs italic text-muted-foreground/80 ${clampNotes ? "line-clamp-2" : ""}`}>
+                    {appointment.notes}
+                </p>
+            )}
+        </div>
     );
 }
