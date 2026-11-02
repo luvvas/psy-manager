@@ -11,7 +11,6 @@ describe("app router protection", () => {
 
         await Promise.all([
             expect(anon.patient.list()).rejects.toMatchObject({ code: "UNAUTHORIZED" }),
-            expect(anon.psychologist.list()).rejects.toMatchObject({ code: "UNAUTHORIZED" }),
             expect(anon.psychologist.me()).rejects.toMatchObject({ code: "UNAUTHORIZED" }),
             expect(anon.appointment.list()).rejects.toMatchObject({ code: "UNAUTHORIZED" }),
             expect(anon.appointment.isConnectedGoogle()).rejects.toMatchObject({ code: "UNAUTHORIZED" }),

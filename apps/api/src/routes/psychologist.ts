@@ -26,10 +26,6 @@ export const psychologistRouter = router({
             return psychologistService.updateProfile(ctx.session.user.id, input);
         }),
 
-    list: protectedProcedure.query(async () => {
-        return psychologistService.list();
-    }),
-
     exportData: protectedProcedure.query(async ({ ctx }) => {
         return psychologistService.exportData(ctx.session.user.id);
     }),

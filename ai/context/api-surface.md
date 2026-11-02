@@ -20,7 +20,6 @@ File: `apps/api/src/routes/psychologist.ts`
 
 - `me`: protected query. Returns the current psychologist profile.
 - `updateProfile`: protected mutation. Updates `name`, `phone`, `crp`, `city`.
-- `list`: public query. Returns all users/psychologists.
 
 Service: `apps/api/src/services/psychologist.service.ts`
 

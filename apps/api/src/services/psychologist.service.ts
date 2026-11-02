@@ -49,17 +49,6 @@ export const psychologistService = {
         return updated;
     },
 
-    async list() {
-        return db
-            .select({
-                id: user.id,
-                name: user.name,
-                crp: user.crp,
-                city: user.city,
-            })
-            .from(user);
-    },
-
     async exportData(id: string) {
         const [psychologist, patients, clinicalRecords, allAppointments, financialTransactions, documents] =
             await Promise.all([
