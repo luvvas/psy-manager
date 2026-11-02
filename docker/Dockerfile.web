@@ -8,6 +8,10 @@
 # diretório com `dist/` e `nginx.conf` e usa ele como contexto.
 
 FROM nginx:1.30-alpine
+# A tag da imagem oficial demora a ser republicada quando sai correção de
+# segurança num pacote do Alpine (ex.: brotli-libs, CVE-2026-111497); o
+# upgrade aplica as correções já disponíveis no repositório.
+RUN apk upgrade --no-cache
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY dist /usr/share/nginx/html
 EXPOSE 80
