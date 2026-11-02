@@ -8,6 +8,7 @@ import { randomUUID } from "crypto";
 import { mkdir, readFile, unlink, writeFile } from "fs/promises";
 import path from "path";
 import {
+    assertOwnStorageKey,
     assertPdf,
     buildStorageKey,
     getBucketName,
@@ -98,6 +99,7 @@ export const storageService = {
     },
 
     async createReadUrl(storageKey: string, psychologistId: string) {
+        assertOwnStorageKey(psychologistId, storageKey);
         const driver = getDriver();
 
         if (driver === "s3") {
@@ -174,7 +176,8 @@ export const storageService = {
         }
     },
 
-    async deleteObject(storageKey: string): Promise<void> {
+    async deleteObject(storageKey: string, psychologistId: string): Promise<void> {
+        assertOwnStorageKey(psychologistId, storageKey);
         const driver = getDriver();
 
         if (driver === "s3") {

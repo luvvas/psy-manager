@@ -57,6 +57,23 @@ export function buildStorageKey(psychologistId: string, fileName: string) {
     return `documents/${psychologistId}/${randomUUID()}${extension}`;
 }
 
+// Storage keys are minted by buildStorageKey under the owner's prefix, but
+// clients send them back on create/update. A key outside the caller's prefix
+// points at another psychologist's file (issue #38): never sign, store or
+// delete it.
+export function isOwnStorageKey(psychologistId: string, storageKey: string) {
+    const prefix = `documents/${psychologistId}/`;
+    if (!psychologistId || !storageKey.startsWith(prefix)) return false;
+    const fileName = storageKey.slice(prefix.length);
+    return fileName.length > 0 && !/[\\/]/.test(fileName) && !fileName.includes("..");
+}
+
+export function assertOwnStorageKey(psychologistId: string, storageKey: string) {
+    if (!isOwnStorageKey(psychologistId, storageKey)) {
+        throw new Error("Chave de storage invalida.");
+    }
+}
+
 export function toLocalFilePath(storageKey: string) {
     const baseDir = path.resolve(getLocalStorageDir());
     const normalized = storageKey.replaceAll("\\", "/");

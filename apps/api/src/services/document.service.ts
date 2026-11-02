@@ -129,7 +129,7 @@ export const documentService = {
             .where(and(eq(document.id, id), eq(document.psychologistId, psychologistId)));
 
         if (existing.storageKey) {
-            await storageService.deleteObject(existing.storageKey);
+            await storageService.deleteObject(existing.storageKey, psychologistId);
         }
 
         return { success: true };

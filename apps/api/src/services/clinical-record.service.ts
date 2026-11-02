@@ -161,7 +161,7 @@ export const clinicalRecordService = {
             .where(and(eq(clinicalRecord.id, id), eq(clinicalRecord.psychologistId, psychologistId)));
 
         if (record.storageKey) {
-            await storageService.deleteObject(record.storageKey);
+            await storageService.deleteObject(record.storageKey, psychologistId);
         }
 
         return { success: true };

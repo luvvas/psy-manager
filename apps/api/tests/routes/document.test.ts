@@ -42,12 +42,13 @@ describe("document API", () => {
     });
 
     test("creates signed download URLs for stored documents and returns null for missing documents", async () => {
-        state.documentById = { id: "document-1", storageKey: "stored/report.pdf" };
+        const key = `documents/${USER_ID}/report.pdf`;
+        state.documentById = { id: "document-1", storageKey: key };
 
         await expect(caller().document.getDownloadUrl({ id: "document-1" })).resolves.toEqual({
-            url: "/api/storage/local-download/stored/report.pdf",
+            url: `/api/storage/local-download/${key}`,
         });
-        expect(storageService.createReadUrl).toHaveBeenCalledWith("stored/report.pdf", USER_ID);
+        expect(storageService.createReadUrl).toHaveBeenCalledWith(key, USER_ID);
 
         state.documentById = null;
         await expect(caller().document.getDownloadUrl({ id: "missing" })).resolves.toBeNull();
@@ -64,6 +65,38 @@ describe("document API", () => {
         await expect(caller().document.delete({ id: "document-1" })).rejects.toMatchObject({
             code: "NOT_FOUND",
             message: "delete missing",
+        });
+    });
+
+    describe("storageKey de outro psicólogo (issue #38)", () => {
+        const forged = "documents/other-psychologist/victim.pdf";
+
+        test("getDownloadUrl recusa chave fora do prefixo do usuário", async () => {
+            state.documentById = { id: "document-1", storageKey: forged };
+
+            await expect(caller().document.getDownloadUrl({ id: "document-1" })).rejects.toMatchObject({
+                code: "FORBIDDEN",
+            });
+            expect(storageService.createReadUrl).not.toHaveBeenCalled();
+        });
+
+        test("create e update recusam chave forjada e aceitam a do próprio usuário", async () => {
+            for (const storageKey of [forged, `documents/${USER_ID}/../other/x.pdf`, "stored/report.pdf"]) {
+                await expect(caller().document.create(documentInput({ storageKey }))).rejects.toMatchObject({
+                    code: "FORBIDDEN",
+                });
+                await expect(caller().document.update({ id: "document-1", storageKey })).rejects.toMatchObject({
+                    code: "FORBIDDEN",
+                });
+            }
+
+            const own = `documents/${USER_ID}/0b7c1d2e-3f40-4a5b-8c6d-7e8f90a1b2c3.pdf`;
+            await expect(caller().document.create(documentInput({ storageKey: own }))).resolves.toMatchObject({
+                id: "document-1",
+            });
+            await expect(caller().document.update({ id: "document-1", storageKey: own })).resolves.toMatchObject({
+                id: "document-1",
+            });
         });
     });
 });
