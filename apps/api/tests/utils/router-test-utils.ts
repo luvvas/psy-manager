@@ -48,7 +48,6 @@ export const appointmentQueries = {
 export const psychologistService = {
     getById: mock(async () => ({ id: USER_ID })),
     updateProfile: mock(async (_id: string, data: any) => ({ id: USER_ID, ...data })),
-    list: mock(async () => [{ id: USER_ID }]),
 };
 
 export const clinicService = {
