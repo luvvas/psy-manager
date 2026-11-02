@@ -4,6 +4,7 @@ import { clinicalRecordService } from "../services/clinical-record.service";
 import { TRPCError } from "@trpc/server";
 import { storageService } from "../services/storage.service";
 import { isOwnStorageKey } from "../utils/storage.utils";
+import { assertAppointmentOwnership } from "../lib/ownership";
 
 // See isOwnStorageKey (issue #38).
 function assertStorageKeyOwnership(psychologistId: string, storageKey: string | null | undefined) {
@@ -73,6 +74,7 @@ export const clinicalRecordRouter = router({
         )
         .mutation(async ({ ctx, input }) => {
             assertStorageKeyOwnership(ctx.session.user.id, input.storageKey);
+            if (input.appointmentId) await assertAppointmentOwnership(input.appointmentId, ctx.session.user.id);
             try {
                 return await clinicalRecordService.create(ctx.session.user.id, input);
             } catch (err: any) {

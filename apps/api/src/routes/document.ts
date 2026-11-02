@@ -4,6 +4,7 @@ import { router, protectedProcedure } from "../trpc/index";
 import { documentService } from "../services/document.service";
 import { storageService } from "../services/storage.service";
 import { isOwnStorageKey } from "../utils/storage.utils";
+import { assertPatientOwnership } from "../lib/ownership";
 
 // See isOwnStorageKey (issue #38).
 function assertStorageKeyOwnership(psychologistId: string, storageKey: string | null | undefined) {
@@ -73,6 +74,7 @@ export const documentRouter = router({
         )
         .mutation(async ({ ctx, input }) => {
             assertStorageKeyOwnership(ctx.session.user.id, input.storageKey);
+            if (input.patientId) await assertPatientOwnership(input.patientId, ctx.session.user.id);
             return documentService.create(ctx.session.user.id, {
                 ...input,
                 patientId: input.patientId ?? undefined
@@ -98,6 +100,7 @@ export const documentRouter = router({
         .mutation(async ({ ctx, input }) => {
             const { id, ...data } = input;
             assertStorageKeyOwnership(ctx.session.user.id, data.storageKey);
+            if (data.patientId) await assertPatientOwnership(data.patientId, ctx.session.user.id);
             try {
                 return await documentService.update(ctx.session.user.id, id, {
                     ...data,
