@@ -35,7 +35,7 @@ export function PublicOnlyGuard() {
 
     useEffect(() => {
         if (!isPending && session) {
-            navigate("/agendamento", { replace: true });
+            navigate("/inicio", { replace: true });
         }
     }, [isPending, session, navigate]);
 

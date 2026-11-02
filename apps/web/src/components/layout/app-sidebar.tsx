@@ -20,6 +20,7 @@ import {
     Brain,
     Building2,
     CalendarDays,
+    Home,
     DollarSign,
     FileText,
     LogOut,
@@ -101,6 +102,12 @@ function ResizableSidebarRail() {
 }
 
 const NAV_ITEMS = [
+    {
+        title: "Início",
+        url: "/inicio",
+        icon: Home,
+        ready: true,
+    },
     {
         title: "Agendamento",
         url: "/agendamento",

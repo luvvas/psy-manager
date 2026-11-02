@@ -1,4 +1,4 @@
-import { Building2, LogOut, Mail, Phone, MapPin, Pencil, Trash2, Users } from "lucide-react";
+import { Building2, DoorOpen, LogOut, Mail, Phone, MapPin, Pencil, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { useSession } from "@/lib/auth-client";
@@ -20,6 +20,7 @@ export interface DBClinic {
         email: string;
         phone: string | null;
     }[];
+    rooms: { id: string; name: string }[];
 }
 
 interface ClinicsTableProps {
@@ -84,6 +85,12 @@ export function ClinicsTable({ clinics, onEdit, onDelete, onLeave }: ClinicsTabl
                     <span className="flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full w-fit">
                         <Users className="size-3.5 shrink-0" />
                         {clinic.psychologists.length} profissionais
+                    </span>
+                    <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        <DoorOpen className="size-3 shrink-0" />
+                        {clinic.rooms.length === 0
+                            ? "Sem salas cadastradas"
+                            : `${clinic.rooms.length} ${clinic.rooms.length === 1 ? "sala" : "salas"}`}
                     </span>
                     <p className="text-[10px] text-muted-foreground truncate max-w-[180px]">
                         {clinic.psychologists.map((p) => p.name).join(", ")}

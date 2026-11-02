@@ -120,7 +120,7 @@ export function AuthPage() {
             toast.error(error.message || "Email ou senha incorretos. Por favor, tente novamente.");
         } else {
             toast.success(`Boas-vindas de volta, Dr(a). ${sessionData?.user?.name || ""}!`);
-            navigate("/agendamento");
+            navigate("/inicio");
         }
     };
 
@@ -149,7 +149,7 @@ export function AuthPage() {
             toast.error(error.message || "Houve um erro ao realizar o cadastro. Verifique os dados.");
         } else {
             toast.success("Conta criada com sucesso! Boas-vindas ao psy-manager.");
-            navigate("/agendamento");
+            navigate("/inicio");
         }
     };
 

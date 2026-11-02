@@ -6,10 +6,100 @@ import { googleCalendarService } from "../services/google-calendar.service";
 import { db } from "../db";
 import { account } from "../db/schema";
 import { eq, and } from "drizzle-orm";
-import { assertPatientOwnership } from "../lib/ownership";
+import { assertClinicMembership, assertPatientOwnership, assertRoomAccess } from "../lib/ownership";
 import { optionalHttpUrl } from "../utils/url.utils";
 import { consumeOAuthState, issueOAuthState } from "../lib/oauth-state";
 import { TRPCError } from "@trpc/server";
+import { availabilityService } from "../services/availability.service";
+import { TIME_HHMM } from "../lib/work-schedule";
+
+const dateInput = z.string().or(z.date()).transform((val) => new Date(val));
+const timeInput = z.string().regex(TIME_HHMM, "Use o formato HH:MM");
+
+// Conflito com a própria agenda e sessão fora do expediente não bloqueiam de
+// vez: o formulário avisa e a psicóloga confirma (sessão extra, reposição).
+// Sem a confirmação, a API recusa, o que também pega o caso de outra aba ter
+// marcado o mesmo horário entre o aviso e o salvar.
+// Sala ocupada é diferente: bloqueia sempre, a confirmação não vale para ela.
+const confirmField = { allowScheduleConflicts: z.boolean().optional().default(false) };
+const roomField = { roomId: z.string().min(1).optional().nullable() };
+
+/**
+ * A sala é ocupada por onde a psicóloga está, não pelo canal: sessão online
+ * atendida de uma sala da clínica também reserva a sala. A clínica vem da sala
+ * (nunca do cliente) depois de checar que a psicóloga é membro ativo dela.
+ */
+async function resolveRoom(psychologistId: string, input: { roomId?: string | null }) {
+    if (!input.roomId) return { roomId: null, clinicId: null };
+    const room = await assertRoomAccess(input.roomId, psychologistId);
+    return { roomId: room.id, clinicId: room.clinicId };
+}
+
+async function assertSlotAccepted(
+    psychologistId: string,
+    input: {
+        date: Date;
+        startTime: string;
+        endTime: string;
+        status: string;
+        allowScheduleConflicts: boolean;
+        roomId: string | null;
+    },
+    excludeId?: string
+) {
+    if (input.startTime >= input.endTime) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "O fim da sessão deve ser depois do início." });
+    }
+    if (input.status === "cancelled") return;
+
+    const { conflicts, roomConflicts, outsideSchedule } = await availabilityService.checkSlot(psychologistId, {
+        date: input.date,
+        startTime: input.startTime,
+        endTime: input.endTime,
+        excludeId,
+        roomId: input.roomId,
+    });
+
+    if (roomConflicts.length > 0) {
+        const who = roomConflicts
+            .map((c) => `das ${c.startTime} às ${c.endTime} (${c.isOwn ? "sua sessão" : c.psychologistName})`)
+            .join(", ");
+        throw new TRPCError({
+            code: "CONFLICT",
+            message: `A sala já está ocupada ${who}. Escolha outra sala ou outro horário.`,
+        });
+    }
+
+    if (input.allowScheduleConflicts) return;
+
+    const problems: string[] = [];
+    if (conflicts.length > 0) {
+        problems.push(
+            `já existe sessão das ${conflicts.map((c) => `${c.startTime} às ${c.endTime}`).join(", ")}`
+        );
+    }
+    if (outsideSchedule) problems.push("o horário está fora do seu expediente");
+
+    if (problems.length > 0) {
+        throw new TRPCError({
+            code: "CONFLICT",
+            message: `Confirme o agendamento: ${problems.join(" e ")}.`,
+        });
+    }
+}
+
+/** checkSlot/freeSlots: só sonda salas e clínicas das quais a psicóloga é membro. */
+async function resolveRoomScope(psychologistId: string, input: { roomId?: string | null; clinicId?: string | null }) {
+    if (input.roomId) {
+        const room = await assertRoomAccess(input.roomId, psychologistId);
+        return { roomId: room.id, clinicId: room.clinicId };
+    }
+    if (input.clinicId) {
+        await assertClinicMembership(input.clinicId, psychologistId);
+        return { roomId: null, clinicId: input.clinicId };
+    }
+    return { roomId: null, clinicId: null };
+}
 
 const reminderFields = {
     reminderEnabled: z.boolean().optional().default(false),
@@ -25,9 +115,9 @@ export const appointmentRouter = router({
         .input(
             z.object({
                 patientId: z.string().min(1),
-                date: z.string().or(z.date()).transform((val) => new Date(val)),
-                startTime: z.string().min(1),
-                endTime: z.string().min(1),
+                date: dateInput,
+                startTime: timeInput,
+                endTime: timeInput,
                 status: z.string().min(1),
                 sessionType: z.string().min(1),
                 type: z.string().min(1),
@@ -35,12 +125,18 @@ export const appointmentRouter = router({
                 notes: z.string().optional(),
                 meetingUrl: optionalHttpUrl,
                 ...reminderFields,
+                ...confirmField,
+                ...roomField,
             })
         )
         .mutation(async ({ ctx, input }) => {
             await assertPatientOwnership(input.patientId, ctx.session.user.id);
+            const room = await resolveRoom(ctx.session.user.id, input);
+            await assertSlotAccepted(ctx.session.user.id, { ...input, roomId: room.roomId });
+            const { allowScheduleConflicts: _confirmed, ...data } = input;
             const id = await appointmentCommands.schedule({
-                ...input,
+                ...data,
+                ...room,
                 psychologistId: ctx.session.user.id,
             });
 
@@ -52,9 +148,9 @@ export const appointmentRouter = router({
             z.object({
                 id: z.string().min(1),
                 patientId: z.string().min(1),
-                date: z.string().or(z.date()).transform((val) => new Date(val)),
-                startTime: z.string().min(1),
-                endTime: z.string().min(1),
+                date: dateInput,
+                startTime: timeInput,
+                endTime: timeInput,
                 status: z.string().min(1),
                 sessionType: z.string().min(1),
                 type: z.string().min(1),
@@ -62,16 +158,54 @@ export const appointmentRouter = router({
                 notes: z.string().optional(),
                 meetingUrl: optionalHttpUrl,
                 ...reminderFields,
+                ...confirmField,
+                ...roomField,
             })
         )
         .mutation(async ({ ctx, input }) => {
             await assertPatientOwnership(input.patientId, ctx.session.user.id);
+            const room = await resolveRoom(ctx.session.user.id, input);
+            await assertSlotAccepted(ctx.session.user.id, { ...input, roomId: room.roomId }, input.id);
+            const { allowScheduleConflicts: _confirmed, ...data } = input;
             await appointmentCommands.reschedule({
-                ...input,
+                ...data,
+                ...room,
                 psychologistId: ctx.session.user.id,
             });
 
             return { success: true };
+        }),
+
+    /** Aviso em tempo real no formulário: conflitos e expediente do horário escolhido. */
+    checkSlot: protectedProcedure
+        .input(
+            z.object({
+                date: dateInput,
+                startTime: timeInput,
+                endTime: timeInput,
+                excludeId: z.string().optional(),
+                roomId: z.string().min(1).optional().nullable(),
+                clinicId: z.string().min(1).optional().nullable(),
+            })
+        )
+        .query(async ({ ctx, input }) => {
+            const scope = await resolveRoomScope(ctx.session.user.id, input);
+            return availabilityService.checkSlot(ctx.session.user.id, { ...input, ...scope });
+        }),
+
+    /** Horários livres do dia dentro do expediente, para o agendamento rápido. */
+    freeSlots: protectedProcedure
+        .input(
+            z.object({
+                date: dateInput,
+                excludeId: z.string().optional(),
+                roomId: z.string().min(1).optional().nullable(),
+                clinicId: z.string().min(1).optional().nullable(),
+            })
+        )
+        .query(async ({ ctx, input }) => {
+            const scope = await resolveRoomScope(ctx.session.user.id, input);
+            return availabilityService.freeSlots(ctx.session.user.id, { ...input, ...scope });
         }),
 
     delete: protectedProcedure

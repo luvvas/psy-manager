@@ -199,6 +199,7 @@ export function FinanceiroPage() {
 
                         <Button
                             variant="outline"
+                            size="sm"
                             className="gap-1.5 hidden sm:flex"
                             onClick={() => fileInputRef.current?.click()}
                         >
@@ -207,6 +208,7 @@ export function FinanceiroPage() {
                         </Button>
 
                         <Button
+                            size="sm"
                             onClick={() => openSheet()}
                             className="gap-1.5"
                         >

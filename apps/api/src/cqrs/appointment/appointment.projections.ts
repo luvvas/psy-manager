@@ -16,7 +16,7 @@ export const appointmentProjections = {
     async handleAppointmentScheduled(event: DomainEvent): Promise<void> {
         const { id, psychologistId, patientId, date, startTime, endTime, status, sessionType, type, isRecurring, notes, meetingUrl, googleEventId } = event.data;
 
-        const { reminderEnabled, reminderMinutesBefore } = event.data;
+        const { reminderEnabled, reminderMinutesBefore, clinicId, roomId } = event.data;
 
         await db.insert(appointment).values({
             id,
@@ -32,6 +32,8 @@ export const appointmentProjections = {
             notes: encryptField(notes ?? null),
             meetingUrl: meetingUrl ?? null,
             googleEventId: googleEventId ?? null,
+            clinicId: clinicId ?? null,
+            roomId: roomId ?? null,
             reminderEnabled: reminderEnabled ?? false,
             reminderMinutesBefore: reminderMinutesBefore ?? null,
             createdAt: event.createdAt ?? new Date(),
@@ -45,7 +47,7 @@ export const appointmentProjections = {
         const { patientId, date, startTime, endTime, status, sessionType, type, isRecurring, notes, meetingUrl, googleEventId } = event.data;
         const id = event.aggregateId;
 
-        const { reminderEnabled, reminderMinutesBefore } = event.data;
+        const { reminderEnabled, reminderMinutesBefore, clinicId, roomId } = event.data;
 
         await db
             .update(appointment)
@@ -61,6 +63,8 @@ export const appointmentProjections = {
                 notes: encryptField(notes ?? null),
                 meetingUrl: meetingUrl ?? null,
                 googleEventId: googleEventId ?? null,
+                clinicId: clinicId ?? null,
+                roomId: roomId ?? null,
                 reminderEnabled: reminderEnabled ?? false,
                 reminderMinutesBefore: reminderMinutesBefore ?? null,
                 updatedAt: event.createdAt ?? new Date(),

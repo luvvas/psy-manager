@@ -24,6 +24,9 @@ export const state = {
     clinicalRecordUpdateError: null as Error | null,
     clinicalRecordFinalizeError: null as Error | null,
     clinicalRecordDeleteError: null as Error | null,
+    slotCheck: { conflicts: [], roomConflicts: [], freeRooms: null, outsideSchedule: false, unchanged: false } as any,
+    roomAccessRows: [{ id: "room-1", clinicId: "clinic-1", name: "Sala 1" }] as any[],
+    roomResult: { id: "room-1", name: "Sala 1" } as any,
 };
 
 export const patientCommands = {
@@ -45,6 +48,11 @@ export const appointmentCommands = {
 
 export const appointmentQueries = {
     list: mock(async () => [{ id: "appointment-1" }]),
+};
+
+export const availabilityService = {
+    checkSlot: mock(async () => state.slotCheck),
+    freeSlots: mock(async () => ({ configured: true, sessionMinutes: 50, slots: [{ start: "09:00", end: "09:50" }] })),
 };
 
 export const psychologistService = {
@@ -76,6 +84,9 @@ export const clinicService = {
         if (state.clinicLeaveError) throw state.clinicLeaveError;
         return state.clinicInviteResult;
     }),
+    addRoom: mock(async () => state.roomResult),
+    renameRoom: mock(async () => state.roomResult),
+    archiveRoom: mock(async () => (state.roomResult ? { success: true } : null)),
 };
 
 export const financialService = {
@@ -146,7 +157,12 @@ export const videoSessionService = {
 
 export const createAuthToken = mock(() => "ws-auth-token");
 
+// assertRoomAccess é a única consulta com join que passa pelas rotas mockadas.
+const dbJoinQuery = {
+    where: mock(() => ({ limit: mock(async () => state.roomAccessRows) })),
+};
 const dbQuery = {
+    innerJoin: mock(() => dbJoinQuery),
     where: mock(() => ({
         limit: mock(async () => state.ownedPatientRows),
         then: (resolve: any, reject: any) => Promise.resolve(state.googleAccountRows).then(resolve, reject),
@@ -182,6 +198,7 @@ const allMocks = [
     ...Object.values(appointmentCommands),
     ...Object.values(appointmentQueries),
     ...Object.values(psychologistService),
+    ...Object.values(availabilityService),
     ...Object.values(clinicService),
     ...Object.values(financialService),
     ...Object.values(documentService),
@@ -191,6 +208,8 @@ const allMocks = [
     ...Object.values(videoSessionService),
     createAuthToken,
     dbQuery.where,
+    dbQuery.innerJoin,
+    dbJoinQuery.where,
     dbSelectFrom,
     dbSelect,
     dbUpdateWhere,
@@ -206,6 +225,7 @@ mock.module("../../src/cqrs/patient/patient.queries", () => ({ patientQueries })
 mock.module("../../src/cqrs/appointment/appointment.commands", () => ({ appointmentCommands }));
 mock.module("../../src/cqrs/appointment/appointment.queries", () => ({ appointmentQueries }));
 mock.module("../../src/services/psychologist.service", () => ({ psychologistService }));
+mock.module("../../src/services/availability.service", () => ({ availabilityService }));
 mock.module("../../src/services/clinic.service", () => ({ clinicService }));
 mock.module("../../src/services/financial.service", () => ({ financialService }));
 mock.module("../../src/services/document.service", () => ({ documentService }));
@@ -292,6 +312,9 @@ export function resetRouterTestState() {
     state.clinicalRecordUpdateError = null;
     state.clinicalRecordFinalizeError = null;
     state.clinicalRecordDeleteError = null;
+    state.slotCheck = { conflicts: [], roomConflicts: [], freeRooms: null, outsideSchedule: false, unchanged: false };
+    state.roomAccessRows = [{ id: "room-1", clinicId: "clinic-1", name: "Sala 1" }];
+    state.roomResult = { id: "room-1", name: "Sala 1" };
     process.env.GOOGLE_CLIENT_ID = "google-client";
     process.env.GOOGLE_CLIENT_SECRET = "google-secret";
     process.env.GOOGLE_REDIRECT_URI = "http://localhost:5173/google-callback";

@@ -7,11 +7,13 @@ import { clinicalRecordService } from "./clinical-record.service";
 import { documentService } from "./document.service";
 import { financialService } from "./financial.service";
 import { appointmentQueries } from "../cqrs/appointment/appointment.queries";
+import type { WorkSchedule } from "../lib/work-schedule";
 
 export type Psychologist = typeof user.$inferSelect;
 export type ThemeConfig = { primary?: string; sidebar?: string; button?: string; tableHeader?: string };
 export type PsychologistUpdate = Partial<Pick<Psychologist, "name" | "phone" | "crp" | "city" | "image">> & {
     themeConfig?: ThemeConfig | null;
+    workSchedule?: WorkSchedule | null;
 };
 
 /**

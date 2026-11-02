@@ -10,6 +10,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { formatCNPJ, formatPhone } from "@/utils/format";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ClinicRooms } from "./clinic-rooms";
 
 const clinicSchema = z.object({
     name: z.string().min(3, "O nome deve ter pelo menos 3 caracteres"),
@@ -32,7 +33,11 @@ interface Psychologist {
 interface NewClinicFormProps {
     onSave: (data: ClinicFormValues) => Promise<void>;
     onCancel: () => void;
-    initialData?: ClinicFormValues & { id?: string; psychologists?: Psychologist[] };
+    initialData?: ClinicFormValues & {
+        id?: string;
+        psychologists?: Psychologist[];
+        rooms?: { id: string; name: string }[];
+    };
     onLinkPsychologist?: (email: string) => Promise<void>;
     onUnlinkPsychologist?: (id: string) => Promise<void>;
 }
@@ -96,12 +101,19 @@ export function NewClinicForm({
 
     return (
         <Tabs defaultValue="dados" className="flex flex-col h-full w-full space-y-4">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="dados">Dados</TabsTrigger>
+                <TabsTrigger value="salas" disabled={!initialData?.id}>
+                    Salas
+                </TabsTrigger>
                 <TabsTrigger value="psicologos" disabled={!initialData?.id}>
                     Psicólogos
                 </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="salas" className="flex-1 overflow-y-auto pt-1">
+                {initialData?.id && <ClinicRooms clinicId={initialData.id} rooms={initialData.rooms ?? []} />}
+            </TabsContent>
 
             <TabsContent value="dados" className="flex-1 overflow-y-auto">
                 <form onSubmit={handleSubmit(onSubmitForm)} className="flex flex-col space-y-4 pt-1">

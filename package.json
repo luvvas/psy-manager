@@ -19,6 +19,7 @@
     "db:migrate": "bun run --filter @psy-manager/api db:migrate",
     "db:push": "bun run --filter @psy-manager/api db:push",
     "db:studio": "bun run --filter @psy-manager/api db:studio",
+    "db:seed": "bun run --filter @psy-manager/api db:seed",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:db": "docker compose up -d db"

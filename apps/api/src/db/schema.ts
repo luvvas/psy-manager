@@ -7,6 +7,7 @@ import {
     jsonb,
     numeric,
 } from "drizzle-orm/pg-core";
+import type { WorkSchedule } from "../lib/work-schedule";
 
 export const user = pgTable("user", {
     id: text("id").primaryKey(),
@@ -18,6 +19,8 @@ export const user = pgTable("user", {
     crp: text("crp"),
     city: text("city"),
     themeConfig: jsonb("theme_config").$type<{ primary?: string; sidebar?: string; button?: string; tableHeader?: string }>(),
+    // Expediente: turnos por dia da semana + duração da sessão. Nulo = não configurado.
+    workSchedule: jsonb("work_schedule").$type<WorkSchedule>(),
     consentedAt: text("consented_at"),
     consentVersion: text("consent_version"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -129,6 +132,12 @@ export const appointment = pgTable("appointment", {
     notes: text("notes"),
     meetingUrl: text("meeting_url"),
     googleEventId: text("google_event_id"),
+    // Sala da clínica ocupada pela sessão — presencial ou online atendida da sala.
+    // Nulo = sem sala (remoto ou consultório fora do sistema).
+    // A sala é o recurso disputado: duas psicólogas da mesma clínica podem atender no
+    // mesmo horário, desde que em salas diferentes.
+    clinicId: text("clinic_id").references(() => clinic.id, { onDelete: "set null" }),
+    roomId: text("room_id").references(() => clinicRoom.id, { onDelete: "set null" }),
     reminderEnabled: boolean("reminder_enabled").notNull().default(false),
     reminderMinutesBefore: integer("reminder_minutes_before"),
     reminderSentAt: timestamp("reminder_sent_at"),
@@ -147,6 +156,18 @@ export const clinic = pgTable("clinic", {
     createdById: text("created_by_id")
         .notNull()
         .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const clinicRoom = pgTable("clinic_room", {
+    id: text("id").primaryKey(),
+    clinicId: text("clinic_id")
+        .notNull()
+        .references(() => clinic.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    // Sala removida fica arquivada: sessões antigas continuam apontando para ela.
+    active: boolean("active").notNull().default(true),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

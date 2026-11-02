@@ -1,6 +1,15 @@
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, asc, inArray } from "drizzle-orm";
 import { db } from "../db";
-import { clinic, psychologistClinic, user } from "../db/schema";
+import { clinic, clinicRoom, psychologistClinic, user } from "../db/schema";
+
+/** Só o dono (quem criou) gerencia a clínica e as salas dela. */
+async function isOwner(psychologistId: string, clinicId: string): Promise<boolean> {
+    const [row] = await db
+        .select({ id: clinic.id })
+        .from(clinic)
+        .where(and(eq(clinic.id, clinicId), eq(clinic.createdById, psychologistId)));
+    return !!row;
+}
 
 export const clinicService = {
     async list(psychologistId: string) {
@@ -46,9 +55,21 @@ export const clinicService = {
             membersByClinic.set(member.clinicId, list);
         }
 
+        // Salas ativas: todo membro vê, para escolher ao agendar presencial.
+        const rooms = await db
+            .select({ id: clinicRoom.id, clinicId: clinicRoom.clinicId, name: clinicRoom.name })
+            .from(clinicRoom)
+            .where(and(inArray(clinicRoom.clinicId, clinicIds), eq(clinicRoom.active, true)))
+            .orderBy(asc(clinicRoom.name));
+        const roomsByClinic = new Map<string, { id: string; name: string }[]>();
+        for (const { clinicId, ...room } of rooms) {
+            roomsByClinic.set(clinicId, [...(roomsByClinic.get(clinicId) ?? []), room]);
+        }
+
         return clinics.map((cl) => ({
             ...cl,
             psychologists: (membersByClinic.get(cl.id) ?? []).map(({ clinicId: _, ...m }) => m),
+            rooms: roomsByClinic.get(cl.id) ?? [],
         }));
     },
 
@@ -112,6 +133,43 @@ export const clinicService = {
             )
             .returning();
         return updatedClinic ?? null;
+    },
+
+    async addRoom(psychologistId: string, clinicId: string, name: string) {
+        if (!(await isOwner(psychologistId, clinicId))) return null;
+        const [room] = await db
+            .insert(clinicRoom)
+            .values({ id: crypto.randomUUID(), clinicId, name })
+            .returning({ id: clinicRoom.id, name: clinicRoom.name });
+        return room;
+    },
+
+    async renameRoom(psychologistId: string, roomId: string, name: string) {
+        const [room] = await db
+            .select({ clinicId: clinicRoom.clinicId })
+            .from(clinicRoom)
+            .where(and(eq(clinicRoom.id, roomId), eq(clinicRoom.active, true)));
+        if (!room || !(await isOwner(psychologistId, room.clinicId))) return null;
+        const [updated] = await db
+            .update(clinicRoom)
+            .set({ name, updatedAt: new Date() })
+            .where(eq(clinicRoom.id, roomId))
+            .returning({ id: clinicRoom.id, name: clinicRoom.name });
+        return updated;
+    },
+
+    /** Arquiva (não apaga): sessões já marcadas continuam mostrando a sala. */
+    async archiveRoom(psychologistId: string, roomId: string) {
+        const [room] = await db
+            .select({ clinicId: clinicRoom.clinicId })
+            .from(clinicRoom)
+            .where(and(eq(clinicRoom.id, roomId), eq(clinicRoom.active, true)));
+        if (!room || !(await isOwner(psychologistId, room.clinicId))) return null;
+        await db
+            .update(clinicRoom)
+            .set({ active: false, updatedAt: new Date() })
+            .where(eq(clinicRoom.id, roomId));
+        return { success: true };
     },
 
     async delete(psychologistId: string, id: string) {

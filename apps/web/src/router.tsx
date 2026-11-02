@@ -7,6 +7,7 @@ import { ClinicasPage } from "@/features/clinicas";
 import { JoinPage, PsychologistPage } from "@/features/consulta";
 import { DocumentosPage } from "@/features/documentos";
 import { FinanceiroPage } from "@/features/financeiro";
+import { InicioPage } from "@/features/inicio";
 import { PacientesPage, PatientDetailsPage } from "@/features/pacientes";
 import { ComingSoonPage } from "@/pages/coming-soon";
 import { GoogleCallbackPage } from "@/pages/google-callback";
@@ -48,6 +49,10 @@ const appRoutes = [
                 path: "/",
                 element: <AppLayout />,
                 children: [
+                    {
+                        path: "inicio",
+                        element: <InicioPage />,
+                    },
                     {
                         path: "agendamento",
                         element: <AgendamentoPage />,
