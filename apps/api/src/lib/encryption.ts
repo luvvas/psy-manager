@@ -58,12 +58,37 @@ export const encryptField = (v: string | null | undefined): string | null => {
     return encrypt(v);
 };
 
+const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
+
+function looksEncrypted(v: string): boolean {
+    const parts = v.split(":");
+    if (parts.length === 4 && parts[0] === "v1") return true;
+    return parts.length === 3 && parts.every((p) => BASE64.test(p));
+}
+
+let decryptFailures = 0;
+
+export const getDecryptFailureCount = () => decryptFailures;
+
 export const decryptField = (v: string | null | undefined): string | null => {
     if (v == null) return null;
     if (v === "") return "";
     try {
         return decrypt(v);
-    } catch {
-        return v; // graceful fallback: return as-is if not encrypted (legacy data)
+    } catch (err) {
+        // Plaintext saved before field encryption existed is expected and
+        // returned as-is. A value in ciphertext format that fails to decrypt
+        // means a wrong ENCRYPTION_KEY or corrupted data: make it visible
+        // (the value itself is never logged).
+        if (looksEncrypted(v)) {
+            decryptFailures++;
+            if (decryptFailures === 1 || decryptFailures % 100 === 0) {
+                console.error(
+                    `[encryption] falha ao decriptar campo cifrado (total desde o início: ${decryptFailures}):`,
+                    err instanceof Error ? err.message : err
+                );
+            }
+        }
+        return v;
     }
 };
