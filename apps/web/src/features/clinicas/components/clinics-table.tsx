@@ -1,4 +1,4 @@
-import { Building2, Mail, Phone, MapPin, Pencil, Trash2, Users } from "lucide-react";
+import { Building2, LogOut, Mail, Phone, MapPin, Pencil, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { useSession } from "@/lib/auth-client";
@@ -26,9 +26,10 @@ interface ClinicsTableProps {
     clinics: DBClinic[];
     onEdit: (clinic: DBClinic) => void;
     onDelete: (id: string, name: string) => void;
+    onLeave: (id: string, name: string) => void;
 }
 
-export function ClinicsTable({ clinics, onEdit, onDelete }: ClinicsTableProps) {
+export function ClinicsTable({ clinics, onEdit, onDelete, onLeave }: ClinicsTableProps) {
     const { data: session } = useSession();
 
     const columns: DataTableColumn<DBClinic>[] = [
@@ -95,7 +96,24 @@ export function ClinicsTable({ clinics, onEdit, onDelete }: ClinicsTableProps) {
             className: "w-[8%] text-right",
             render: (clinic) => {
                 const isOwner = clinic.createdById === session?.user?.id;
-                if (!isOwner) return null;
+                if (!isOwner) {
+                    return (
+                        <div className="flex justify-end">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-muted-foreground hover:text-destructive"
+                                title="Sair da clínica"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onLeave(clinic.id, clinic.name);
+                                }}
+                            >
+                                <LogOut className="size-3.5" />
+                            </Button>
+                        </div>
+                    );
+                }
                 return (
                     <div className="flex justify-end items-center gap-1">
                         <Button

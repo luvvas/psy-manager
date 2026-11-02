@@ -16,6 +16,8 @@ export const state = {
     clinicDeleteResult: undefined as any,
     clinicLinkError: null as Error | null,
     clinicUnlinkError: null as Error | null,
+    clinicInviteResult: { id: "link-1" } as any,
+    clinicLeaveError: null as Error | null,
     documentUpdateError: null as Error | null,
     documentDeleteError: null as Error | null,
     clinicalRecordCreateError: null as Error | null,
@@ -66,6 +68,13 @@ export const clinicService = {
     unlinkPsychologist: mock(async () => {
         if (state.clinicUnlinkError) throw state.clinicUnlinkError;
         return { success: true };
+    }),
+    listInvites: mock(async () => [{ clinicId: "clinic-2", name: "Clínica Convite", city: "SP" }]),
+    acceptInvite: mock(async () => state.clinicInviteResult),
+    declineInvite: mock(async () => state.clinicInviteResult),
+    leave: mock(async () => {
+        if (state.clinicLeaveError) throw state.clinicLeaveError;
+        return state.clinicInviteResult;
     }),
 };
 
@@ -275,6 +284,8 @@ export function resetRouterTestState() {
     state.clinicDeleteResult = undefined;
     state.clinicLinkError = null;
     state.clinicUnlinkError = null;
+    state.clinicInviteResult = { id: "link-1" };
+    state.clinicLeaveError = null;
     state.documentUpdateError = null;
     state.documentDeleteError = null;
     state.clinicalRecordCreateError = null;

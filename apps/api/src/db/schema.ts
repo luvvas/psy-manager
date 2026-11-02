@@ -158,6 +158,9 @@ export const psychologistClinic = pgTable("psychologist_clinic", {
     psychologistId: text("psychologist_id")
         .notNull()
         .references(() => user.id, { onDelete: "cascade" }),
+    // "pending" = convite do dono da clínica ainda não aceito pelo psicólogo.
+    // Só vínculos "active" dão acesso à visão compartilhada (agenda, membros).
+    status: text("status").notNull().default("active"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

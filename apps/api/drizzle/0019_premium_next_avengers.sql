@@ -1,0 +1,1 @@
+ALTER TABLE "psychologist_clinic" ADD COLUMN "status" text DEFAULT 'active' NOT NULL;

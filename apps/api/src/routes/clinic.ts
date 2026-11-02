@@ -69,6 +69,39 @@ export const clinicRouter = router({
             }
         }),
 
+    listInvites: protectedProcedure.query(async ({ ctx }) => {
+        return clinicService.listInvites(ctx.session.user.id);
+    }),
+
+    acceptInvite: protectedProcedure
+        .input(z.object({ clinicId: z.string().min(1) }))
+        .mutation(async ({ ctx, input }) => {
+            const result = await clinicService.acceptInvite(ctx.session.user.id, input.clinicId);
+            if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Convite não encontrado." });
+            return { success: true };
+        }),
+
+    declineInvite: protectedProcedure
+        .input(z.object({ clinicId: z.string().min(1) }))
+        .mutation(async ({ ctx, input }) => {
+            const result = await clinicService.declineInvite(ctx.session.user.id, input.clinicId);
+            if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Convite não encontrado." });
+            return { success: true };
+        }),
+
+    leave: protectedProcedure
+        .input(z.object({ clinicId: z.string().min(1) }))
+        .mutation(async ({ ctx, input }) => {
+            let result;
+            try {
+                result = await clinicService.leave(ctx.session.user.id, input.clinicId);
+            } catch (err: any) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: err.message });
+            }
+            if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Clínica não encontrada." });
+            return { success: true };
+        }),
+
     unlinkPsychologist: protectedProcedure
         .input(
             z.object({

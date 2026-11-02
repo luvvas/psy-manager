@@ -86,7 +86,7 @@ export function NewClinicForm({
         try {
             await onLinkPsychologist(newPsyEmail);
             setNewPsyEmail("");
-            toast.success("Psicólogo adicionado com sucesso!");
+            toast.success("Convite enviado. Se o e-mail tiver conta, o psicólogo verá o convite e entra na clínica ao aceitar.");
         } catch (error: any) {
             toast.error(error.message || "Erro ao adicionar psicólogo");
         } finally {
@@ -236,7 +236,7 @@ export function NewClinicForm({
                                 ) : (
                                     <UserPlus className="size-4" />
                                 )}
-                                Vincular
+                                Convidar
                             </Button>
                         </div>
 
@@ -270,7 +270,7 @@ export function NewClinicForm({
                             ))}
                             {(initialData.psychologists || []).length === 0 && (
                                 <p className="p-4 text-center text-xs text-muted-foreground">
-                                    Nenhum psicólogo vinculado além do proprietário.
+                                    Nenhum psicólogo vinculado além do proprietário. Convidados aparecem aqui depois de aceitar.
                                 </p>
                             )}
                         </div>
