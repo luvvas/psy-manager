@@ -2,7 +2,8 @@
 
 import { describe, expect, test } from "bun:test";
 import { randomBytes } from "crypto";
-import { checkServerEnv } from "../../src/lib/env-check";
+import { createHash } from "crypto";
+import { COMPROMISED_SECRET_SHA256, checkServerEnv } from "../../src/lib/env-check";
 
 const KEY = randomBytes(32).toString("base64");
 const AUTH_SECRET = randomBytes(32).toString("base64");
@@ -65,6 +66,20 @@ describe("checkServerEnv (issue #40)", () => {
         for (const error of errors) {
             expect(error).not.toContain(secret);
             expect(error).not.toContain(leakyKey);
+        }
+    });
+
+    test("recusa BETTER_AUTH_SECRET que já foi publicado, em qualquer ambiente (auditoria F2)", () => {
+        // O valor real não é repetido aqui: simulamos um segredo vazado pelo hash.
+        const leaked = randomBytes(32).toString("base64");
+        const hash = createHash("sha256").update(leaked).digest("hex");
+        COMPROMISED_SECRET_SHA256.add(hash);
+        try {
+            const expected = ["BETTER_AUTH_SECRET é um valor que já foi publicado; gere um novo (openssl rand -base64 32)."];
+            expect(checkServerEnv(validEnv({ BETTER_AUTH_SECRET: leaked }))).toEqual(expected);
+            expect(checkServerEnv(validEnv({ BETTER_AUTH_SECRET: leaked, NODE_ENV: "production" }))).toEqual(expected);
+        } finally {
+            COMPROMISED_SECRET_SHA256.delete(hash);
         }
     });
 });
