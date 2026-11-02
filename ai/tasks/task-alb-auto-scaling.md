@@ -107,6 +107,11 @@ Status 200. No authentication required.
 - The health check endpoint must not require authentication.
 - Do not remove the EC2 direct SSH access (needed for CI/CD deploys).
 - Do not touch unrelated modules.
+- The auth rate limiters (`apps/api/src/lib/rate-limit.ts`, hono-rate-limiter)
+  keep their counters in process memory: they reset on every restart and are
+  not shared between instances. With N instances behind a load balancer each
+  IP gets N times the budget. Move them to a shared store (e.g. Redis) before
+  running more than one API instance.
 
 ## Acceptance Criteria
 
