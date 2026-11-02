@@ -30,7 +30,7 @@ describe("app router protection", () => {
             ).rejects.toMatchObject({ code: "UNAUTHORIZED" }),
             expect(anon.patient.delete({ id: "patient-1" })).rejects.toMatchObject({ code: "UNAUTHORIZED" }),
             expect(anon.appointment.syncGoogle()).rejects.toMatchObject({ code: "UNAUTHORIZED" }),
-            expect(anon.appointment.connectGoogleCalendar({ code: "oauth-code" })).rejects.toMatchObject({ code: "UNAUTHORIZED" }),
+            expect(anon.appointment.connectGoogleCalendar({ code: "oauth-code", state: "state" })).rejects.toMatchObject({ code: "UNAUTHORIZED" }),
             expect(anon.videoSession.create({ patientId: "patient-1" })).rejects.toMatchObject({ code: "UNAUTHORIZED" }),
             expect(anon.videoSession.end({ id: "video-1" })).rejects.toMatchObject({ code: "UNAUTHORIZED" }),
             expect(anon.clinic.create({ name: "x", cnpj: "x", phone: "x", email: "x@x.com", address: "x", city: "x" })).rejects.toMatchObject({ code: "UNAUTHORIZED" }),

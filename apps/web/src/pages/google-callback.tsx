@@ -8,6 +8,7 @@ export function GoogleCallbackPage() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const code = searchParams.get("code");
+    const state = searchParams.get("state");
     const hasTriggered = useRef(false);
 
     const connectMutation = trpc.appointment.connectGoogleCalendar.useMutation({
@@ -22,14 +23,14 @@ export function GoogleCallbackPage() {
     });
 
     useEffect(() => {
-        if (code && !hasTriggered.current) {
+        if (code && state && !hasTriggered.current) {
             hasTriggered.current = true;
-            connectMutation.mutate({ code });
-        } else if (!code) {
+            connectMutation.mutate({ code, state });
+        } else if (!code || !state) {
             toast.error("Código de autorização inválido recebido.");
             navigate("/agendamento");
         }
-    }, [code, navigate]);
+    }, [code, state, navigate]);
 
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
