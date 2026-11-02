@@ -4,7 +4,6 @@ import { randomUUID } from "node:crypto";
 import { db } from "./index";
 import {
     user,
-    patient,
     financialTransaction,
     document,
     clinic,
@@ -13,6 +12,8 @@ import {
 } from "./schema";
 import { encryptField } from "../lib/encryption";
 import { eq } from "drizzle-orm";
+import { patientCommands } from "../cqrs/patient/patient.commands";
+import { patientProjections } from "../cqrs/patient/patient.projections";
 
 const PATIENTS_COUNT = 50;
 const TRANSACTIONS_COUNT = 200;
@@ -66,23 +67,23 @@ async function seed() {
     console.log("─────────────────────────────────────────────");
 
     // ── Patients ──────────────────────────────────────────────────────────────
+    // Through the CQRS command, like the app does: the event goes to the event
+    // store and the projection fills the patient table. Inserting straight into
+    // the table left patients without history, so editing/deleting them failed
+    // with "Paciente não encontrado". Encryption happens in the projection.
+    patientProjections.init();
     console.log(`Creating ${PATIENTS_COUNT} patients...`);
     const patientIds: string[] = [];
 
     for (let i = 0; i < PATIENTS_COUNT; i++) {
-        const id = randomUUID();
-        patientIds.push(id);
-        const birthDate = faker.date.birthdate({ min: 18, max: 75, mode: "age" });
-
-        await db.insert(patient).values({
-            id,
+        const id = await patientCommands.create({
             psychologistId,
-            nome: encryptField(faker.person.fullName()) ?? "",
-            email: encryptField(faker.internet.email()) ?? "",
-            telefone: encryptField(faker.phone.number({ style: "national" })) ?? "",
-            dataNascimento: encryptField(birthDate.toISOString()) ?? birthDate.toISOString(),
+            nome: faker.person.fullName(),
+            email: faker.internet.email(),
+            telefone: faker.phone.number({ style: "national" }),
+            dataNascimento: faker.date.birthdate({ min: 18, max: 75, mode: "age" }),
             cidade: faker.location.city(),
-            cpf: encryptField(generateCpf()) ?? "",
+            cpf: generateCpf(),
             valorSessao: String(faker.number.int({ min: 150, max: 450 })),
             modeloCobranca: faker.helpers.arrayElement(BILLING_MODELS),
             formaPagamento: faker.helpers.arrayElement(PAYMENT_FORMS),
@@ -90,6 +91,7 @@ async function seed() {
             origemContato: faker.helpers.arrayElement(ORIGEM_CONTATO),
             dataInicioAcompanhamento: randomPastDate(24),
         });
+        patientIds.push(id);
     }
     console.log(`  ✓ ${PATIENTS_COUNT} patients created`);
 
