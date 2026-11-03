@@ -23,7 +23,7 @@ esbuild: { drop: ["console"] }, // esbuild is no longer the default transformer
 
 **Correct:**
 
-- Bundler options live in `build.rolldownOptions`. Manual chunking uses Rolldown's `codeSplitting` (the build warning links to it) — but do route and component splitting first (`bundle-route-lazy`, `bundle-dynamic-imports`); vendor splitting is a last step for cache efficiency.
+- Bundler options live in `build.rolldownOptions`. Manual chunking uses Rolldown's `codeSplitting.groups` — this project already has `vendor-react` and `vendor-data` groups in `apps/web/vite.config.ts`. Only list libraries that the entry chunk already uses: a group captures every matching module regardless of who imports it, so a broad `/node_modules/` group would pull lazy-only libraries (Recharts, PapaParse) into the initial download. Measure the initial JS (entry + modulepreloads in `dist/index.html`) before and after.
 - Leave `build.target` at the default (baseline widely-available browsers). Add `@vitejs/plugin-legacy` only for a real old-browser requirement.
 - Check option names against the current docs before adding them.
 - Don't import from `some-pkg/dist/...`; use the package's public `exports`. A CommonJS package's default import may come through as an object — prefer named imports.

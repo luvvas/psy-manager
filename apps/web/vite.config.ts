@@ -21,6 +21,24 @@ export default defineConfig({
     ],
     build: {
         sourcemap: process.env.SENTRY_AUTH_TOKEN ? "hidden" : false,
+        rolldownOptions: {
+            output: {
+                codeSplitting: {
+                    groups: [
+                        {
+                            name: "vendor-react",
+                            test: /[\\/]node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom)[\\/]/,
+                            priority: 2,
+                        },
+                        {
+                            name: "vendor-data",
+                            test: /[\\/]node_modules[\\/](@tanstack|@trpc|superjson|better-auth|@better-auth|@better-fetch|nanostores|@sentry|@sentry-internal)[\\/]/,
+                            priority: 1,
+                        },
+                    ],
+                },
+            },
+        },
     },
     resolve: {
         alias: {

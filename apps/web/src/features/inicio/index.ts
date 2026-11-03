@@ -1,1 +1,0 @@
-export { InicioPage } from "./page";

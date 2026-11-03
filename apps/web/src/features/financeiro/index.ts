@@ -1,1 +1,0 @@
-export { FinanceiroPage } from "./page";

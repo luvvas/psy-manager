@@ -8,11 +8,11 @@ import {
 } from "@/components/ui/carousel";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import agendamentoImg from "@/assets/screenshots/agendamento.png";
-import consultaImg from "@/assets/screenshots/consulta.png";
-import documentosImg from "@/assets/screenshots/documentos.png";
-import financeiroImg from "@/assets/screenshots/financeiro.png";
-import pacientesImg from "@/assets/screenshots/pacientes.png";
+import agendamentoImg from "@/assets/screenshots/agendamento.webp";
+import consultaImg from "@/assets/screenshots/consulta.webp";
+import documentosImg from "@/assets/screenshots/documentos.webp";
+import financeiroImg from "@/assets/screenshots/financeiro.webp";
+import pacientesImg from "@/assets/screenshots/pacientes.webp";
 import {
     BarChart3,
     Calendar,

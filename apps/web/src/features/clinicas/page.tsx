@@ -236,4 +236,3 @@ export function ClinicasPage() {
         </>
     );
 }
-export default ClinicasPage;

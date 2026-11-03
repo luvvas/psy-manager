@@ -37,7 +37,6 @@ Antes de codar, defina (pergunte só o que não dá para deduzir):
 
 ```
 apps/web/src/features/<feature>/
-  index.ts                     # export { XPage } from "./page";
   page.tsx                     # a tela: header, estado, queries/mutations, layout
   page-detalhes.tsx            # (opcional) tela /<feature>/:id
   components/
@@ -48,6 +47,8 @@ apps/web/src/features/<feature>/
 
 - `<feature>` é o nome do domínio em pt-BR minúsculo (`pacientes`, `financeiro`).
 - A página exporta função nomeada `XPage` (`ClinicasPage`, `PacientesPage`).
+- Sem `index.ts` na feature: `route-modules.ts` importa o arquivo da página direto, para
+  lista e detalhe virarem chunks separados.
 - Componentes de UI base ficam em `@/components/ui/*` (shadcn). **Não** edite esses
   arquivos para resolver um caso de uma tela só; passe `className`.
 
@@ -59,7 +60,7 @@ regra `bundle-route-lazy`). Nada de `element: <XPage />` com import estático.
 1. **Módulo da rota** — em `apps/web/src/route-modules.ts`, uma entrada em `pages` com o
    caminho literal do arquivo (lista e detalhe em entradas separadas):
    ```ts
-   convenios: () => import("@/features/convenios").then((m) => ({ Component: m.ConveniosPage })),
+   convenios: () => import("@/features/convenios/page").then((m) => ({ Component: m.ConveniosPage })),
    ```
 2. **Rota** — `apps/web/src/router.tsx`, dentro de `children` do `AppLayout` (rotas
    autenticadas), antes do `path: "*"`:
