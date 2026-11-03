@@ -128,8 +128,8 @@ boundary**: só o repo+branch certos conseguem assumir.
 
 ## Role 3 — EventBridge Scheduler · `<scheduler-role>` (planejada)
 
-Ainda **não criada** — necessária pro go-live do WhatsApp (ver
-`../../ai/tasks/task-whatsapp-reminder.md`). Desenho previsto:
+Nunca criada — era necessária pro go-live do WhatsApp, removido na saída da AWS
+(a task `task-whatsapp-reminder.md` está no histórico do git). Desenho previsto:
 - **Trust**: principal `scheduler.amazonaws.com`.
 - **Permissão**: `lambda:InvokeFunction` no ARN da função de lembrete.
 - A role da EC2/API precisa de `scheduler:CreateSchedule/DeleteSchedule` + `iam:PassRole` sobre esta role.

@@ -8,8 +8,6 @@ This is a Bun workspace monorepo.
 apps/
   api/
   web/
-  lambda/
-    reminder-sender/
 docker/
 scripts/
 ai/

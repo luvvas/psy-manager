@@ -1,12 +1,11 @@
 # Current State
 
-Generated on: 2026-09-02
+Generated on: 2026-09-02 · updated 2026-11-03 (AWS exit, security fixes)
 
 ## Repo Snapshot
 
 - Bun workspace monorepo: `apps/api` and `apps/web` are the workspace members.
-  `apps/lambda/reminder-sender` exists but is not a workspace member (no
-  `package.json` at the `apps/lambda` level).
+  `apps/lambda` was removed with the AWS exit.
 - `packages/` no longer exists. `packages/shared` was removed — it was declared
   as a dependency by api and web but nothing imported it.
 - `apps/desktop` (Electron) was removed. Distribution is web-only for now.
@@ -49,25 +48,16 @@ Key gaps that still require integration tests (DB not exercised by any test):
 - **Rate limiting.** Issue #39 exists precisely because no test exercised the
   real auth routes, so two limiters sat inert for months.
 
-## Open Security Findings
+## Security Findings
 
-A code audit in September 2026 produced `docs/security-audit/` (PDF plus the
-generator script) and seven open GitHub issues. None are fixed yet:
-
-- **#35** `.env.prod` holding production secrets is not covered by `.gitignore`,
-  in a public repo. Highest severity.
-- **#36** Client-supplied reference IDs are not ownership-checked
-  (`financial.patientId` leaks decrypted patient names across tenants;
-  `document.patientId`; `videoSession.appointmentId`).
-- **#37** `psychologist.list` returns every user on the platform, unfiltered.
-- **#38** Client-supplied `storageKey` yields a presigned URL for any object in
-  the bucket.
-- **#39** Login and password-reset rate limiters are registered on paths that
-  never match the real Better Auth routes.
-- **#40** Default Postgres password in the dev compose; no startup validation
-  rejecting missing or default secrets.
-- **#41** User-controlled URLs reach `window.open` and an iframe `src` without a
-  scheme allowlist (self-XSS today).
+The September 2026 audit (`docs/security-audit/`, local only) opened issues
+#35–#41. Their fix branches (`fix/36-ownership-ids`, `fix/37-psychologist-list`,
+`fix/38-storage-key-ownership`, `fix/39-auth-rate-limiters`,
+`fix/40-env-validation`, `fix/url-scheme-validation`) and the November follow-up
+`fix/audit-2026-11` (F1–F7: clinic invites with acceptance, OAuth state, CSP in
+Report-Only, refusal to boot with a leaked `BETTER_AUTH_SECRET`) are all merged
+into `master`. `.env.prod` is covered by `.gitignore` (#35). Re-run the
+`security-audit` skill before trusting this list as complete.
 
 Verified as correct during the same audit, so do not "fix" these: all 40 tRPC
 procedures require a session except `videoSession.validateToken`; CQRS aggregates
@@ -90,13 +80,10 @@ scoped by `psychologistId`; clinic-shared appointments strip patient PII.
   boundaries.
 - The documents page currently calls `document.list` with an empty filter; verify
   intended generic-vs-patient filtering before changing document library behavior.
-- **AWS exit in progress** (branch `chore/sair-da-aws`, Oct 2026): code moved to
-  VPS + Cloudflare (R2, Tunnel, Access, TURN) + GHCR, and the WhatsApp reminder
-  feature (EventBridge + Lambda) was removed. As of 2026-10-24 no VPS or domain
-  had been bought yet, so production still runs on AWS (EC2 + CloudFront + S3).
-  The manual runbook is `docs/progress/15-saida-aws-cloudflare.md`. Do not merge
-  the branch before the runbook's step 8: a push to `master` triggers the new
-  deploy.
+- **AWS exit done** (PR #45, Nov 2026): production runs on a Hostinger VPS +
+  Cloudflare (Tunnel, Access, R2, TURN) with images in GHCR. The WhatsApp reminder
+  feature (EventBridge + Lambda) was removed. `docs/progress/00–14` describe the
+  AWS era and are historical.
 - `appointment.reminderEnabled`/`reminderMinutesBefore`/`reminderSentAt` columns
   are kept (and still accepted by the API) so reminders can come back without a
   migration; the UI no longer exposes them.

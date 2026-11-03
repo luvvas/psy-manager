@@ -14,7 +14,7 @@ export const getIp = (c: { req: { header: (name: string) => string | undefined }
 // "/api/auth/forgot-password" registrations never ran (issue #39).
 //
 // The store is in memory: counters reset on restart and are not shared between
-// API instances (see ai/tasks/task-alb-auto-scaling.md). Cloudflare's rate
+// API instances (production runs a single one). Cloudflare's rate
 // limiting rule on /api/auth/sign-in is the edge-side layer.
 export function registerAuthRateLimiters(app: Hono) {
     const signInRateLimiter = rateLimiter({

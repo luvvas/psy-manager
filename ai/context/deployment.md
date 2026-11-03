@@ -17,9 +17,8 @@ bun run dev
 
 ## Production Shape
 
-> Branch `chore/sair-da-aws` moves production off AWS. Until it is merged
-> (runbook: `docs/progress/15-saida-aws-cloudflare.md`), production still runs
-> the previous AWS setup (EC2 + CloudFront + S3 + ECR + SSM).
+> Production left AWS in November 2026 (PR #45, runbook:
+> `docs/progress/15-saida-aws-cloudflare.md`). Nothing runs on AWS anymore.
 
 - One VPS (Hostinger KVM 1, São Paulo, Ubuntu 24.04) running Docker Compose:
   `db` (`postgres:17-alpine`), `api` and `web` (nginx serving the Vite build and
