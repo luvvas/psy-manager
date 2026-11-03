@@ -2,8 +2,8 @@ import { AppHeader } from "@/components/layout/app-header";
 import { AppSheet } from "@/components/layout/app-sheet";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DocumentForm, type ClinicalRecordFormValues } from "@/features/documentos/components/document-form";
-import { PatientTimeline } from "@/features/pacientes/components/patient-timeline";
+import { ClinicalRecordForm, type ClinicalRecordFormValues } from "./components/clinical-record-form";
+import { PatientTimeline } from "./components/patient-timeline";
 import { trpc } from "@/lib/trpc";
 import { uploadFileToTarget } from "@/utils/upload";
 import { ArrowLeft, ClipboardList, Plus } from "lucide-react";
@@ -112,7 +112,7 @@ export function PatientDetailsPage() {
                 onOpenChange={setSheetOpen}
                 title="Novo Registro Clínico"
             >
-                <DocumentForm
+                <ClinicalRecordForm
                     onSave={handleSave}
                     onCancel={() => setSheetOpen(false)}
                     patients={formPatients}

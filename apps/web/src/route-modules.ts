@@ -12,6 +12,8 @@ export const pages = {
     clinicas: () => import("@/features/clinicas").then((m) => ({ Component: m.ClinicasPage })),
     financeiro: () => import("@/features/financeiro").then((m) => ({ Component: m.FinanceiroPage })),
     documentos: () => import("@/features/documentos").then((m) => ({ Component: m.DocumentosPage })),
+    documentoDetalhes: () =>
+        import("@/features/documentos").then((m) => ({ Component: m.DocumentoDetailsPage })),
     landing: () => import("@/pages/landing").then((m) => ({ Component: m.LandingGuard })),
     privacidade: () => import("@/pages/privacy-policy").then((m) => ({ Component: m.PrivacyPolicyPage })),
     termos: () => import("@/pages/terms-of-use").then((m) => ({ Component: m.TermsOfUsePage })),

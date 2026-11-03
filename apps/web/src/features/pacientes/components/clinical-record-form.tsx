@@ -1,7 +1,7 @@
 import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { FileInput } from "@/components/file-input";
+import { PdfFileField } from "@/components/pdf-file-field";
 import { Label } from "@/components/ui/label";
 import {
     Select,
@@ -11,8 +11,8 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FileUp, Loader2 } from "lucide-react";
-import { useState, type ChangeEvent } from "react";
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import * as z from "zod/v3";
 
@@ -26,7 +26,7 @@ type FormValues = z.infer<typeof documentSchema>;
 
 export type ClinicalRecordFormValues = FormValues & { file?: File };
 
-interface DocumentFormProps {
+interface ClinicalRecordFormProps {
     onSave: (data: ClinicalRecordFormValues) => Promise<void>;
     onCancel: () => void;
     patients: { id: string; nome: string }[];
@@ -37,7 +37,7 @@ interface DocumentFormProps {
     };
 }
 
-export function DocumentForm({ onSave, onCancel, patients, initialData }: DocumentFormProps) {
+export function ClinicalRecordForm({ onSave, onCancel, patients, initialData }: ClinicalRecordFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [pdfFile, setPdfFile] = useState<File | null>(null);
     const [fileError, setFileError] = useState<string | null>(null);
@@ -56,30 +56,6 @@ export function DocumentForm({ onSave, onCancel, patients, initialData }: Docume
         },
     });
 
-    const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        setFileError(null);
-
-        if (!file) {
-            setPdfFile(null);
-            return;
-        }
-
-        if (file.type !== "application/pdf") {
-            setFileError("Por favor, selecione apenas arquivos PDF.");
-            setPdfFile(null);
-            return;
-        }
-
-        if (file.size > 10 * 1024 * 1024) {
-            setFileError("O arquivo deve ter no máximo 10MB.");
-            setPdfFile(null);
-            return;
-        }
-
-        setPdfFile(file);
-    };
-
     const onSubmit = async (data: FormValues) => {
         if (!initialData && !pdfFile) {
             setFileError("Você precisa selecionar um arquivo PDF.");
@@ -94,7 +70,7 @@ export function DocumentForm({ onSave, onCancel, patients, initialData }: Docume
                 file: pdfFile || undefined,
             });
         } catch (error) {
-            logger.error("Erro ao salvar documento", error);
+            logger.error("Erro ao salvar registro clínico", error);
         } finally {
             setIsSubmitting(false);
         }
@@ -160,36 +136,23 @@ export function DocumentForm({ onSave, onCancel, patients, initialData }: Docume
                     {errors.patientId && <p className="text-xs text-destructive">{errors.patientId.message}</p>}
                 </div>
 
-                <Label htmlFor="pdfFile" className="flex items-center">
-                    <FileUp className="w-3 h-3" /> Arquivo PDF
-                </Label>
-
-                <div className="grid w-full max-w-sm items-center gap-1.5">
-                    <FileInput
-                        id="pdfFile"
-                        accept="application/pdf"
-                        onChange={handleFileChange}
-                    />
-                </div>
-
-                {pdfFile && (
-                    <p className="text-xs text-green-600 font-medium flex items-center gap-1 mt-2">
-                        {pdfFile.name} ({(pdfFile.size / 1024 / 1024).toFixed(2)}MB)
-                    </p>
-                )}
-
-                {fileError && (
-                    <p className="text-xs text-destructive font-medium mt-1">{fileError}</p>
-                )}
+                <PdfFileField
+                    file={pdfFile}
+                    error={fileError}
+                    onChange={(file, error) => {
+                        setPdfFile(file);
+                        setFileError(error);
+                    }}
+                />
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t bg-background mt-auto sticky bottom-0">
+            <div className="flex justify-end gap-2 border-t pt-4">
                 <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
                     Cancelar
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-                    Salvar Registro
+                    Salvar
                 </Button>
             </div>
         </form>

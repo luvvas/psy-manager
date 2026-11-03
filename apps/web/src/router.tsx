@@ -72,6 +72,10 @@ const appRoutes = [
                         lazy: pages.documentos,
                     },
                     {
+                        path: "documentos/:id",
+                        lazy: pages.documentoDetalhes,
+                    },
+                    {
                         path: "pagamentos",
                         element: (
                             <ComingSoonPage

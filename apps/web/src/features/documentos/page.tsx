@@ -1,29 +1,32 @@
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSheet } from "@/components/layout/app-sheet";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { logger } from "@/lib/logger";
 import { trpc } from "@/lib/trpc";
 import { uploadFileToTarget } from "@/utils/upload";
 import { safeUrl } from "@/utils/safe-url";
-import { ArrowLeft, Download, Files, FileText, Plus } from "lucide-react";
+import { Files, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { GenericDocumentForm, type GenericDocumentFormValues } from "./components/generic-document-form";
-import { GenericDocumentsTable, type DBGenericDocument } from "./components/generic-documents-table";
+import { GenericDocumentsTable, type GenericDocument } from "./components/generic-documents-table";
+
+type DocumentTab = "todos" | "documentos" | "modelos";
+
+function isDocumentTab(value: string): value is DocumentTab {
+    return value === "todos" || value === "documentos" || value === "modelos";
+}
 
 export function DocumentosPage() {
+    const navigate = useNavigate();
     const [isSheetOpen, setSheetOpen] = useState(false);
-    const [editingDoc, setEditingDoc] = useState<DBGenericDocument | null>(null);
-    const [viewingDoc, setViewingDoc] = useState<DBGenericDocument | null>(null);
-    const [activeTab, setActiveTab] = useState("todos");
+    const [editingDoc, setEditingDoc] = useState<GenericDocument | null>(null);
+    const [activeTab, setActiveTab] = useState<DocumentTab>("todos");
     const utils = trpc.useUtils();
 
-    const { data: dbDocs, isPending: isLoadingDocs } = trpc.document.list.useQuery({});
-
-    const { data: downloadData } = trpc.document.getDownloadUrl.useQuery(
-        { id: viewingDoc?.id || "" },
-        { enabled: !!viewingDoc }
-    );
+    const { data: allDocuments, isPending: isLoadingDocs } = trpc.document.list.useQuery({});
 
     const prepareUploadMutation = trpc.document.prepareUpload.useMutation();
 
@@ -40,8 +43,8 @@ export function DocumentosPage() {
 
     const updateMutation = trpc.document.update.useMutation({
         onSuccess: () => {
-            toast.success("Documento atualizado!");
-            utils.document.list.invalidate();
+            toast.success("Documento atualizado com sucesso!");
+            utils.document.invalidate();
             setSheetOpen(false);
             setEditingDoc(null);
         },
@@ -52,29 +55,23 @@ export function DocumentosPage() {
 
     const deleteMutation = trpc.document.delete.useMutation({
         onSuccess: () => {
-            toast.success("Documento removido permanentemente.");
-            utils.document.list.invalidate();
+            toast.success("Documento excluído com sucesso!");
+            utils.document.invalidate();
         },
         onError: (err) => {
             toast.error(`Erro ao excluir: ${err.message}`);
         },
     });
 
-    const allDocuments: DBGenericDocument[] = useMemo(() =>
-        (dbDocs || []).map((d) => ({
-            id: d.id,
-            title: d.title,
-            type: d.type,
-            isTemplate: d.isTemplate,
-            updatedAt: new Date(d.updatedAt),
-            content: d.content,
-            storageKey: d.storageKey,
-        })),
-        [dbDocs]
-    );
-
-    const documentos = useMemo(() => allDocuments.filter((d) => !d.isTemplate), [allDocuments]);
-    const modelos = useMemo(() => allDocuments.filter((d) => d.isTemplate), [allDocuments]);
+    const documentsByTab = useMemo(() => {
+        const documentos: GenericDocument[] = [];
+        const modelos: GenericDocument[] = [];
+        for (const doc of allDocuments ?? []) {
+            if (doc.isTemplate) modelos.push(doc);
+            else documentos.push(doc);
+        }
+        return { todos: allDocuments ?? [], documentos, modelos };
+    }, [allDocuments]);
 
     const handleSave = async (data: GenericDocumentFormValues) => {
         const { file, ...metadata } = data;
@@ -112,81 +109,33 @@ export function DocumentosPage() {
 
     const handleDelete = (id: string, title: string) => {
         if (window.confirm(`Deseja realmente excluir "${title}"? Esta ação não pode ser revertida.`)) {
-            deleteMutation.mutate(
-                { id },
-                {
-                    onSuccess: () => {
-                        if (viewingDoc?.id === id) setViewingDoc(null);
-                    },
-                }
-            );
+            deleteMutation.mutate({ id });
         }
     };
 
-    const handleDownload = () => {
-        const url = safeUrl(downloadData?.url || viewingDoc?.content, { allowPdfDataUrl: true });
-        if (!url || !viewingDoc) return;
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `${viewingDoc.title}.pdf`;
-        link.click();
+    const handleDownload = async (doc: GenericDocument) => {
+        try {
+            const data = await utils.document.getDownloadUrl.fetch({ id: doc.id });
+            const url = safeUrl(data?.url || doc.content, { allowPdfDataUrl: true });
+            if (!url) {
+                toast.error("Nenhum arquivo disponível para download.");
+                return;
+            }
+
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `${doc.title}.pdf`;
+            link.click();
+        } catch (error) {
+            logger.error("Erro ao baixar documento", error);
+            toast.error(`Erro ao baixar: ${error instanceof Error ? error.message : "tente novamente."}`);
+        }
     };
 
-    const handleDownloadDocument = async (doc: DBGenericDocument) => {
-        const data = await utils.document.getDownloadUrl.fetch({ id: doc.id });
-        const url = safeUrl(data?.url || doc.content, { allowPdfDataUrl: true });
-        if (!url) return;
-
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `${doc.title}.pdf`;
-        link.click();
+    const openEdit = (doc: GenericDocument) => {
+        setEditingDoc(doc);
+        setSheetOpen(true);
     };
-
-    if (viewingDoc) {
-        const viewerUrl = safeUrl(downloadData?.url || viewingDoc.content, { allowPdfDataUrl: true });
-        return (
-            <>
-                <AppHeader
-                    title={viewingDoc.title}
-                    description="Visualizando arquivo de armazenamento"
-                    icon={FileText}
-                    actions={
-                        <>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setViewingDoc(null)}
-                                className="gap-1.5"
-                            >
-                                <ArrowLeft className="size-4" />
-                                Voltar
-                            </Button>
-                            <Button
-                                size="sm"
-                                onClick={handleDownload}
-                                className="gap-1.5"
-                            >
-                                <Download className="size-4" />
-                                Baixar PDF
-                            </Button>
-                        </>
-                    }
-                />
-                {viewerUrl ? (
-                    <iframe
-                        src={`${viewerUrl}#toolbar=0`}
-                        className="w-full h-full border-none"
-                        title={viewingDoc.title}
-                    />
-                ) : (
-                    <div className="flex items-center justify-center h-full bg-muted/30 border rounded-lg border-dashed">
-                        <p className="text-muted-foreground">Nenhum conteúdo encontrado para este arquivo.</p>
-                    </div>
-                )}
-            </>
-        );
-    }
 
     return (
         <>
@@ -212,48 +161,29 @@ export function DocumentosPage() {
             />
 
             <div className="flex flex-1 flex-col gap-4 p-4 lg:p-6">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 space-y-4">
+                <Tabs
+                    value={activeTab}
+                    onValueChange={(value) => {
+                        if (isDocumentTab(value)) setActiveTab(value);
+                    }}
+                >
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <TabsList className="grid w-full max-w-2/6 grid-cols-3">
+                        <TabsList className="grid w-full max-w-xs grid-cols-3">
                             <TabsTrigger value="todos">Todos</TabsTrigger>
                             <TabsTrigger value="documentos">Documentos</TabsTrigger>
                             <TabsTrigger value="modelos">Modelos</TabsTrigger>
                         </TabsList>
                     </div>
-
-                    <TabsContent value="todos" className="outline-none">
-                        <GenericDocumentsTable
-                            isLoading={isLoadingDocs}
-                            documents={allDocuments}
-                            onViewDocument={(doc) => setViewingDoc(doc)}
-                            onDownloadDocument={handleDownloadDocument}
-                            onEditMetadata={(doc) => { setEditingDoc(doc); setSheetOpen(true); }}
-                            onDelete={handleDelete}
-                        />
-                    </TabsContent>
-
-                    <TabsContent value="documentos" className="outline-none">
-                        <GenericDocumentsTable
-                            isLoading={isLoadingDocs}
-                            documents={documentos}
-                            onViewDocument={(doc) => setViewingDoc(doc)}
-                            onDownloadDocument={handleDownloadDocument}
-                            onEditMetadata={(doc) => { setEditingDoc(doc); setSheetOpen(true); }}
-                            onDelete={handleDelete}
-                        />
-                    </TabsContent>
-
-                    <TabsContent value="modelos" className="outline-none">
-                        <GenericDocumentsTable
-                            isLoading={isLoadingDocs}
-                            documents={modelos}
-                            onViewDocument={(doc) => setViewingDoc(doc)}
-                            onDownloadDocument={handleDownloadDocument}
-                            onEditMetadata={(doc) => { setEditingDoc(doc); setSheetOpen(true); }}
-                            onDelete={handleDelete}
-                        />
-                    </TabsContent>
                 </Tabs>
+
+                <GenericDocumentsTable
+                    isLoading={isLoadingDocs}
+                    documents={documentsByTab[activeTab]}
+                    onOpen={(doc) => navigate(`/documentos/${doc.id}`)}
+                    onDownload={handleDownload}
+                    onEdit={openEdit}
+                    onDelete={handleDelete}
+                />
             </div>
 
             <AppSheet
