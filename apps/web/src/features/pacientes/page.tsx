@@ -4,7 +4,7 @@ import { AppHeader } from "@/components/layout/app-header";
 import { Button } from "@/components/ui/button";
 import { Users, Plus, UploadCloud, ArrowRight, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { NewPatientForm } from "./components/patient-form";
+import { NewPatientForm, type PatientFormValues } from "./components/patient-form";
 import { PatientsTable, type DBPatient } from "./components/patients-table";
 import { mapCsvRowsToPatients, PATIENT_CSV_FIELDS } from "./csv-import";
 import { CsvColumnMapper } from "@/components/csv-import/csv-column-mapper";
@@ -81,7 +81,7 @@ export function PacientesPage() {
         dataNascimento: editingRecord.dataNascimento ? new Date(editingRecord.dataNascimento) : null,
     };
 
-    const handleSavePatient = async (newPatient: any) => {
+    const handleSavePatient = async (newPatient: PatientFormValues) => {
         try {
             if (editingPatient) {
                 await updatePatientMutation.mutateAsync({ id: editingPatient.id, ...newPatient });
