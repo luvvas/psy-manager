@@ -1,9 +1,10 @@
 import { useEffect, useRef } from "react";
-import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useParams, useLocation, useNavigate } from "react-router-dom";
 import { trpc } from "@/lib/trpc";
 import { useWebRtcCall } from "./hooks/use-webrtc-call";
 import { ConsultaRoom } from "./components/consulta-room";
-import { Loader2 } from "lucide-react";
+import { Loader2, VideoOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const DEFAULT_ICE: RTCIceServer[] = [{ urls: "stun:stun.l.google.com:19302" }];
 
@@ -16,9 +17,9 @@ export function PsychologistPage() {
     const wsAuthToken = state?.wsAuthToken ?? "";
     const patientJoinUrl = state?.patientJoinUrl;
 
-    const { data: session, isLoading } = trpc.videoSession.get.useQuery(
+    const { data: session, isLoading, isError } = trpc.videoSession.get.useQuery(
         { id: sessionId! },
-        { enabled: !!sessionId }
+        { enabled: !!sessionId, retry: false }
     );
 
     const endMutation = trpc.videoSession.end.useMutation();
@@ -35,12 +36,6 @@ export function PsychologistPage() {
     const startedRef = useRef(false);
 
     useEffect(() => {
-        if (!wsAuthToken) {
-            navigate("/agendamento", { replace: true });
-        }
-    }, [wsAuthToken, navigate]);
-
-    useEffect(() => {
         if (session && wsAuthToken && !startedRef.current) {
             startedRef.current = true;
             startCall();
@@ -55,7 +50,12 @@ export function PsychologistPage() {
         navigate("/agendamento");
     };
 
+    // O token só existe no state da navegação vinda da agenda (F5 ou link direto o perdem).
     if (!wsAuthToken) {
+        return <Navigate to="/agendamento" replace />;
+    }
+
+    if (isLoading) {
         return (
             <div className="flex h-svh items-center justify-center">
                 <Loader2 className="size-8 animate-spin text-muted-foreground" />
@@ -63,10 +63,22 @@ export function PsychologistPage() {
         );
     }
 
-    if (isLoading) {
+    // Sem isto a sala abria com status "idle" e uma tela escura sem mensagem.
+    if (isError || !session) {
         return (
-            <div className="flex h-svh items-center justify-center">
-                <Loader2 className="size-8 animate-spin text-muted-foreground" />
+            <div className="flex h-svh flex-col items-center justify-center gap-4 p-6 text-center">
+                <div className="flex size-16 items-center justify-center rounded-2xl bg-muted">
+                    <VideoOff className="size-8 text-muted-foreground" />
+                </div>
+                <div className="space-y-1">
+                    <h1 className="text-lg font-semibold">Sessão não encontrada</h1>
+                    <p className="text-sm text-muted-foreground">
+                        A videochamada expirou ou não existe mais. Inicie uma nova pela agenda.
+                    </p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => navigate("/agendamento")}>
+                    Voltar à agenda
+                </Button>
             </div>
         );
     }

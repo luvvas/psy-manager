@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from "react";
+import { logger } from "@/lib/logger";
 
 export type CallStatus = "idle" | "connecting" | "waiting" | "active" | "ended" | "error";
 
@@ -64,7 +65,15 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
     }, [stopLocalTracks]);
 
     const startCall = useCallback(async () => {
-        if (statusRef.current !== "idle") return;
+        // Bloqueia só enquanto há chamada em curso: depois de "ended"/"error" dá para
+        // entrar de novo (ex.: paciente que saiu e voltou do lobby).
+        const current = statusRef.current;
+        if (current === "connecting" || current === "waiting" || current === "active") return;
+        // "peer_left" encerra sem fechar conexão e socket; não deixar restos da anterior.
+        pcRef.current?.close();
+        pcRef.current = null;
+        wsRef.current?.close();
+        wsRef.current = null;
         updateStatus("connecting");
         setErrorMessage(undefined);
         iceCandidateQueue.current = [];
@@ -119,7 +128,7 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
             updateStatus("waiting");
         };
 
-        ws.onmessage = async (e: MessageEvent) => {
+        const handleSignal = async (e: MessageEvent) => {
             const msg = JSON.parse(e.data as string) as { type: string; [k: string]: unknown };
 
             if (msg.type === "ready" && role === "psychologist") {
@@ -163,6 +172,17 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
             }
         };
 
+        ws.onmessage = async (e: MessageEvent) => {
+            try {
+                await handleSignal(e);
+            } catch (err) {
+                // Sem isto a promise rejeitava em silêncio e a tela ficava em "aguardando".
+                logger.error("Erro na sinalização da chamada", err);
+                updateStatus("error");
+                setErrorMessage("Falha ao conectar a chamada. Tente entrar novamente.");
+            }
+        };
+
         ws.onerror = () => {
             stopLocalTracks();
             pcRef.current?.close();
@@ -178,7 +198,7 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
                 updateStatus("ended");
             }
         };
-    }, [sessionId, role, joinToken, iceServers, sendWs]);
+    }, [sessionId, role, joinToken, iceServers, sendWs, stopLocalTracks]);
 
     // Cleanup on unmount
     useEffect(() => {
