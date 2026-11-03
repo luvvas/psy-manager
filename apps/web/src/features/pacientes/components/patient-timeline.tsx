@@ -38,16 +38,16 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
     const finalizeMutation = trpc.clinicalRecord.finalize.useMutation({
         onSuccess: () => {
             toast.success("Registro finalizado e assinado!");
-            utils.clinicalRecord.list.invalidate({ patientId });
+            utils.clinicalRecord.invalidate();
         },
         onError: (err) => {
             toast.error(`Erro ao finalizar: ${err.message}`);
         },
     });
 
-    const handleFinalize = async (id: string, title: string) => {
-        if (confirm(`Tem certeza que deseja FINALIZAR "${title}"? \nUma vez finalizado, este prontuário não poderá ser editado ou excluído.`)) {
-            await finalizeMutation.mutateAsync({ id });
+    const handleFinalize = (id: string, title: string) => {
+        if (window.confirm(`Tem certeza que deseja FINALIZAR "${title}"? \nUma vez finalizado, este prontuário não poderá ser editado ou excluído.`)) {
+            finalizeMutation.mutate({ id });
         }
     };
 

@@ -40,13 +40,15 @@ export function InicioPage() {
 
     const now = useMemo(() => new Date(), []);
     const todayKey = format(now, "yyyy-MM-dd");
-    const monthRange = useMemo(() => ({ startDate: startOfMonth(now), endDate: endOfMonth(now) }), [now]);
 
-    const { data: dbAppointments } = trpc.appointment.list.useQuery();
-    const { data: dbPatients } = trpc.patient.list.useQuery();
-    const { data: dbTransactions } = trpc.financial.list.useQuery(monthRange);
-    const { data: dbAllTransactions } = trpc.financial.list.useQuery();
-    const { data: dbRecords } = trpc.clinicalRecord.list.useQuery();
+    const appointmentsQuery = trpc.appointment.list.useQuery();
+    const patientsQuery = trpc.patient.list.useQuery();
+    const transactionsQuery = trpc.financial.list.useQuery();
+    const recordsQuery = trpc.clinicalRecord.list.useQuery();
+    const dbAppointments = appointmentsQuery.data;
+    const dbPatients = patientsQuery.data;
+    const dbAllTransactions = transactionsQuery.data;
+    const dbRecords = recordsQuery.data;
 
     const myId = session?.user?.id;
     const sessions: HomeSession[] = useMemo(
@@ -78,9 +80,12 @@ export function InicioPage() {
         .sort((a, b) => a.dayKey.localeCompare(b.dayKey) || a.startTime.localeCompare(b.startTime))
         .slice(0, MAX_UPCOMING);
 
-    const monthIncome = (dbTransactions ?? [])
-        .filter((t) => t.type === "income")
-        .reduce((acc, t) => acc + Number(t.amount), 0);
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+    let monthIncome = 0;
+    for (const t of dbAllTransactions ?? []) {
+        if (t.type === "income" && t.date >= monthStart && t.date <= monthEnd) monthIncome += Number(t.amount);
+    }
 
     const today = useMemo(() => startOfDay(now), [now]);
 
@@ -160,11 +165,12 @@ export function InicioPage() {
                     sessionsWeek={sessionsWeek}
                     patientCount={dbPatients?.length ?? 0}
                     monthIncome={monthIncome}
+                    isLoading={appointmentsQuery.isPending || patientsQuery.isPending || transactionsQuery.isPending}
                 />
 
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                     <div className="lg:col-span-2">
-                        <UpcomingSessions sessions={upcoming} todayKey={todayKey} />
+                        <UpcomingSessions sessions={upcoming} todayKey={todayKey} isLoading={appointmentsQuery.isPending} />
                     </div>
                     <div className="lg:col-span-1">
                         <QuickLinks />
@@ -175,15 +181,18 @@ export function InicioPage() {
                     <Birthdays
                         birthdays={allBirthdays.slice(0, MAX_PER_PANEL)}
                         hiddenCount={allBirthdays.length - MAX_PER_PANEL}
+                        isLoading={patientsQuery.isPending}
                     />
                     <PendingPayments
                         payments={allPending.slice(0, MAX_PER_PANEL)}
                         hiddenCount={allPending.length - MAX_PER_PANEL}
                         totalToReceive={totalToReceive}
+                        isLoading={transactionsQuery.isPending}
                     />
                     <UnsignedRecords
                         records={allUnsigned.slice(0, MAX_PER_PANEL)}
                         hiddenCount={allUnsigned.length - MAX_PER_PANEL}
+                        isLoading={recordsQuery.isPending}
                     />
                 </div>
             </div>

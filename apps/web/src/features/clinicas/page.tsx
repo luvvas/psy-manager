@@ -13,15 +13,19 @@ export function ClinicasPage() {
     const [isSheetOpen, setSheetOpen] = useState(false);
     const [editingClinic, setEditingClinic] = useState<Clinic | null>(null);
 
-    const { data: dbClinics, isPending, refetch } = trpc.clinic.list.useQuery();
+    const { data: dbClinics, isPending } = trpc.clinic.list.useQuery();
+    const utils = trpc.useUtils();
+    const invalidateClinicData = () => {
+        utils.clinic.invalidate();
+        utils.appointment.invalidate();
+    };
 
-    const { data: invites, refetch: refetchInvites } = trpc.clinic.listInvites.useQuery();
+    const { data: invites } = trpc.clinic.listInvites.useQuery();
 
     const acceptInviteMutation = trpc.clinic.acceptInvite.useMutation({
         onSuccess: () => {
             toast.success("Convite aceito. A clínica foi adicionada à sua lista.");
-            refetch();
-            refetchInvites();
+            invalidateClinicData();
         },
         onError: (err) => toast.error(err.message),
     });
@@ -29,7 +33,7 @@ export function ClinicasPage() {
     const declineInviteMutation = trpc.clinic.declineInvite.useMutation({
         onSuccess: () => {
             toast.success("Convite recusado.");
-            refetchInvites();
+            invalidateClinicData();
         },
         onError: (err) => toast.error(err.message),
     });
@@ -37,7 +41,7 @@ export function ClinicasPage() {
     const leaveMutation = trpc.clinic.leave.useMutation({
         onSuccess: () => {
             toast.success("Você saiu da clínica.");
-            refetch();
+            invalidateClinicData();
         },
         onError: (err) => toast.error(err.message),
     });
@@ -45,7 +49,7 @@ export function ClinicasPage() {
     const createMutation = trpc.clinic.create.useMutation({
         onSuccess: () => {
             toast.success("Clínica cadastrada com sucesso!");
-            refetch();
+            invalidateClinicData();
         },
         onError: (err) => {
             toast.error(`Erro ao cadastrar clínica: ${err.message}`);
@@ -55,7 +59,7 @@ export function ClinicasPage() {
     const updateMutation = trpc.clinic.update.useMutation({
         onSuccess: () => {
             toast.success("Clínica atualizada com sucesso!");
-            refetch();
+            invalidateClinicData();
         },
         onError: (err) => {
             toast.error(`Erro ao atualizar clínica: ${err.message}`);
@@ -65,7 +69,7 @@ export function ClinicasPage() {
     const deleteMutation = trpc.clinic.delete.useMutation({
         onSuccess: () => {
             toast.success("Clínica excluída com sucesso!");
-            refetch();
+            invalidateClinicData();
         },
         onError: (err) => {
             toast.error(`Erro ao excluir clínica: ${err.message}`);
@@ -74,13 +78,13 @@ export function ClinicasPage() {
 
     const linkMutation = trpc.clinic.linkPsychologist.useMutation({
         onSuccess: () => {
-            refetch();
+            invalidateClinicData();
         },
     });
 
     const unlinkMutation = trpc.clinic.unlinkPsychologist.useMutation({
         onSuccess: () => {
-            refetch();
+            invalidateClinicData();
         },
     });
 

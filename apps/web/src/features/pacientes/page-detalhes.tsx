@@ -26,7 +26,7 @@ export function PatientDetailsPage() {
     const createMutation = trpc.clinicalRecord.create.useMutation({
         onSuccess: () => {
             toast.success("Registro criado com sucesso!");
-            utils.clinicalRecord.list.invalidate({ patientId: id });
+            utils.clinicalRecord.invalidate();
             setSheetOpen(false);
         },
         onError: (err) => {

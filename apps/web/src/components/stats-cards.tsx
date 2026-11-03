@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { LucideIcon } from "lucide-react";
 
 export interface StatItem {
@@ -10,9 +11,10 @@ export interface StatItem {
 
 export interface StatsCardsProps {
     items: StatItem[];
+    isLoading?: boolean;
 }
 
-export function StatsCards({ items }: StatsCardsProps) {
+export function StatsCards({ items, isLoading = false }: StatsCardsProps) {
     return (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {items.map((stat) => (
@@ -24,7 +26,11 @@ export function StatsCards({ items }: StatsCardsProps) {
                             <stat.icon className="size-5" />
                         </div>
                         <div className="min-w-0">
-                            <p className="text-2xl font-bold tracking-tight truncate">{stat.value}</p>
+                            {isLoading ? (
+                                <Skeleton className="h-8 w-12 my-0.5" />
+                            ) : (
+                                <p className="text-2xl font-bold tracking-tight truncate">{stat.value}</p>
+                            )}
                             <p className="text-xs text-muted-foreground truncate">
                                 {stat.label}
                             </p>

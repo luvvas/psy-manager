@@ -18,7 +18,7 @@ export function DocumentosPage() {
     const [activeTab, setActiveTab] = useState("todos");
     const utils = trpc.useUtils();
 
-    const { data: dbDocs } = trpc.document.list.useQuery({});
+    const { data: dbDocs, isPending: isLoadingDocs } = trpc.document.list.useQuery({});
 
     const { data: downloadData } = trpc.document.getDownloadUrl.useQuery(
         { id: viewingDoc?.id || "" },
@@ -110,12 +110,16 @@ export function DocumentosPage() {
         }
     };
 
-    const handleDelete = async (id: string, title: string) => {
-        if (confirm(`Tem certeza que deseja excluir permanentemente "${title}"? Esta ação não pode ser revertida.`)) {
-            await deleteMutation.mutateAsync({ id });
-            if (viewingDoc?.id === id) {
-                setViewingDoc(null);
-            }
+    const handleDelete = (id: string, title: string) => {
+        if (window.confirm(`Deseja realmente excluir "${title}"? Esta ação não pode ser revertida.`)) {
+            deleteMutation.mutate(
+                { id },
+                {
+                    onSuccess: () => {
+                        if (viewingDoc?.id === id) setViewingDoc(null);
+                    },
+                }
+            );
         }
     };
 
@@ -219,6 +223,7 @@ export function DocumentosPage() {
 
                     <TabsContent value="todos" className="outline-none">
                         <GenericDocumentsTable
+                            isLoading={isLoadingDocs}
                             documents={allDocuments}
                             onViewDocument={(doc) => setViewingDoc(doc)}
                             onDownloadDocument={handleDownloadDocument}
@@ -229,6 +234,7 @@ export function DocumentosPage() {
 
                     <TabsContent value="documentos" className="outline-none">
                         <GenericDocumentsTable
+                            isLoading={isLoadingDocs}
                             documents={documentos}
                             onViewDocument={(doc) => setViewingDoc(doc)}
                             onDownloadDocument={handleDownloadDocument}
@@ -239,6 +245,7 @@ export function DocumentosPage() {
 
                     <TabsContent value="modelos" className="outline-none">
                         <GenericDocumentsTable
+                            isLoading={isLoadingDocs}
                             documents={modelos}
                             onViewDocument={(doc) => setViewingDoc(doc)}
                             onDownloadDocument={handleDownloadDocument}

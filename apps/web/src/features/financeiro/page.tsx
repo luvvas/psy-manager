@@ -23,10 +23,19 @@ import { formatCurrency, getErrorMessage } from "@/utils/format";
 import type { Transaction, TransactionInput, TransactionTypeFilter } from "./types";
 
 export function FinanceiroPage() {
-    const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(() => ({
         from: startOfMonth(new Date()),
         to: endOfMonth(new Date()),
-    });
+    }));
+    const [queryRange, setQueryRange] = useState(() => ({
+        startDate: startOfMonth(new Date()) as Date | undefined,
+        endDate: endOfMonth(new Date()) as Date | undefined,
+    }));
+    const handleDateRangeChange = (range: DateRange | undefined) => {
+        setDateRange(range);
+        if (!range) setQueryRange({ startDate: undefined, endDate: undefined });
+        else if (range.from && range.to) setQueryRange({ startDate: range.from, endDate: range.to });
+    };
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
     const [activeTab, setActiveTab] = useState("resumo");
@@ -35,15 +44,15 @@ export function FinanceiroPage() {
     const csv = useCsvImport(TRANSACTION_CSV_FIELDS);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const { data: txList, refetch } = trpc.financial.list.useQuery({
-        startDate: dateRange?.from,
-        endDate: dateRange?.to,
+    const utils = trpc.useUtils();
+    const { data: txList, isPending: isLoadingTransactions } = trpc.financial.list.useQuery(queryRange, {
+        placeholderData: (previous) => previous,
     });
 
     const createMutation = trpc.financial.create.useMutation({
         onSuccess: () => {
             toast.success("Transação registrada com sucesso!");
-            refetch();
+            utils.financial.invalidate();
             closeSheet();
         },
         onError: (err) => toast.error(`Erro: ${err.message}`),
@@ -52,7 +61,7 @@ export function FinanceiroPage() {
     const updateMutation = trpc.financial.update.useMutation({
         onSuccess: () => {
             toast.success("Transação atualizada!");
-            refetch();
+            utils.financial.invalidate();
             closeSheet();
         },
         onError: (err) => toast.error(`Erro: ${err.message}`),
@@ -61,7 +70,7 @@ export function FinanceiroPage() {
     const deleteMutation = trpc.financial.delete.useMutation({
         onSuccess: () => {
             toast.success("Transação excluída com sucesso!");
-            refetch();
+            utils.financial.invalidate();
         },
         onError: (err) => toast.error(`Erro ao excluir: ${err.message}`),
     });
@@ -127,7 +136,7 @@ export function FinanceiroPage() {
 
     const handleImportComplete = () => {
         csv.reset();
-        refetch();
+        utils.financial.invalidate();
         setActiveTab("resumo");
     };
 
@@ -143,7 +152,7 @@ export function FinanceiroPage() {
                 icon={DollarSign}
                 actions={
                     <div className="flex items-center gap-2">
-                        <DateRangePicker date={dateRange} setDate={setDateRange} />
+                        <DateRangePicker date={dateRange} setDate={handleDateRangeChange} />
 
                         <input
                             type="file"
@@ -176,7 +185,7 @@ export function FinanceiroPage() {
             />
 
             <div className="flex flex-1 flex-col gap-4 p-4 lg:p-6">
-                <StatsCards transactions={allTransactions} />
+                <StatsCards transactions={allTransactions} isLoading={isLoadingTransactions} />
 
                 <Tabs
                     value={activeTab}
@@ -278,6 +287,7 @@ export function FinanceiroPage() {
 
                     <TabsContent value="receitas" className="space-y-4 outline-none">
                         <TransactionsTable
+                            isLoading={isLoadingTransactions}
                             data={incomes}
                             type="income"
                             onEdit={openSheet}
@@ -287,6 +297,7 @@ export function FinanceiroPage() {
 
                     <TabsContent value="despesas" className="space-y-4 outline-none">
                         <TransactionsTable
+                            isLoading={isLoadingTransactions}
                             data={expenses}
                             type="expense"
                             onEdit={openSheet}

@@ -11,6 +11,7 @@ export interface HomeBirthday {
 }
 
 interface BirthdaysProps {
+    isLoading?: boolean;
     birthdays: HomeBirthday[];
     hiddenCount: number;
 }
@@ -21,9 +22,10 @@ function whenLabel(daysUntil: number, dayMonth: string) {
     return dayMonth;
 }
 
-export function Birthdays({ birthdays, hiddenCount }: BirthdaysProps) {
+export function Birthdays({ birthdays, hiddenCount, isLoading }: BirthdaysProps) {
     return (
         <HomePanel
+            isLoading={isLoading}
             title="Aniversariantes"
             description="Pacientes que fazem aniversário nos próximos 30 dias."
             isEmpty={birthdays.length === 0}

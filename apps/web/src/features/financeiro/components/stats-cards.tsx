@@ -11,10 +11,11 @@ export interface FinancialTransaction {
 }
 
 interface StatsCardsProps {
+    isLoading?: boolean;
     transactions: FinancialTransaction[];
 }
 
-export function StatsCards({ transactions }: StatsCardsProps) {
+export function StatsCards({ transactions, isLoading }: StatsCardsProps) {
     const income = transactions
         .filter((t) => t.type === "income")
         .reduce((acc, curr) => acc + Number(curr.amount), 0);
@@ -52,5 +53,5 @@ export function StatsCards({ transactions }: StatsCardsProps) {
         },
     ];
 
-    return <GenericStatsCards items={stats} />;
+    return <GenericStatsCards items={stats} isLoading={isLoading} />;
 }

@@ -17,6 +17,7 @@ export interface DBGenericDocument {
 
 interface GenericDocumentsTableProps {
     documents: DBGenericDocument[];
+    isLoading?: boolean;
     onViewDocument: (doc: DBGenericDocument) => void;
     onDownloadDocument: (doc: DBGenericDocument) => void;
     onEditMetadata: (doc: DBGenericDocument) => void;
@@ -31,7 +32,7 @@ const TYPE_LABELS: Record<string, string> = {
     outro: "Outro",
 };
 
-export function GenericDocumentsTable({ documents, onViewDocument, onDownloadDocument, onEditMetadata, onDelete }: GenericDocumentsTableProps) {
+export function GenericDocumentsTable({ documents, isLoading, onViewDocument, onDownloadDocument, onEditMetadata, onDelete }: GenericDocumentsTableProps) {
     const columns: DataTableColumn<DBGenericDocument>[] = [
         {
             header: "Documento",
@@ -121,6 +122,7 @@ export function GenericDocumentsTable({ documents, onViewDocument, onDownloadDoc
     return (
         <DataTable
             data={documents}
+            isLoading={isLoading}
             columns={columns}
             searchPlaceholder="Buscar por título..."
             searchFilter={(doc, q) => doc.title.toLowerCase().includes(q.toLowerCase())}

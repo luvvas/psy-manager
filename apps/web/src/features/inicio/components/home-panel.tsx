@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface HomePanelProps {
     title: string;
@@ -8,10 +9,11 @@ interface HomePanelProps {
     action?: { label: string; to: string };
     empty?: { icon: LucideIcon; title: string; description: string };
     isEmpty?: boolean;
+    isLoading?: boolean;
     children?: React.ReactNode;
 }
 
-export function HomePanel({ title, description, action, empty, isEmpty, children }: HomePanelProps) {
+export function HomePanel({ title, description, action, empty, isEmpty, isLoading = false, children }: HomePanelProps) {
     const EmptyIcon = empty?.icon;
 
     return (
@@ -31,7 +33,13 @@ export function HomePanel({ title, description, action, empty, isEmpty, children
                 )}
             </div>
 
-            {isEmpty && empty && EmptyIcon ? (
+            {isLoading ? (
+                <div className="flex flex-col gap-3 p-4">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-2/3" />
+                </div>
+            ) : isEmpty && empty && EmptyIcon ? (
                 <div className="m-4 flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed bg-muted/10 px-4 py-8 text-center">
                     <EmptyIcon className="mb-3 size-10 text-muted-foreground opacity-20" />
                     <h3 className="font-medium">{empty.title}</h3>

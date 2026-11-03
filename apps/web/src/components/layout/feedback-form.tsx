@@ -121,7 +121,10 @@ export default function FeedbackForm({ onClose }: FeedbackFormProps) {
     }, []);
 
     const onSubmit = async (data: FeedbackFormValues) => {
-        await submit.mutateAsync({ ...data, page: location.pathname });
+        try {
+            await submit.mutateAsync({ ...data, page: location.pathname });
+        } catch {
+        }
     };
 
     return (

@@ -23,12 +23,18 @@ export function PacientesPage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const navigate = useNavigate();
 
-    const { data: dbPatients, isPending, refetch } = trpc.patient.list.useQuery();
+    const { data: dbPatients, isPending } = trpc.patient.list.useQuery();
+    const utils = trpc.useUtils();
+    const invalidatePatientData = () => {
+        utils.patient.invalidate();
+        utils.appointment.invalidate();
+        utils.financial.invalidate();
+    };
 
     const createPatientMutation = trpc.patient.create.useMutation({
         onSuccess: () => {
             toast.success("Paciente cadastrado com sucesso!");
-            refetch();
+            utils.patient.invalidate();
         },
         onError: (err) => toast.error(`Erro ao cadastrar: ${err.message}`),
     });
@@ -36,7 +42,7 @@ export function PacientesPage() {
     const updatePatientMutation = trpc.patient.update.useMutation({
         onSuccess: () => {
             toast.success("Paciente atualizado com sucesso!");
-            refetch();
+            invalidatePatientData();
         },
         onError: (err) => toast.error(`Erro ao atualizar: ${err.message}`),
     });
@@ -44,7 +50,7 @@ export function PacientesPage() {
     const deletePatientMutation = trpc.patient.delete.useMutation({
         onSuccess: () => {
             toast.success("Paciente excluído com sucesso!");
-            refetch();
+            invalidatePatientData();
         },
         onError: (err) => toast.error(`Erro ao excluir: ${err.message}`),
     });
@@ -53,7 +59,7 @@ export function PacientesPage() {
         onSuccess: (data) => {
             toast.success(`${data.count} paciente(s) importado(s) com sucesso!`);
             csv.reset();
-            refetch();
+            utils.patient.invalidate();
             setActiveTab("lista");
         },
         onError: (err) => toast.error(`Erro ao importar: ${err.message}`),

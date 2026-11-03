@@ -12,6 +12,7 @@ import { AppSheet } from "@/components/layout/app-sheet";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
+import { getErrorMessage } from "@/utils/format";
 import { type Appointment, type AppointmentStatus } from "./types";
 import { useSession } from "@/lib/auth-client";
 
@@ -73,12 +74,13 @@ export function AgendamentoPage() {
         return editingAppointment.psychologistId !== session.user.id;
     }, [editingAppointment, session]);
 
-    const { data: dbAppointments, refetch } = trpc.appointment.list.useQuery();
+    const { data: dbAppointments, isPending: isLoadingAppointments } = trpc.appointment.list.useQuery();
+    const utils = trpc.useUtils();
 
     const createMutation = trpc.appointment.create.useMutation({
         onSuccess: () => {
             toast.success("Agendamento criado com sucesso!");
-            refetch();
+            utils.appointment.invalidate();
         },
         onError: (err) => {
             toast.error(`Erro ao criar: ${err.message}`);
@@ -88,7 +90,7 @@ export function AgendamentoPage() {
     const updateMutation = trpc.appointment.update.useMutation({
         onSuccess: () => {
             toast.success("Agendamento atualizado com sucesso!");
-            refetch();
+            utils.appointment.invalidate();
         },
         onError: (err) => {
             toast.error(`Erro ao atualizar: ${err.message}`);
@@ -98,7 +100,7 @@ export function AgendamentoPage() {
     const deleteMutation = trpc.appointment.delete.useMutation({
         onSuccess: () => {
             toast.success("Agendamento excluído com sucesso!");
-            refetch();
+            utils.appointment.invalidate();
         },
         onError: (err) => {
             toast.error(`Erro ao excluir: ${err.message}`);
@@ -106,19 +108,28 @@ export function AgendamentoPage() {
     });
 
     const { data: isConnectedGoogle } = trpc.appointment.isConnectedGoogle.useQuery();
-    const { data: googleAuthUrlData } = trpc.appointment.getGoogleAuthUrl.useQuery();
-    const [isSyncing, setIsSyncing] = useState(false);
     const syncGoogleMutation = trpc.appointment.syncGoogle.useMutation({
         onSuccess: (data) => {
             toast.success(`Google Agenda sincronizado! Importados: ${data.imported}, Ignorados: ${data.skipped}`);
-            refetch();
-            setIsSyncing(false);
+            utils.appointment.invalidate();
         },
         onError: (err) => {
             toast.error(`Erro ao sincronizar: ${err.message}`);
-            setIsSyncing(false);
         },
     });
+    const isSyncing = syncGoogleMutation.isPending;
+    const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
+    const connectGoogle = async () => {
+        setIsConnectingGoogle(true);
+        try {
+            const { url } = await utils.appointment.getGoogleAuthUrl.fetch();
+            window.location.href = url;
+        } catch (err) {
+            logger.error("Erro ao conectar o Google Agenda", err);
+            toast.error(`Erro ao conectar o Google Agenda: ${getErrorMessage(err)}`);
+            setIsConnectingGoogle(false);
+        }
+    };
 
     const mappedAppointments: Appointment[] = useMemo(() => {
         return (dbAppointments || []).map((app) => {
@@ -303,10 +314,7 @@ export function AgendamentoPage() {
                             <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => {
-                                    setIsSyncing(true);
-                                    syncGoogleMutation.mutate();
-                                }}
+                                onClick={() => syncGoogleMutation.mutate()}
                                 disabled={isSyncing}
                                 className="gap-1.5"
                                 id="btn-sync-google"
@@ -315,20 +323,19 @@ export function AgendamentoPage() {
                                 {isSyncing ? "Sincronizando..." : "Sincronizar Agenda"}
                             </Button>
                         ) : (
-                            googleAuthUrlData?.url && (
+                            isConnectedGoogle === false ? (
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => {
-                                        window.location.href = googleAuthUrlData.url;
-                                    }}
+                                    onClick={connectGoogle}
+                                    disabled={isConnectingGoogle}
                                     className="gap-1.5"
                                     id="btn-connect-google"
                                 >
-                                    <RefreshCw className="size-4" />
+                                    <RefreshCw className={`size-4 ${isConnectingGoogle ? "animate-spin" : ""}`} />
                                     Conectar Agenda do Google
                                 </Button>
-                            )
+                            ) : null
                         )}
                         <Button
                             size="sm"
@@ -409,7 +416,7 @@ export function AgendamentoPage() {
             />
 
             <div className="flex flex-col flex-1 min-h-0 gap-4 p-4 lg:p-6 overflow-hidden" onClick={handleCalendarClick}>
-                <StatsCards appointments={myAppointments} selectedDate={selectedDate} />
+                <StatsCards appointments={myAppointments} selectedDate={selectedDate} isLoading={isLoadingAppointments} />
 
                 <CalendarDashboard
                     view={view}

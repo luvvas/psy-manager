@@ -7,6 +7,7 @@ import type { Transaction } from "../types";
 
 interface TransactionsTableProps {
     data: Transaction[];
+    isLoading?: boolean;
     type: "income" | "expense" | "all";
     onEdit: (transaction: Transaction) => void;
     onDelete: (id: string, description: string) => void;
@@ -14,7 +15,7 @@ interface TransactionsTableProps {
 
 const TX_DATE = new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" });
 
-export function TransactionsTable({ data, type, onEdit, onDelete }: TransactionsTableProps) {
+export function TransactionsTable({ data, isLoading, type, onEdit, onDelete }: TransactionsTableProps) {
     const columns: DataTableColumn<Transaction>[] = [
         {
             header: "Data",
@@ -124,6 +125,7 @@ export function TransactionsTable({ data, type, onEdit, onDelete }: Transactions
     return (
         <DataTable
             data={data}
+            isLoading={isLoading}
             columns={columns}
             searchPlaceholder={placeholders.search}
             searchFilter={(row, term) => row.description.toLowerCase().includes(term.toLowerCase())}

@@ -15,14 +15,16 @@ export interface HomePendingPayment {
 }
 
 interface PendingPaymentsProps {
+    isLoading?: boolean;
     payments: HomePendingPayment[];
     hiddenCount: number;
     totalToReceive: number;
 }
 
-export function PendingPayments({ payments, hiddenCount, totalToReceive }: PendingPaymentsProps) {
+export function PendingPayments({ payments, hiddenCount, totalToReceive, isLoading }: PendingPaymentsProps) {
     return (
         <HomePanel
+            isLoading={isLoading}
             title="Pagamentos pendentes"
             description={`${formatCurrency(totalToReceive)} a receber no total.`}
             action={{ label: "Ver todos", to: "/financeiro" }}
