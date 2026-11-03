@@ -3,17 +3,6 @@ import { db } from "../../db";
 import { patient } from "../../db/schema";
 import { decryptField } from "../../lib/encryption";
 
-/**
- * Patient Queries (Read-only side of CQRS)
- * Queries read directly from the high-performance relational Projection tables (not replaying events),
- * fulfilling the main performance benefit of CQRS.
- */
-
-/**
- * Decrypts the subset of patient fields that appear in join-query selections
- * (nome, email, telefone). Use this in any query that joins with the patient
- * table and selects only a summary — so encrypted fields are never forgotten.
- */
 export function decryptPatientSummary<T extends { nome: string | null; email: string | null; telefone: string | null }>(row: T): T {
     return {
         ...row,
@@ -23,14 +12,16 @@ export function decryptPatientSummary<T extends { nome: string | null; email: st
     };
 }
 
-function decryptPatient<T extends Record<string, any>>(row: T): T {
-    const decryptedDate = decryptField(row.dataNascimento as string);
+type PatientRow = typeof patient.$inferSelect;
+
+function decryptPatient(row: PatientRow): Omit<PatientRow, "dataNascimento"> & { dataNascimento: Date | null } {
+    const decryptedDate = decryptField(row.dataNascimento);
     return {
         ...row,
         nome: decryptField(row.nome),
         email: decryptField(row.email),
         telefone: decryptField(row.telefone),
-        dataNascimento: (decryptedDate ? new Date(decryptedDate) : row.dataNascimento) as T[keyof T],
+        dataNascimento: decryptedDate ? new Date(decryptedDate) : null,
         cpf: decryptField(row.cpf),
         rg: decryptField(row.rg),
         nomeSocial: decryptField(row.nomeSocial),

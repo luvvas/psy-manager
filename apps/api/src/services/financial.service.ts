@@ -1,6 +1,6 @@
 import { eq, and, between, desc } from "drizzle-orm";
 import { db } from "../db";
-import { financialTransaction, patient } from "../db/schema";
+import { financialTransaction, patient, type TransactionStatus, type TransactionType } from "../db/schema";
 import { encryptField, decryptField } from "../lib/encryption";
 
 export const financialService = {
@@ -20,8 +20,6 @@ export const financialService = {
                 patientNome: patient.nome,
             })
             .from(financialTransaction)
-            // The psychologistId check on the join keeps a row that points at
-            // someone else's patient from returning that patient's name (#36).
             .leftJoin(
                 patient,
                 and(eq(financialTransaction.patientId, patient.id), eq(patient.psychologistId, psychologistId))
@@ -47,13 +45,13 @@ export const financialService = {
     async create(
         psychologistId: string,
         data: {
-            type: string;
+            type: TransactionType;
             description: string;
             amount: string | number;
             date: Date;
             category?: string | null;
             patientId?: string | null;
-            status?: string;
+            status?: TransactionStatus;
         }
     ) {
         const id = crypto.randomUUID();
@@ -78,12 +76,12 @@ export const financialService = {
     async createMany(
         psychologistId: string,
         items: Array<{
-            type: string;
+            type: TransactionType;
             description: string;
             amount: string | number;
             date: Date;
             category?: string | null;
-            status?: string;
+            status?: TransactionStatus;
         }>
     ) {
         const values = items.map(item => ({
@@ -111,13 +109,13 @@ export const financialService = {
         psychologistId: string,
         id: string,
         data: {
-            type?: string;
+            type?: TransactionType;
             description?: string;
             amount?: string | number;
             date?: Date;
             category?: string | null;
             patientId?: string | null;
-            status?: string;
+            status?: TransactionStatus;
         }
     ) {
         const [updatedTx] = await db

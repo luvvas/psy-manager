@@ -13,7 +13,6 @@ export const appointmentQueries = {
 
         const clinicIds = psychologistClinics.map((c) => c.clinicId);
 
-        // Own appointments — full data including patient PII
         const ownRows = await db
             .select({
                 id: appointment.id,
@@ -65,11 +64,6 @@ export const appointmentQueries = {
             return ownAppointments;
         }
 
-        // Sessões de colegas: só as que ocupam uma sala das minhas clínicas. A agenda
-        // compartilhada existe para coordenar o uso das salas; sessão online de casa
-        // ou em consultório próprio não interessa à clínica e não deve aparecer.
-        // Vale também para quem já saiu da clínica: a sala marcada continua ocupada.
-        // Só dados do horário — dados do paciente nunca atravessam a fronteira de dono.
         const sharedRows = await db
             .select({
                 id: appointment.id,

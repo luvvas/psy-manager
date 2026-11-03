@@ -1,32 +1,15 @@
-import { Button } from "@/components/ui/button";
 import {
     Tooltip,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
-import { useSession } from "@/lib/auth-client";
-import { trpc } from "@/lib/trpc";
-import { Clock, DoorOpen, ExternalLink, Loader2, Repeat, Video } from "lucide-react";
-import { toast } from "sonner";
-import { safeUrl } from "@/utils/safe-url";
-import { useNavigate } from "react-router-dom";
+import { Clock, DoorOpen, Repeat } from "lucide-react";
 import type { Appointment } from "../types";
 import { APPOINTMENT_TYPE_LABELS } from "../types";
+import { isVideoCallAvailable } from "../lib/time";
 import { StatusBadge } from "./status-badge";
+import { VideoCallButton } from "./video-call-button";
 import { cn } from "@/lib/utils";
-
-function isVideoCallAvailable(date: Date, startTime: string, endTime: string): boolean {
-    const now = new Date();
-    const [sh, sm] = startTime.split(":").map(Number);
-    const [eh, em] = endTime.split(":").map(Number);
-    const windowStart = new Date(date);
-    windowStart.setHours(sh, sm, 0, 0);
-    windowStart.setMinutes(windowStart.getMinutes() - 15);
-    const windowEnd = new Date(date);
-    windowEnd.setHours(eh, em, 0, 0);
-    windowEnd.setMinutes(windowEnd.getMinutes() + 15);
-    return now >= windowStart && now <= windowEnd;
-}
 
 interface AppointmentCardProps {
     appointment: Appointment;
@@ -41,29 +24,11 @@ const TYPE_DOT_COLORS: Record<Appointment["type"], string> = {
 };
 
 export function AppointmentCard({ appointment, compact }: AppointmentCardProps) {
-    const { data: session } = useSession();
-    const isOthers = session?.user?.id !== appointment.psychologistId;
+    const isOthers = !appointment.isMine;
     const canStartVideo =
         appointment.sessionType === "online" &&
-        !isOthers &&
+        appointment.isMine &&
         isVideoCallAvailable(appointment.date, appointment.startTime, appointment.endTime);
-
-    const createSession = trpc.videoSession.create.useMutation({
-        onError: () => toast.error("Não foi possível iniciar a videochamada."),
-    });
-    const navigate = useNavigate();
-    const safeMeetingUrl = safeUrl(appointment.meetingUrl);
-
-    async function handleStartVideo(e: React.MouseEvent) {
-        e.stopPropagation();
-        if (!window.confirm("Deseja iniciar a videochamada com este paciente?")) return;
-        const result = await createSession.mutateAsync({ appointmentId: appointment.id });
-        // Same tab, token in router state: it must not land in the URL
-        // (browser history, Sentry breadcrumbs), and a new tab would lose it.
-        navigate(`/consulta/${result.sessionId}`, {
-            state: { wsAuthToken: result.wsAuthToken, patientJoinUrl: result.patientJoinUrl },
-        });
-    }
 
     if (compact) {
         return (
@@ -87,8 +52,6 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
                         </span>
                     </div>
                 </TooltipTrigger>
-                {/* Cartão claro (mesmo visual de popover/card) em vez do tooltip
-                    preto padrão, que destoava do calendário. */}
                 <TooltipPrimitive.Portal>
                     <TooltipPrimitive.Content
                         side="right"
@@ -102,13 +65,10 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
         );
     }
 
-    // Semana e Dia: mesmo visual do tooltip do modo Mês (cartão claro, borda
-    // suave, sombra), com o botão de videochamada quando disponível.
     return (
         <div
             className={cn(
                 "group cursor-pointer rounded-lg p-3 transition-shadow",
-                // Sessão de colega da clínica: só leitura, então fica apagada para não competir com as minhas.
                 isOthers
                     ? "border border-dashed bg-muted/60 text-muted-foreground opacity-75 grayscale hover:opacity-100"
                     : "bg-popover text-popover-foreground shadow-md ring-1 ring-foreground/10 hover:shadow-lg"
@@ -117,35 +77,9 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
         >
             <AppointmentDetails appointment={appointment} isOthers={isOthers} clampNotes />
 
-            {/* Video call — available 15 min before start until 15 min after end */}
             {canStartVideo && (
                 <div className="mt-2 pt-2 border-t">
-                    {safeMeetingUrl ? (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full gap-1.5 text-xs h-7"
-                            onClick={(e) => { e.stopPropagation(); window.open(safeMeetingUrl, "_blank", "noopener"); }}
-                        >
-                            <ExternalLink className="size-3" />
-                            Entrar na videochamada
-                        </Button>
-                    ) : (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full gap-1.5 text-xs h-7"
-                            onClick={handleStartVideo}
-                            disabled={createSession.isPending}
-                        >
-                            {createSession.isPending ? (
-                                <Loader2 className="size-3 animate-spin" />
-                            ) : (
-                                <Video className="size-3" />
-                            )}
-                            Iniciar videochamada
-                        </Button>
-                    )}
+                    <VideoCallButton appointmentId={appointment.id} meetingUrl={appointment.meetingUrl} compact />
                 </div>
             )}
         </div>
@@ -155,11 +89,9 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
 interface AppointmentDetailsProps {
     appointment: Appointment;
     isOthers: boolean;
-    /** Nos cartões da agenda a observação fica em até 2 linhas; o tooltip mostra inteira. */
     clampNotes?: boolean;
 }
 
-/** Conteúdo do agendamento: tooltip do Mês e cartões de Semana/Dia. */
 function AppointmentDetails({ appointment, isOthers, clampNotes }: AppointmentDetailsProps) {
     return (
         <div className="space-y-1.5">

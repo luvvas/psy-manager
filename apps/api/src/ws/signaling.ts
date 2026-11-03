@@ -80,7 +80,6 @@ export function handleSignaling(ws: WebSocket, sessionId: string): void {
             }
         }
 
-        // Relay offer / answer / ice to the other peer
         const room = getRoom(sessionId);
         if (!room) return;
 

@@ -5,9 +5,6 @@ import { appointmentCommands } from "../cqrs/appointment/appointment.commands";
 import { decryptField } from "../lib/encryption";
 
 export const googleCalendarService = {
-    /**
-     * Retrieves the Google OAuth tokens for a psychologist, refreshing them if they are expired.
-     */
     async getValidTokens(userId: string): Promise<string | null> {
         const [googleAccount] = await db
             .select()
@@ -27,7 +24,6 @@ export const googleCalendarService = {
         const now = new Date();
         const expiresAt = googleAccount.accessTokenExpiresAt;
 
-        // Check if access token is expired or expires in the next 2 minutes
         if (expiresAt && now.getTime() >= expiresAt.getTime() - 120 * 1000) {
             if (!googleAccount.refreshToken) {
                 console.warn("[GoogleCalendar] Refresh token missing — cannot renew access token.");
@@ -75,17 +71,12 @@ export const googleCalendarService = {
         return googleAccount.accessToken;
     },
 
-    /**
-     * Synchronizes events from the psychologist's primary Google Calendar.
-     */
     async syncEvents(userId: string): Promise<{ imported: number; skipped: number }> {
         const accessToken = await this.getValidTokens(userId);
         if (!accessToken) {
             throw new Error("No connected Google Calendar account found.");
         }
 
-        // TODO: HERE THE DATE THAT WILL BE SYNCED IS FIXED 1 MONTH EARLIER AND 3 MONTHS LATER
-        // Fetch events from the last 30 days and the next 90 days
         const timeMin = new Date();
         timeMin.setDate(timeMin.getDate() - 30);
         const timeMax = new Date();
@@ -114,7 +105,6 @@ export const googleCalendarService = {
         let imported = 0;
         let skipped = 0;
 
-        // Get all patients under this psychologist to match them with events
         const myPatients = await db
             .select()
             .from(patient)
@@ -133,7 +123,6 @@ export const googleCalendarService = {
             const startTime = startDate.toTimeString().split(" ")[0].substring(0, 5);
             const endTime = endDate.toTimeString().split(" ")[0].substring(0, 5);
 
-            // Check if this event is already imported — only look at own appointments
             const [existing] = await db
                 .select()
                 .from(appointment)
@@ -145,7 +134,6 @@ export const googleCalendarService = {
                 );
 
             if (existing) {
-                // Update if date or time changed
                 const existingDateStr = new Date(existing.date).toISOString().split("T")[0];
                 const newDateStr = startDate.toISOString().split("T")[0];
                 const timeChanged =
@@ -175,7 +163,6 @@ export const googleCalendarService = {
                 continue;
             }
 
-            // Find a patient matching the title or description
             const matchedPatient = myPatients.find((p) => {
                 const nome = (decryptField(p.nome) ?? p.nome).toLowerCase();
                 return (
@@ -184,7 +171,6 @@ export const googleCalendarService = {
                 );
             });
 
-            // Skip events with no matching patient instead of creating a fake record
             if (!matchedPatient) {
                 skipped++;
                 continue;
@@ -210,9 +196,6 @@ export const googleCalendarService = {
         return { imported, skipped };
     },
 
-    /**
-     * Checks if the psychologist has connected Google Calendar.
-     */
     async isConnected(userId: string): Promise<boolean> {
         const [googleAccount] = await db
             .select()

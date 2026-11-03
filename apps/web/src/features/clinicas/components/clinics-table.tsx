@@ -2,44 +2,28 @@ import { Building2, DoorOpen, LogOut, Mail, Phone, MapPin, Pencil, Trash2, Users
 import { Button } from "@/components/ui/button";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { useSession } from "@/lib/auth-client";
+import type { RouterOutputs } from "@/lib/trpc";
 
-export interface DBClinic {
-    id: string;
-    name: string;
-    cnpj: string;
-    phone: string;
-    email: string;
-    address: string;
-    city: string;
-    createdById: string;
-    createdAt: Date;
-    updatedAt: Date;
-    psychologists: {
-        id: string;
-        name: string;
-        email: string;
-        phone: string | null;
-    }[];
-    rooms: { id: string; name: string }[];
-}
+export type Clinic = RouterOutputs["clinic"]["list"][number];
 
 interface ClinicsTableProps {
-    clinics: DBClinic[];
-    onEdit: (clinic: DBClinic) => void;
+    clinics: Clinic[];
+    isLoading?: boolean;
+    onEdit: (clinic: Clinic) => void;
     onDelete: (id: string, name: string) => void;
     onLeave: (id: string, name: string) => void;
 }
 
-export function ClinicsTable({ clinics, onEdit, onDelete, onLeave }: ClinicsTableProps) {
+export function ClinicsTable({ clinics, isLoading, onEdit, onDelete, onLeave }: ClinicsTableProps) {
     const { data: session } = useSession();
 
-    const columns: DataTableColumn<DBClinic>[] = [
+    const columns: DataTableColumn<Clinic>[] = [
         {
             header: "Clínica",
             className: "w-[25%]",
             render: (clinic) => (
                 <div className="flex flex-col">
-                    <span className="font-semibold text-foreground text-sm block">
+                    <span className="font-medium text-foreground block">
                         {clinic.name}
                     </span>
                     <span className="text-xs text-muted-foreground font-mono">
@@ -50,7 +34,7 @@ export function ClinicsTable({ clinics, onEdit, onDelete, onLeave }: ClinicsTabl
         },
         {
             header: "Contato",
-            className: "w-[25%]",
+            className: "w-[23%]",
             render: (clinic) => (
                 <div className="flex flex-col gap-0.5">
                     <span className="flex items-center gap-1.5 text-muted-foreground text-xs md:text-sm">
@@ -79,12 +63,13 @@ export function ClinicsTable({ clinics, onEdit, onDelete, onLeave }: ClinicsTabl
         },
         {
             header: "Profissionais",
-            className: "w-[17%]",
+            className: "w-[15%]",
             render: (clinic) => (
                 <div className="flex flex-col gap-1">
                     <span className="flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full w-fit">
                         <Users className="size-3.5 shrink-0" />
-                        {clinic.psychologists.length} profissionais
+                        {clinic.psychologists.length}{" "}
+                        {clinic.psychologists.length === 1 ? "profissional" : "profissionais"}
                     </span>
                     <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                         <DoorOpen className="size-3 shrink-0" />
@@ -100,7 +85,7 @@ export function ClinicsTable({ clinics, onEdit, onDelete, onLeave }: ClinicsTabl
         },
         {
             header: "",
-            className: "w-[8%] text-right",
+            className: "w-[12%] text-right",
             render: (clinic) => {
                 const isOwner = clinic.createdById === session?.user?.id;
                 if (!isOwner) {
@@ -127,6 +112,7 @@ export function ClinicsTable({ clinics, onEdit, onDelete, onLeave }: ClinicsTabl
                             variant="ghost"
                             size="icon"
                             className="size-8"
+                            title="Editar"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onEdit(clinic);
@@ -138,6 +124,7 @@ export function ClinicsTable({ clinics, onEdit, onDelete, onLeave }: ClinicsTabl
                             variant="ghost"
                             size="icon"
                             className="size-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            title="Deletar"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onDelete(clinic.id, clinic.name);
@@ -154,6 +141,7 @@ export function ClinicsTable({ clinics, onEdit, onDelete, onLeave }: ClinicsTabl
     return (
         <DataTable
             data={clinics}
+            isLoading={isLoading}
             columns={columns}
             searchPlaceholder="Buscar por nome, CNPJ ou cidade..."
             searchFilter={(clinic, query) => {

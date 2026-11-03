@@ -3,16 +3,17 @@ import { logger } from "@/lib/logger";
 
 export type CallStatus = "idle" | "connecting" | "waiting" | "active" | "ended" | "error";
 
+export type MediaInputKind = "audioinput" | "videoinput";
+
 interface Options {
     sessionId: string;
     role: "psychologist" | "patient";
     joinToken: string;
-    iceServers: RTCIceServer[];
+    iceServers?: RTCIceServer[] | null;
 }
 
-// VITE_WS_URL can point the signaling socket at a different host than the API.
-// In production the SPA and the API share one origin (nginx proxies /ws), so
-// both are left empty and the socket goes to the page's own origin.
+const DEFAULT_ICE: RTCIceServer[] = [{ urls: "stun:stun.l.google.com:19302" }];
+
 const WS_BASE =
     (import.meta.env.VITE_WS_URL as string | undefined) ||
     (import.meta.env.VITE_API_URL as string | undefined) ||
@@ -22,7 +23,8 @@ function getWsUrl(sessionId: string): string {
     return `${WS_BASE.replace(/^http/, "ws")}/ws/signaling/${sessionId}`;
 }
 
-export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Options) {
+export function useWebRtcCall({ sessionId, role, joinToken, iceServers: iceServersOption }: Options) {
+    const iceServers = iceServersOption ?? DEFAULT_ICE;
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const [status, setStatus] = useState<CallStatus>("idle");
@@ -32,8 +34,6 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
     const pcRef = useRef<RTCPeerConnection | null>(null);
     const localStreamRef = useRef<MediaStream | null>(null);
     const statusRef = useRef<CallStatus>("idle");
-    // ICE candidates that arrive before setRemoteDescription is called are queued here
-    // and flushed once the remote description is set.
     const iceCandidateQueue = useRef<RTCIceCandidateInit[]>([]);
     const remoteDescriptionSet = useRef(false);
 
@@ -65,11 +65,8 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
     }, [stopLocalTracks]);
 
     const startCall = useCallback(async () => {
-        // Bloqueia só enquanto há chamada em curso: depois de "ended"/"error" dá para
-        // entrar de novo (ex.: paciente que saiu e voltou do lobby).
         const current = statusRef.current;
         if (current === "connecting" || current === "waiting" || current === "active") return;
-        // "peer_left" encerra sem fechar conexão e socket; não deixar restos da anterior.
         pcRef.current?.close();
         pcRef.current = null;
         wsRef.current?.close();
@@ -106,8 +103,6 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
 
         pc.onconnectionstatechange = () => {
             if (pc.connectionState === "connected") updateStatus("active");
-            // "disconnected" is transient — the browser retries for ~5s before moving to "failed".
-            // Only "failed" and "closed" are truly terminal.
             if (["failed", "closed"].includes(pc.connectionState)) {
                 stopLocalTracks();
                 setRemoteStream(null);
@@ -176,7 +171,6 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
             try {
                 await handleSignal(e);
             } catch (err) {
-                // Sem isto a promise rejeitava em silêncio e a tela ficava em "aguardando".
                 logger.error("Erro na sinalização da chamada", err);
                 updateStatus("error");
                 setErrorMessage("Falha ao conectar a chamada. Tente entrar novamente.");
@@ -200,7 +194,47 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
         };
     }, [sessionId, role, joinToken, iceServers, sendWs, stopLocalTracks]);
 
-    // Cleanup on unmount
+    const switchDevice = useCallback(async (kind: MediaInputKind, deviceId: string) => {
+        const stream = localStreamRef.current;
+        if (!stream) return;
+
+        const isAudio = kind === "audioinput";
+        const oldTrack = isAudio ? stream.getAudioTracks()[0] : stream.getVideoTracks()[0];
+        if (oldTrack?.getSettings().deviceId === deviceId) return;
+
+        const constraint = { deviceId: { exact: deviceId } };
+        const newStream = await navigator.mediaDevices.getUserMedia(
+            isAudio ? { audio: constraint } : { video: constraint }
+        );
+        const newTrack = isAudio ? newStream.getAudioTracks()[0] : newStream.getVideoTracks()[0];
+        if (!newTrack) return;
+
+        if (localStreamRef.current !== stream) {
+            newTrack.stop();
+            return;
+        }
+
+        newTrack.enabled = oldTrack?.enabled ?? true;
+
+        const sender = pcRef.current?.getSenders().find((s) => s.track?.kind === newTrack.kind);
+        if (sender) {
+            try {
+                await sender.replaceTrack(newTrack);
+            } catch (err) {
+                newTrack.stop();
+                throw err;
+            }
+        }
+
+        const nextStream = new MediaStream([
+            ...stream.getTracks().filter((t) => t !== oldTrack),
+            newTrack,
+        ]);
+        oldTrack?.stop();
+        localStreamRef.current = nextStream;
+        setLocalStream(nextStream);
+    }, []);
+
     useEffect(() => {
         return () => {
             localStreamRef.current?.getTracks().forEach((t) => t.stop());
@@ -209,5 +243,5 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
         };
     }, []);
 
-    return { localStream, remoteStream, status, errorMessage, startCall, endCall };
+    return { localStream, remoteStream, status, errorMessage, startCall, endCall, switchDevice };
 }

@@ -1,15 +1,10 @@
 export interface ThemeConfig {
-    /** AppHeader background color (hex) */
     primary?: string;
-    /** Sidebar background color (hex) */
     sidebar?: string;
-    /** Buttons and active nav-item color (hex) */
     button?: string;
-    /** Data-table header background color (hex) */
     tableHeader?: string;
 }
 
-/** Relative luminance (WCAG 2.1), used to auto-pick black or white foreground. */
 function luminance(hex: string): number {
     const r = parseInt(hex.slice(1, 3), 16) / 255;
     const g = parseInt(hex.slice(3, 5), 16) / 255;
@@ -27,16 +22,64 @@ function isHex(v: string | undefined): v is string {
 }
 
 const STYLE_ID = "psy-theme";
+const CACHE_KEY = "psy:theme:v1";
+const THEME_KEYS = ["primary", "sidebar", "button", "tableHeader"] as const;
 
-export function applyTheme(config: ThemeConfig | null | undefined) {
+function pickValid(config: ThemeConfig | null | undefined): ThemeConfig | null {
+    if (!config) return null;
+    const result: ThemeConfig = {};
+    let found = false;
+    for (const key of THEME_KEYS) {
+        const value = config[key];
+        if (isHex(value)) {
+            result[key] = value;
+            found = true;
+        }
+    }
+    return found ? result : null;
+}
+
+function saveCachedTheme(config: ThemeConfig | null) {
+    try {
+        if (config) localStorage.setItem(CACHE_KEY, JSON.stringify(config));
+        else localStorage.removeItem(CACHE_KEY);
+    } catch {
+        return;
+    }
+}
+
+export function loadCachedTheme(): ThemeConfig | null {
+    try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (!raw) return null;
+        const parsed: unknown = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object") return null;
+        const record = parsed as Record<string, unknown>;
+        const config: ThemeConfig = {};
+        for (const key of THEME_KEYS) {
+            const value = record[key];
+            if (typeof value === "string") config[key] = value;
+        }
+        return pickValid(config);
+    } catch {
+        return null;
+    }
+}
+
+export function clearCachedTheme() {
+    saveCachedTheme(null);
+}
+
+export function applyTheme(input: ThemeConfig | null | undefined) {
     const existing = document.getElementById(STYLE_ID);
     if (existing) existing.remove();
 
-    if (!config || (!isHex(config.primary) && !isHex(config.sidebar) && !isHex(config.button) && !isHex(config.tableHeader))) return;
+    const config = pickValid(input);
+    saveCachedTheme(config);
+    if (!config) return;
 
     const vars: string[] = [];
 
-    // ── AppHeader ─────────────────────────────────────────────────────────────
     if (isHex(config.primary)) {
         const fg = contrastHex(config.primary);
         vars.push(
@@ -47,7 +90,6 @@ export function applyTheme(config: ThemeConfig | null | undefined) {
         );
     }
 
-    // ── Sidebar background (sidebar header inherits this naturally) ───────────
     if (isHex(config.sidebar)) {
         const fg = contrastHex(config.sidebar);
         vars.push(
@@ -59,7 +101,6 @@ export function applyTheme(config: ThemeConfig | null | undefined) {
         );
     }
 
-    // ── Buttons & active nav items ────────────────────────────────────────────
     if (isHex(config.button)) {
         const fg = contrastHex(config.button);
         vars.push(
@@ -72,7 +113,6 @@ export function applyTheme(config: ThemeConfig | null | undefined) {
         );
     }
 
-    // ── Data-table header ─────────────────────────────────────────────────────
     if (isHex(config.tableHeader)) {
         const fg = contrastHex(config.tableHeader);
         vars.push(

@@ -3,6 +3,9 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import { App } from "./app";
+import { applyTheme, loadCachedTheme } from "./lib/theme";
+
+applyTheme(loadCachedTheme());
 
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,
@@ -24,14 +27,11 @@ Sentry.init({
   },
 });
 
-// Com as rotas em chunks, uma aba aberta antes de um deploy pede chunks de hash
-// antigo, que não existem mais. Recarrega para pegar o index.html novo — no
-// máximo uma vez por minuto, para não entrar em loop se o erro persistir (ex.: sem rede).
 const LAST_RELOAD_KEY = "psy:chunk-reload-at";
 window.addEventListener("vite:preloadError", (event) => {
   try {
     const last = Number(sessionStorage.getItem(LAST_RELOAD_KEY) ?? 0);
-    if (Date.now() - last < 60_000) return; // o erro segue para o error boundary
+    if (Date.now() - last < 60_000) return;
     sessionStorage.setItem(LAST_RELOAD_KEY, String(Date.now()));
   } catch {
     return;

@@ -2,8 +2,8 @@ import { AppHeader } from "@/components/layout/app-header";
 import { AppSheet } from "@/components/layout/app-sheet";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DocumentForm } from "@/features/documentos/components/document-form";
-import { PatientTimeline } from "@/features/pacientes/components/patient-timeline";
+import { ClinicalRecordForm, type ClinicalRecordFormValues } from "./components/clinical-record-form";
+import { PatientTimeline } from "./components/patient-timeline";
 import { trpc } from "@/lib/trpc";
 import { uploadFileToTarget } from "@/utils/upload";
 import { ArrowLeft, ClipboardList, Plus } from "lucide-react";
@@ -16,19 +16,17 @@ export function PatientDetailsPage() {
     const navigate = useNavigate();
     const [isSheetOpen, setSheetOpen] = useState(false);
 
-    // Using useUtils instead of useContext as confirmed across typical v10 usages or standard TRPC patterns in codebase
     const utils = trpc.useUtils();
 
     const { data: patient, isLoading } = trpc.patient.getById.useQuery(
         { id: id! },
-        { enabled: !!id, retry: false }
+        { enabled: !!id }
     );
 
     const createMutation = trpc.clinicalRecord.create.useMutation({
         onSuccess: () => {
             toast.success("Registro criado com sucesso!");
-            // Invalidate specific patient timeline
-            utils.clinicalRecord.list.invalidate({ patientId: id });
+            utils.clinicalRecord.invalidate();
             setSheetOpen(false);
         },
         onError: (err) => {
@@ -37,13 +35,13 @@ export function PatientDetailsPage() {
     });
     const prepareUploadMutation = trpc.clinicalRecord.prepareUpload.useMutation();
 
-    const handleSave = async (data: any) => {
+    const handleSave = async (data: ClinicalRecordFormValues) => {
         const { file, ...metadata } = data;
         const uploadMetadata = file
             ? await (async () => {
                 const target = await prepareUploadMutation.mutateAsync({
                     fileName: file.name,
-                    contentType: file.type,
+                    contentType: "application/pdf",
                     fileSize: file.size,
                 });
                 await uploadFileToTarget(file, target);
@@ -97,25 +95,24 @@ export function PatientDetailsPage() {
                         </Button>
                         <Button size="sm" onClick={() => setSheetOpen(true)} className="gap-1.5">
                             <Plus className="size-4" />
-                            Novo Prontuário
+                            Novo Registro
                         </Button>
                     </div>
                 }
             />
 
-            <div className="flex-1 p-4 lg:p-6 overflow-hidden flex flex-col">
-                <div className="flex-1 h-full overflow-hidden">
+            <div className="flex flex-col flex-1 min-h-0 gap-4 p-4 lg:p-6 overflow-hidden">
+                <div className="flex-1 min-h-0 overflow-hidden">
                     <PatientTimeline patientId={patient.id} />
                 </div>
             </div>
 
-            {/* Lifted Slide-over Form from timeline for cleaner page structure and visibility */}
             <AppSheet
                 open={isSheetOpen}
                 onOpenChange={setSheetOpen}
-                title="Novo Registro Clínico"
+                title="Novo Registro"
             >
-                <DocumentForm
+                <ClinicalRecordForm
                     onSave={handleSave}
                     onCancel={() => setSheetOpen(false)}
                     patients={formPatients}

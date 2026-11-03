@@ -13,7 +13,6 @@ export interface PatientState {
     valorSessao?: number | string | null;
     modeloCobranca?: string | null;
     
-    // Extended Fields
     nomeSocial?: string | null;
     rg?: string | null;
     profissao?: string | null;
@@ -81,9 +80,6 @@ export class PatientAggregate extends AggregateRoot<PatientState> {
         };
     }
 
-    /**
-     * Creation business logic
-     */
     public create(data: {
         id: string;
         nome: string;
@@ -126,9 +122,6 @@ export class PatientAggregate extends AggregateRoot<PatientState> {
         this.raise("PATIENT_CREATED", data);
     }
 
-    /**
-     * Update business logic
-     */
     public update(data: {
         nome: string;
         email?: string | null;
@@ -167,9 +160,6 @@ export class PatientAggregate extends AggregateRoot<PatientState> {
         this.raise("PATIENT_UPDATED", data);
     }
 
-    /**
-     * Delete business logic
-     */
     public delete(): void {
         if (this._state.isDeleted) {
             throw new Error("Patient is already deleted");
@@ -177,10 +167,6 @@ export class PatientAggregate extends AggregateRoot<PatientState> {
         this.raise("PATIENT_DELETED", {});
     }
 
-    /**
-     * Applies state changes corresponding to each event type.
-     * This is pure function with no side effects.
-     */
     protected applyEvent(state: PatientState, event: DomainEvent): PatientState {
         switch (event.type) {
             case "PATIENT_CREATED":
@@ -196,7 +182,6 @@ export class PatientAggregate extends AggregateRoot<PatientState> {
                     psychologistId: event.data.psychologistId,
                     valorSessao: event.data.valorSessao,
                     modeloCobranca: event.data.modeloCobranca,
-                    // Extended props expansion
                     nomeSocial: event.data.nomeSocial,
                     rg: event.data.rg,
                     profissao: event.data.profissao,
@@ -233,7 +218,6 @@ export class PatientAggregate extends AggregateRoot<PatientState> {
                     cpf: event.data.cpf,
                     valorSessao: event.data.valorSessao,
                     modeloCobranca: event.data.modeloCobranca,
-                    // Extended props update replaying
                     nomeSocial: event.data.nomeSocial,
                     rg: event.data.rg,
                     profissao: event.data.profissao,

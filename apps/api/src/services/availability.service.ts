@@ -13,25 +13,12 @@ import {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/**
- * Regras de disponibilidade:
- * - Agenda própria (conflito com outra sessão minha, fora do expediente): só
- *   aviso — a psicóloga confirma, porque a decisão afeta só ela.
- * - Sala da clínica ocupada (por qualquer psicóloga): impedimento — é um
- *   recurso físico compartilhado e envolve outra pessoa que não concordou.
- *
- * Quem chama garante o acesso à sala/clínica (`assertRoomAccess`/`assertClinicMembership`).
- */
-
 export interface SlotCheckInput {
     date: Date;
     startTime: string;
     endTime: string;
-    /** Na edição, o próprio agendamento não conta como conflito. */
     excludeId?: string;
-    /** Sala escolhida para a sessão presencial. */
     roomId?: string | null;
-    /** Clínica da sessão presencial, para sugerir salas livres no horário. */
     clinicId?: string | null;
 }
 
@@ -41,15 +28,10 @@ export interface RoomRef {
 }
 
 export interface SlotCheckResult {
-    /** Outras sessões minhas no horário (aviso, confirmável). */
     conflicts: { id: string; startTime: string; endTime: string; patientName: string | null }[];
-    /** Sessões que ocupam a sala escolhida no horário (impede salvar). */
     roomConflicts: { id: string; startTime: string; endTime: string; psychologistName: string; isOwn: boolean }[];
-    /** Salas da clínica livres no horário; null quando a sessão não é em clínica. */
     freeRooms: RoomRef[] | null;
-    /** null quando o expediente não foi configurado no perfil. */
     outsideSchedule: boolean | null;
-    /** Edição que não mexeu em dia/horário/sala: nada a confirmar, mesmo que já estivesse fora da regra. */
     unchanged: boolean;
 }
 
@@ -90,8 +72,6 @@ async function getSchedule(psychologistId: string): Promise<WorkSchedule | null>
     return row?.workSchedule ?? null;
 }
 
-// Janela de ±1 dia no banco e filtro exato pelo dia local em memória:
-// `date` guarda o instante, não o dia, e o fuso do servidor pode ser outro.
 function dayWindow(date: Date) {
     return [
         gte(appointment.date, new Date(date.getTime() - DAY_MS)),
@@ -99,7 +79,6 @@ function dayWindow(date: Date) {
     ];
 }
 
-/** Sessões não canceladas do psicólogo no mesmo dia (fuso do app) que `date`. */
 async function busyOnDay(psychologistId: string, date: Date, excludeId?: string) {
     const { key } = localDay(date);
     const rows = await db
@@ -119,10 +98,6 @@ async function busyOnDay(psychologistId: string, date: Date, excludeId?: string)
         .map((r) => ({ ...r, patientName: decryptField(r.patientName) }));
 }
 
-/**
- * Ocupação das salas no dia, por qualquer psicóloga. Só sai horário e nome da
- * psicóloga — nada do paciente, igual à agenda compartilhada da clínica.
- */
 async function roomBusyOnDay(roomIds: string[], date: Date, excludeId?: string) {
     if (roomIds.length === 0) return [];
     const { key } = localDay(date);
@@ -190,7 +165,6 @@ export const availabilityService = {
                   isOwn: b.psychologistId === psychologistId,
               }))
             : [];
-        // Sessão minha na mesma sala já aparece como conflito de sala (o mais grave).
         const inRoom = new Set(roomConflicts.map((c) => c.id));
         const conflicts = findConflicts(input.startTime, input.endTime, busy)
             .filter((b) => !inRoom.has(b.id))
@@ -209,12 +183,6 @@ export const availabilityService = {
         };
     },
 
-    /**
-     * Horários livres no expediente. Com sala escolhida, a ocupação dela entra
-     * como "ocupado" no cálculo (os horários se ajustam em volta). Com clínica
-     * e sem sala, mostra os horários em que pelo menos uma sala está livre e
-     * quais estão, para o formulário escolher a sala sozinho.
-     */
     async freeSlots(psychologistId: string, input: FreeSlotsInput) {
         const rooms: RoomRef[] = input.roomId
             ? (await activeRooms(input.clinicId!)).filter((r) => r.id === input.roomId)
@@ -237,11 +205,9 @@ export const availabilityService = {
 
         const day = localDay(input.date);
         const today = localDay(new Date()).key;
-        // Dia que já passou não tem horário livre; hoje só a partir de agora.
         const notBefore = day.key < today ? Infinity : day.key === today ? nowLocalMinutes() : 0;
         const base = { configured: true as const, sessionMinutes: schedule.sessionMinutes };
 
-        // Sessão fora de clínica, ou clínica sem salas cadastradas: só a agenda própria.
         if (rooms.length === 0) {
             return {
                 ...base,

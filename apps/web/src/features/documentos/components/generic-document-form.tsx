@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { FileInput } from "@/components/file-input";
+import { PdfFileField } from "@/components/pdf-file-field";
 import { Label } from "@/components/ui/label";
 import {
     Select,
@@ -12,8 +12,8 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { logger } from "@/lib/logger";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle, FileText, FileUp, Loader2 } from "lucide-react";
-import { useState, type ChangeEvent } from "react";
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import * as z from "zod/v3";
 
@@ -25,8 +25,10 @@ const genericDocumentSchema = z.object({
 
 type FormValues = z.infer<typeof genericDocumentSchema>;
 
+export type GenericDocumentFormValues = FormValues & { file?: File };
+
 interface GenericDocumentFormProps {
-    onSave: (data: any) => Promise<void>;
+    onSave: (data: GenericDocumentFormValues) => Promise<void>;
     onCancel: () => void;
     initialData?: {
         title: string;
@@ -53,30 +55,6 @@ export function GenericDocumentForm({ onSave, onCancel, initialData }: GenericDo
             isTemplate: initialData?.isTemplate ?? false,
         },
     });
-
-    const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        setFileError(null);
-
-        if (!file) {
-            setPdfFile(null);
-            return;
-        }
-
-        if (file.type !== "application/pdf") {
-            setFileError("Por favor, selecione apenas arquivos PDF.");
-            setPdfFile(null);
-            return;
-        }
-
-        if (file.size > 10 * 1024 * 1024) {
-            setFileError("O arquivo deve ter no máximo 10MB.");
-            setPdfFile(null);
-            return;
-        }
-
-        setPdfFile(file);
-    };
 
     const onSubmit = async (data: FormValues) => {
         if (!initialData && !pdfFile) {
@@ -151,42 +129,25 @@ export function GenericDocumentForm({ onSave, onCancel, initialData }: GenericDo
                     />
                 </div>
 
-                <Label htmlFor="pdfFile" className="pt-2">
-                    <FileUp className="w-4 h-4" /> Upload do Arquivo
-                </Label>
-
-                <div className="grid w-full max-w-sm items-center gap-1.5">
-                    <FileInput
-                        id="pdfFile"
-                        accept="application/pdf"
-                        onChange={handleFileChange}
-                    />
-                </div>
-
-                {initialData && !pdfFile && (
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-2">
-                        <FileText className="w-3 h-3" /> Deixe vazio para manter o arquivo salvo.
-                    </p>
-                )}
-
-                {pdfFile && (
-                    <p className="text-xs text-green-600 font-medium flex items-center gap-1 mt-2">
-                        <CheckCircle className="w-3 h-3" /> Pronto para upload: {pdfFile.name}
-                    </p>
-                )}
-
-                {fileError && (
-                    <p className="text-xs text-destructive font-medium mt-1">{fileError}</p>
-                )}
+                <PdfFileField
+                    label="Arquivo PDF"
+                    file={pdfFile}
+                    error={fileError}
+                    hint={initialData ? "Deixe vazio para manter o arquivo salvo." : undefined}
+                    onChange={(file, error) => {
+                        setPdfFile(file);
+                        setFileError(error);
+                    }}
+                />
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t bg-background mt-auto sticky bottom-0">
+            <div className="flex justify-end gap-2 border-t pt-4">
                 <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
                     Cancelar
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-                    Salvar Documento
+                    Salvar
                 </Button>
             </div>
         </form>

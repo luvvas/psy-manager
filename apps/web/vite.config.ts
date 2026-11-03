@@ -4,7 +4,6 @@ import tailwindcss from "@tailwindcss/vite";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 import path from "path";
 
-// https://vite.dev/config/
 export default defineConfig({
     plugins: [
         react(),
@@ -15,17 +14,31 @@ export default defineConfig({
                       authToken: process.env.SENTRY_AUTH_TOKEN,
                       org: process.env.SENTRY_ORG,
                       project: process.env.SENTRY_PROJECT,
-                      // Os mapas só servem ao Sentry: apaga depois do upload para não
-                      // irem para a imagem do nginx (dist/ é copiado inteiro).
                       sourcemaps: { filesToDeleteAfterUpload: ["./dist/**/*.map"] },
                   }),
               ]
             : []),
     ],
     build: {
-        // Só gera mapas quando há upload para o Sentry (CI). "hidden" não deixa o
-        // comentário sourceMappingURL nos .js, então o navegador nem procura os mapas.
         sourcemap: process.env.SENTRY_AUTH_TOKEN ? "hidden" : false,
+        rolldownOptions: {
+            output: {
+                codeSplitting: {
+                    groups: [
+                        {
+                            name: "vendor-react",
+                            test: /[\\/]node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom)[\\/]/,
+                            priority: 2,
+                        },
+                        {
+                            name: "vendor-data",
+                            test: /[\\/]node_modules[\\/](@tanstack|@trpc|superjson|better-auth|@better-auth|@better-fetch|nanostores|@sentry|@sentry-internal)[\\/]/,
+                            priority: 1,
+                        },
+                    ],
+                },
+            },
+        },
     },
     resolve: {
         alias: {

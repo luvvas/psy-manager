@@ -5,15 +5,13 @@ export interface HomeBirthday {
     id: string;
     nome: string;
     telefone: string | null;
-    /** Dias até o aniversário (0 = hoje). */
     daysUntil: number;
-    /** Dia/mês do aniversário, ex. "07/11". */
     dayMonth: string;
-    /** Idade que a pessoa completa. */
     turningAge: number;
 }
 
 interface BirthdaysProps {
+    isLoading?: boolean;
     birthdays: HomeBirthday[];
     hiddenCount: number;
 }
@@ -24,9 +22,10 @@ function whenLabel(daysUntil: number, dayMonth: string) {
     return dayMonth;
 }
 
-export function Birthdays({ birthdays, hiddenCount }: BirthdaysProps) {
+export function Birthdays({ birthdays, hiddenCount, isLoading }: BirthdaysProps) {
     return (
         <HomePanel
+            isLoading={isLoading}
             title="Aniversariantes"
             description="Pacientes que fazem aniversário nos próximos 30 dias."
             isEmpty={birthdays.length === 0}

@@ -1,308 +1,107 @@
-import { useState, useMemo, useCallback } from "react";
+import { lazy, Suspense, useCallback, useMemo, useState } from "react";
+import { CalendarDays, Loader2, Plus } from "lucide-react";
 import { AppHeader } from "@/components/layout/app-header";
-import { Button } from "@/components/ui/button";
-import {
-    Plus,
-    RefreshCw,
-    CalendarDays
-} from "lucide-react";
-import { StatsCards } from "./components/stats-cards";
-import { NewAppointmentForm } from "./components/appointment-form";
 import { AppSheet } from "@/components/layout/app-sheet";
+import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
-import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-import { type Appointment, type AppointmentStatus } from "./types";
 import { useSession } from "@/lib/auth-client";
+import type { AppointmentFormValues } from "./appointment-schema";
+import type { Appointment } from "./types";
+import { toAppointment, toFormInitialData } from "./mappers";
+import { StatsCards } from "./components/stats-cards";
+import { CalendarDashboard } from "./components/calendar-dashboard";
+import { GoogleCalendarActions } from "./components/google-calendar-actions";
+import { useAppointmentMutations } from "./hooks/use-appointment-mutations";
+import { useCalendarNavigation } from "./hooks/use-calendar-navigation";
+import { useOnlyMineFilter } from "./hooks/use-only-mine-filter";
 
-import { CalendarDashboard, type ViewMode } from "./components/calendar-dashboard";
-import { getMonday } from "./lib/dates";
+const NewAppointmentForm = lazy(() =>
+    import("./components/appointment-form").then((m) => ({ default: m.NewAppointmentForm }))
+);
 
-
-function formatWeekRange(date: Date): string {
-    const monday = getMonday(date);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-
-    const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" };
-    const start = monday.toLocaleDateString("pt-BR", opts);
-    const end = sunday.toLocaleDateString("pt-BR", opts);
-    return `${start} — ${end}`;
+function sheetTitle(editing: Appointment | null, readOnly: boolean): string {
+    if (!editing) return "Novo Agendamento";
+    return readOnly ? "Ver Agendamento" : "Editar Agendamento";
 }
-
-function formatMonthLabel(date: Date): string {
-    return date.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-}
-
-function formatDayLabel(date: Date): string {
-    return date.toLocaleDateString("pt-BR", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-    });
-}
-
-const ONLY_MINE_KEY = "agenda:only-mine";
 
 export function AgendamentoPage() {
-    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-    const [view, setView] = useState<ViewMode>("semana");
+    const calendar = useCalendarNavigation();
+    const [onlyMine, setOnlyMine] = useOnlyMineFilter();
     const [isSheetOpen, setSheetOpen] = useState(false);
     const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
     const [pendingCreationDate, setPendingCreationDate] = useState<Date | null>(null);
 
     const { data: session } = useSession();
-
-    // Filtro "só os meus": lembrado por navegador (conveniência; sem storage, começa desligado).
-    const [onlyMine, setOnlyMine] = useState<boolean>(() => {
-        try {
-            return localStorage.getItem(ONLY_MINE_KEY) === "1";
-        } catch {
-            return false;
-        }
-    });
-    const handleOnlyMineChange = useCallback((value: boolean) => {
-        setOnlyMine(value);
-        try {
-            localStorage.setItem(ONLY_MINE_KEY, value ? "1" : "0");
-        } catch {
-            /* storage indisponível: o filtro vale só nesta visita */
-        }
-    }, []);
-
-    const isReadOnly = useMemo(() => {
-        if (!editingAppointment) return false;
-        if (!session?.user?.id) return false;
-        return editingAppointment.psychologistId !== session.user.id;
-    }, [editingAppointment, session]);
-
-    // Query appointments from the real database
-    const { data: dbAppointments, refetch } = trpc.appointment.list.useQuery(undefined, {
-        retry: false,
-    });
-
-    const createMutation = trpc.appointment.create.useMutation({
-        onSuccess: () => {
-            toast.success("Agendamento criado com sucesso!");
-            refetch();
-        },
-        onError: (err) => {
-            toast.error(`Erro ao criar: ${err.message}`);
-        },
-    });
-
-    const updateMutation = trpc.appointment.update.useMutation({
-        onSuccess: () => {
-            toast.success("Agendamento atualizado com sucesso!");
-            refetch();
-        },
-        onError: (err) => {
-            toast.error(`Erro ao atualizar: ${err.message}`);
-        },
-    });
-
-    const deleteMutation = trpc.appointment.delete.useMutation({
-        onSuccess: () => {
-            toast.success("Agendamento excluído com sucesso!");
-            refetch();
-        },
-        onError: (err) => {
-            toast.error(`Erro ao excluir: ${err.message}`);
-        },
-    });
-
-    const { data: isConnectedGoogle } = trpc.appointment.isConnectedGoogle.useQuery(undefined, {
-        retry: false,
-    });
-    const { data: googleAuthUrlData } = trpc.appointment.getGoogleAuthUrl.useQuery(undefined, {
-        retry: false,
-    });
-    const [isSyncing, setIsSyncing] = useState(false);
-    const syncGoogleMutation = trpc.appointment.syncGoogle.useMutation({
-        onSuccess: (data) => {
-            toast.success(`Google Agenda sincronizado! Importados: ${data.imported}, Ignorados: ${data.skipped}`);
-            refetch();
-            setIsSyncing(false);
-        },
-        onError: (err) => {
-            toast.error(`Erro ao sincronizar: ${err.message}`);
-            setIsSyncing(false);
-        },
-    });
-
-    // Map DB appointments to the format expected by the frontend calendar views
-    const mappedAppointments: Appointment[] = useMemo(() => {
-        return (dbAppointments || []).map((app) => {
-            let status: AppointmentStatus = "pendente";
-            if (app.status === "confirmed") status = "confirmado";
-            else if (app.status === "cancelled") status = "cancelado";
-            else if (app.status === "completed") status = "concluido";
-            else if (app.status === "pending") status = "pendente";
-            else if (app.status === "confirmado") status = "confirmado";
-            else if (app.status === "pendente") status = "pendente";
-            else if (app.status === "cancelado") status = "cancelado";
-            else if (app.status === "concluido") status = "concluido";
-
-            return {
-                id: app.id,
-                psychologistId: app.psychologistId,
-                psychologist: app.psychologist ? {
-                    id: app.psychologist.id,
-                    name: app.psychologist.name,
-                    email: app.psychologist.email,
-                } : undefined,
-                patient: {
-                    id: app.patient?.id ?? "",
-                    name: app.patient?.nome ?? "Consulta reservada",
-                    email: app.patient?.email ?? "",
-                    phone: app.patient?.telefone ?? "",
-                    initials: (app.patient?.nome ?? "")
-                        .split(" ")
-                        .map((n) => n[0])
-                        .slice(0, 2)
-                        .join("")
-                        .toUpperCase() || "CR",
-                },
-                date: new Date(app.date),
-                startTime: app.startTime,
-                endTime: app.endTime,
-                status,
-                type: app.type as any,
-                notes: app.notes || undefined,
-                meetingUrl: app.meetingUrl || undefined,
-                isRecurring: app.isRecurring,
-                sessionType: app.sessionType as any,
-                clinicId: app.clinicId ?? null,
-                roomId: app.roomId ?? null,
-                roomName: app.roomName ?? null,
-                reminderEnabled: app.reminderEnabled ?? false,
-                reminderMinutesBefore: app.reminderMinutesBefore ?? null,
-                reminderSentAt: app.reminderSentAt ?? null,
-            };
-        });
-    }, [dbAppointments]);
-
     const myId = session?.user?.id;
-    const hasOthersAppointments = mappedAppointments.some((a) => a.psychologistId !== myId);
-    // KPIs falam da agenda da psicóloga logada, independente do filtro do calendário.
-    const myAppointments = mappedAppointments.filter((a) => a.psychologistId === myId);
-    const calendarAppointments = useMemo(
-        () => (onlyMine && myId ? mappedAppointments.filter((a) => a.psychologistId === myId) : mappedAppointments),
-        [mappedAppointments, onlyMine, myId]
-    );
+    const { data: dbAppointments, isPending: isLoadingAppointments } = trpc.appointment.list.useQuery();
+    const { saveAppointment, deleteAppointment } = useAppointmentMutations();
 
-    const handleSaveAppointment = async (formData: any) => {
+    const appointments = useMemo(
+        () => (dbAppointments ?? []).map((row) => toAppointment(row, myId)),
+        [dbAppointments, myId]
+    );
+    const myAppointments = useMemo(() => appointments.filter((a) => a.isMine), [appointments]);
+    const hasOthersAppointments = myAppointments.length < appointments.length;
+    const calendarAppointments = onlyMine && myId ? myAppointments : appointments;
+    const isReadOnly = !!editingAppointment && !!myId && !editingAppointment.isMine;
+
+    const closeSheet = () => {
+        setSheetOpen(false);
+        setEditingAppointment(null);
+        setPendingCreationDate(null);
+    };
+
+    const openNewAppointment = (date: Date | null) => {
+        setEditingAppointment(null);
+        setPendingCreationDate(date);
+        setSheetOpen(true);
+    };
+
+    const handleSaveAppointment = async (values: AppointmentFormValues) => {
         try {
-            if (editingAppointment) {
-                await updateMutation.mutateAsync({
-                    id: editingAppointment.id,
-                    patientId: formData.patientId,
-                    date: new Date(formData.date),
-                    startTime: formData.startTime,
-                    endTime: formData.endTime,
-                    status: formData.status,
-                    sessionType: formData.sessionType,
-                    type: formData.type,
-                    isRecurring: formData.isRecurring,
-                    notes: formData.notes,
-                    meetingUrl: formData.meetingUrl || undefined,
-                    reminderEnabled: formData.reminderEnabled,
-                    reminderMinutesBefore: formData.reminderEnabled ? formData.reminderMinutesBefore : undefined,
-                    allowScheduleConflicts: formData.allowScheduleConflicts ?? false,
-                    roomId: formData.roomId || null,
-                });
-            } else {
-                await createMutation.mutateAsync({
-                    patientId: formData.patientId,
-                    date: new Date(formData.date),
-                    startTime: formData.startTime,
-                    endTime: formData.endTime,
-                    status: formData.status,
-                    sessionType: formData.sessionType,
-                    type: formData.type,
-                    isRecurring: formData.isRecurring,
-                    notes: formData.notes,
-                    meetingUrl: formData.meetingUrl || undefined,
-                    reminderEnabled: formData.reminderEnabled,
-                    reminderMinutesBefore: formData.reminderEnabled ? formData.reminderMinutesBefore : undefined,
-                    allowScheduleConflicts: formData.allowScheduleConflicts ?? false,
-                    roomId: formData.roomId || null,
-                });
-            }
+            await saveAppointment(values, editingAppointment?.id ?? null);
             setSheetOpen(false);
             setEditingAppointment(null);
         } catch (error) {
-            logger.error("Failed to save appointment", error);
+            logger.error("Erro ao salvar o agendamento", error);
         }
     };
 
     const handleDeleteAppointment = async () => {
         if (!editingAppointment) return;
-        if (window.confirm("Deseja realmente excluir este agendamento?")) {
-            try {
-                await deleteMutation.mutateAsync({ id: editingAppointment.id });
-                setSheetOpen(false);
-                setEditingAppointment(null);
-            } catch (error) {
-                logger.error("Failed to delete appointment", error);
-            }
+        if (!window.confirm("Deseja realmente excluir este agendamento?")) return;
+        try {
+            await deleteAppointment(editingAppointment.id);
+            setSheetOpen(false);
+            setEditingAppointment(null);
+        } catch (error) {
+            logger.error("Erro ao excluir o agendamento", error);
         }
     };
 
-    // Event delegation on click to support opening edit form on clicking any card
     const handleCalendarClick = (e: React.MouseEvent) => {
         const card = (e.target as HTMLElement).closest("[data-appointment-id]");
-        if (card) {
-            const id = card.getAttribute("data-appointment-id");
-            const appointment = mappedAppointments.find((a) => a.id === id);
-            if (appointment) {
-                setEditingAppointment(appointment);
-                setSheetOpen(true);
-            }
+        if (!card) return;
+        const id = card.getAttribute("data-appointment-id");
+        const appointment = appointments.find((a) => a.id === id);
+        if (appointment) {
+            setEditingAppointment(appointment);
+            setSheetOpen(true);
         }
     };
 
-    const dateLabel = useMemo(() => {
-        switch (view) {
-            case "semana":
-                return formatWeekRange(selectedDate);
-            case "mes":
-                return formatMonthLabel(selectedDate);
-            case "dia":
-                return formatDayLabel(selectedDate);
-        }
-    }, [selectedDate, view]);
-
-    const navigate = useCallback(
-        (direction: -1 | 1) => {
-            setSelectedDate((prev) => {
-                const d = new Date(prev);
-                switch (view) {
-                    case "semana":
-                        d.setDate(d.getDate() + direction * 7);
-                        break;
-                    case "mes":
-                        d.setMonth(d.getMonth() + direction);
-                        break;
-                    case "dia":
-                        d.setDate(d.getDate() + direction);
-                        break;
-                }
-                return d;
-            });
-        },
-        [view]
-    );
-
-    const goToToday = useCallback(() => {
-        setSelectedDate(new Date());
-    }, []);
-
-    const handleMonthDayClick = useCallback((date: Date) => {
+    const handleDayClick = useCallback((date: Date) => {
         setPendingCreationDate(date);
         setEditingAppointment(null);
         setSheetOpen(true);
     }, []);
+
+    const formInitialData = editingAppointment
+        ? toFormInitialData(editingAppointment)
+        : pendingCreationDate
+            ? { date: pendingCreationDate }
+            : undefined;
 
     return (
         <>
@@ -312,134 +111,65 @@ export function AgendamentoPage() {
                 icon={CalendarDays}
                 actions={
                     <>
-                        {isConnectedGoogle ? (
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                    setIsSyncing(true);
-                                    syncGoogleMutation.mutate();
-                                }}
-                                disabled={isSyncing}
-                                className="gap-1.5"
-                                id="btn-sync-google"
-                            >
-                                <RefreshCw className={`size-4 ${isSyncing ? "animate-spin" : ""}`} />
-                                {isSyncing ? "Sincronizando..." : "Sincronizar Agenda"}
-                            </Button>
-                        ) : (
-                            googleAuthUrlData?.url && (
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                        window.location.href = googleAuthUrlData.url;
-                                    }}
-                                    className="gap-1.5"
-                                    id="btn-connect-google"
-                                >
-                                    <RefreshCw className="size-4" />
-                                    Conectar Agenda do Google
-                                </Button>
-                            )
-                        )}
+                        <GoogleCalendarActions />
                         <Button
                             size="sm"
-                            onClick={() => {
-                                setEditingAppointment(null);
-                                setPendingCreationDate(null);
-                                setSheetOpen(true);
-                            }}
+                            onClick={() => openNewAppointment(null)}
                             className="gap-1.5"
                             id="btn-new-appointment"
                         >
                             <Plus className="size-4" />
                             Novo Agendamento
                         </Button>
-                        <AppSheet
-                            open={isSheetOpen}
-                            onOpenChange={(open) => {
-                                setSheetOpen(open);
-                                if (!open) {
-                                    setEditingAppointment(null);
-                                    setPendingCreationDate(null);
-                                }
-                            }}
-                            title={
-                                editingAppointment
-                                    ? isReadOnly
-                                        ? "Ver Agendamento"
-                                        : "Editar Agendamento"
-                                    : "Novo Agendamento"
-                            }
-                        >
-                            <NewAppointmentForm
-                                key={editingAppointment ? editingAppointment.id : "new"}
-                                onSave={handleSaveAppointment}
-                                onCancel={() => {
-                                    setSheetOpen(false);
-                                    setEditingAppointment(null);
-                                    setPendingCreationDate(null);
-                                }}
-                                onDelete={editingAppointment && !isReadOnly ? handleDeleteAppointment : undefined}
-                                readOnly={isReadOnly}
-                                initialData={
-                                    editingAppointment
-                                        ? {
-                                            id: editingAppointment.id,
-                                            psychologistId: editingAppointment.psychologistId,
-                                            patientId: editingAppointment.patient.id,
-                                            date: editingAppointment.date,
-                                            startTime: editingAppointment.startTime,
-                                            endTime: editingAppointment.endTime,
-                                            status:
-                                                editingAppointment.status === "confirmado"
-                                                    ? "confirmed"
-                                                    : editingAppointment.status === "cancelado"
-                                                        ? "cancelled"
-                                                        : editingAppointment.status === "concluido"
-                                                            ? "completed"
-                                                            : "pending",
-                                            sessionType: editingAppointment.sessionType || "online",
-                                            clinicId: editingAppointment.clinicId ?? null,
-                                            roomId: editingAppointment.roomId ?? null,
-                                            type: editingAppointment.type,
-                                            isRecurring: editingAppointment.isRecurring || false,
-                                            notes: editingAppointment.notes || "",
-                                            meetingUrl: editingAppointment.meetingUrl || "",
-                                            reminderEnabled: editingAppointment.reminderEnabled ?? false,
-                                            reminderMinutesBefore: editingAppointment.reminderMinutesBefore ?? undefined,
-                                            reminderSentAt: editingAppointment.reminderSentAt ?? null,
-                                        }
-                                        : pendingCreationDate
-                                            ? { date: pendingCreationDate }
-                                            : undefined
-                                }
-                            />
-                        </AppSheet>
                     </>
                 }
             />
 
             <div className="flex flex-col flex-1 min-h-0 gap-4 p-4 lg:p-6 overflow-hidden" onClick={handleCalendarClick}>
-                {/* Stats */}
-                <StatsCards appointments={myAppointments} selectedDate={selectedDate} />
+                <StatsCards
+                    appointments={myAppointments}
+                    selectedDate={calendar.selectedDate}
+                    isLoading={isLoadingAppointments}
+                />
 
                 <CalendarDashboard
-                    view={view}
-                    onViewChange={setView}
-                    selectedDate={selectedDate}
-                    onDateChange={setSelectedDate}
-                    dateLabel={dateLabel}
-                    onNavigate={navigate}
-                    onGoToToday={goToToday}
+                    view={calendar.view}
+                    onViewChange={calendar.setView}
+                    selectedDate={calendar.selectedDate}
+                    onDateChange={calendar.setSelectedDate}
+                    dateLabel={calendar.dateLabel}
+                    onNavigate={calendar.navigate}
+                    onGoToToday={calendar.goToToday}
                     appointments={calendarAppointments}
-                    onDayClick={handleMonthDayClick}
+                    onDayClick={handleDayClick}
                     showOwnershipFilter={hasOthersAppointments || onlyMine}
                     onlyMine={onlyMine}
-                    onOnlyMineChange={handleOnlyMineChange}
+                    onOnlyMineChange={setOnlyMine}
                 />
             </div>
+
+            <AppSheet
+                open={isSheetOpen}
+                onOpenChange={(open) => (open ? setSheetOpen(true) : closeSheet())}
+                title={sheetTitle(editingAppointment, isReadOnly)}
+            >
+                <Suspense
+                    fallback={
+                        <div className="flex justify-center py-12">
+                            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                        </div>
+                    }
+                >
+                    <NewAppointmentForm
+                        key={editingAppointment ? editingAppointment.id : "new"}
+                        onSave={handleSaveAppointment}
+                        onCancel={closeSheet}
+                        onDelete={editingAppointment && !isReadOnly ? handleDeleteAppointment : undefined}
+                        readOnly={isReadOnly}
+                        initialData={formInitialData}
+                    />
+                </Suspense>
+            </AppSheet>
         </>
     );
 }

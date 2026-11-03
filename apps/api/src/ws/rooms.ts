@@ -4,12 +4,9 @@ import type { WebSocket } from "ws";
 interface Room {
     psychologist?: WebSocket;
     patient?: WebSocket;
-    // token -> expiry timestamp
     pendingAuthTokens: Map<string, number>;
 }
 
-// In-memory room store. Single-instance only.
-// For multi-instance deployments, replace with Redis pub/sub.
 const rooms = new Map<string, Room>();
 
 function getOrCreate(sessionId: string): Room {
@@ -24,7 +21,7 @@ function getOrCreate(sessionId: string): Room {
 export function createAuthToken(sessionId: string): string {
     const token = randomBytes(16).toString("hex");
     const room = getOrCreate(sessionId);
-    room.pendingAuthTokens.set(token, Date.now() + 10 * 60 * 1000); // 10 min TTL
+    room.pendingAuthTokens.set(token, Date.now() + 10 * 60 * 1000);
     return token;
 }
 

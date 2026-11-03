@@ -3,7 +3,7 @@ import { AppHeader } from "@/components/layout/app-header";
 import { Button } from "@/components/ui/button";
 import { Building2, Check, Plus, X } from "lucide-react";
 import { NewClinicForm, type ClinicFormValues } from "./components/clinic-form";
-import { ClinicsTable, type DBClinic } from "./components/clinics-table";
+import { ClinicsTable, type Clinic } from "./components/clinics-table";
 import { AppSheet } from "@/components/layout/app-sheet";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -11,46 +11,45 @@ import { logger } from "@/lib/logger";
 
 export function ClinicasPage() {
     const [isSheetOpen, setSheetOpen] = useState(false);
-    const [editingClinic, setEditingClinic] = useState<DBClinic | null>(null);
+    const [editingClinic, setEditingClinic] = useState<Clinic | null>(null);
 
-    // Load clinics via tRPC
-    const { data: dbClinics, refetch } = trpc.clinic.list.useQuery(undefined, {
-        retry: false,
-    });
+    const { data: dbClinics, isPending } = trpc.clinic.list.useQuery();
+    const utils = trpc.useUtils();
+    const invalidateClinicData = () => {
+        utils.clinic.invalidate();
+        utils.appointment.invalidate();
+    };
 
-    const { data: invites, refetch: refetchInvites } = trpc.clinic.listInvites.useQuery(undefined, {
-        retry: false,
-    });
+    const { data: invites } = trpc.clinic.listInvites.useQuery();
 
     const acceptInviteMutation = trpc.clinic.acceptInvite.useMutation({
         onSuccess: () => {
             toast.success("Convite aceito. A clínica foi adicionada à sua lista.");
-            refetch();
-            refetchInvites();
+            invalidateClinicData();
         },
-        onError: (err) => toast.error(err.message),
+        onError: (err) => toast.error(`Erro ao aceitar convite: ${err.message}`),
     });
 
     const declineInviteMutation = trpc.clinic.declineInvite.useMutation({
         onSuccess: () => {
             toast.success("Convite recusado.");
-            refetchInvites();
+            invalidateClinicData();
         },
-        onError: (err) => toast.error(err.message),
+        onError: (err) => toast.error(`Erro ao recusar convite: ${err.message}`),
     });
 
     const leaveMutation = trpc.clinic.leave.useMutation({
         onSuccess: () => {
             toast.success("Você saiu da clínica.");
-            refetch();
+            invalidateClinicData();
         },
-        onError: (err) => toast.error(err.message),
+        onError: (err) => toast.error(`Erro ao sair da clínica: ${err.message}`),
     });
 
     const createMutation = trpc.clinic.create.useMutation({
         onSuccess: () => {
             toast.success("Clínica cadastrada com sucesso!");
-            refetch();
+            invalidateClinicData();
         },
         onError: (err) => {
             toast.error(`Erro ao cadastrar clínica: ${err.message}`);
@@ -60,7 +59,7 @@ export function ClinicasPage() {
     const updateMutation = trpc.clinic.update.useMutation({
         onSuccess: () => {
             toast.success("Clínica atualizada com sucesso!");
-            refetch();
+            invalidateClinicData();
         },
         onError: (err) => {
             toast.error(`Erro ao atualizar clínica: ${err.message}`);
@@ -70,7 +69,7 @@ export function ClinicasPage() {
     const deleteMutation = trpc.clinic.delete.useMutation({
         onSuccess: () => {
             toast.success("Clínica excluída com sucesso!");
-            refetch();
+            invalidateClinicData();
         },
         onError: (err) => {
             toast.error(`Erro ao excluir clínica: ${err.message}`);
@@ -79,33 +78,20 @@ export function ClinicasPage() {
 
     const linkMutation = trpc.clinic.linkPsychologist.useMutation({
         onSuccess: () => {
-            refetch(); // o form lê activeEditingClinic, que vem da lista recarregada
+            invalidateClinicData();
         },
     });
 
     const unlinkMutation = trpc.clinic.unlinkPsychologist.useMutation({
         onSuccess: () => {
-            refetch(); // o form lê activeEditingClinic, que vem da lista recarregada
+            invalidateClinicData();
         },
     });
 
-    const allClinics: DBClinic[] = (dbClinics || []).map((cl) => ({
-        id: cl.id,
-        name: cl.name,
-        cnpj: cl.cnpj,
-        phone: cl.phone,
-        email: cl.email,
-        address: cl.address,
-        city: cl.city,
-        createdById: cl.createdById,
-        createdAt: new Date(cl.createdAt),
-        updatedAt: new Date(cl.updatedAt),
-        psychologists: cl.psychologists || [],
-        rooms: cl.rooms || [],
-    }));
-
+    const clinics = dbClinics ?? [];
+    const pendingInvites = invites ?? [];
     const activeEditingClinic = editingClinic
-        ? allClinics.find((c) => c.id === editingClinic.id) || editingClinic
+        ? clinics.find((c) => c.id === editingClinic.id) ?? editingClinic
         : null;
 
     const handleSaveClinic = async (formData: ClinicFormValues) => {
@@ -164,7 +150,7 @@ export function ClinicasPage() {
                 description="Gerencie os cadastros de suas clínicas de psicologia e seus respectivos profissionais."
                 icon={Building2}
                 actions={
-                    <>
+                    <div className="flex items-center gap-2">
                         <Button
                             size="sm"
                             onClick={() => {
@@ -177,48 +163,14 @@ export function ClinicasPage() {
                             <Plus className="size-4" />
                             Nova Clínica
                         </Button>
-                        <AppSheet
-                            open={isSheetOpen}
-                            onOpenChange={(open) => {
-                                setSheetOpen(open);
-                                if (!open) setEditingClinic(null);
-                            }}
-                            title={activeEditingClinic ? "Editar Clínica" : "Nova Clínica"}
-                        >
-                            <NewClinicForm
-                                key={activeEditingClinic ? activeEditingClinic.id : "new"}
-                                onSave={handleSaveClinic}
-                                onCancel={() => {
-                                    setSheetOpen(false);
-                                    setEditingClinic(null);
-                                }}
-                                initialData={
-                                    activeEditingClinic
-                                        ? {
-                                              id: activeEditingClinic.id,
-                                              name: activeEditingClinic.name,
-                                              cnpj: activeEditingClinic.cnpj,
-                                              phone: activeEditingClinic.phone,
-                                              email: activeEditingClinic.email,
-                                              address: activeEditingClinic.address,
-                                              city: activeEditingClinic.city,
-                                              psychologists: activeEditingClinic.psychologists,
-                                              rooms: activeEditingClinic.rooms,
-                                          }
-                                        : undefined
-                                }
-                                onLinkPsychologist={handleLinkPsychologist}
-                                onUnlinkPsychologist={handleUnlinkPsychologist}
-                            />
-                        </AppSheet>
-                    </>
+                    </div>
                 }
             />
 
             <div className="flex flex-1 flex-col gap-4 p-4 lg:p-6">
-                {(invites ?? []).length > 0 && (
+                {pendingInvites.length > 0 && (
                     <div className="rounded-lg border bg-muted/30 divide-y">
-                        {invites!.map((invite) => (
+                        {pendingInvites.map((invite) => (
                             <div key={invite.clinicId} className="flex flex-wrap items-center justify-between gap-3 p-3 text-sm">
                                 <div>
                                     <p className="font-medium">Convite para a clínica {invite.name}</p>
@@ -250,7 +202,8 @@ export function ClinicasPage() {
                     </div>
                 )}
                 <ClinicsTable
-                    clinics={allClinics}
+                    clinics={clinics}
+                    isLoading={isPending}
                     onEdit={(clinic) => {
                         setEditingClinic(clinic);
                         setSheetOpen(true);
@@ -259,7 +212,27 @@ export function ClinicasPage() {
                     onLeave={handleLeaveClinic}
                 />
             </div>
+
+            <AppSheet
+                open={isSheetOpen}
+                onOpenChange={(open) => {
+                    setSheetOpen(open);
+                    if (!open) setEditingClinic(null);
+                }}
+                title={activeEditingClinic ? "Editar Clínica" : "Nova Clínica"}
+            >
+                <NewClinicForm
+                    key={activeEditingClinic ? activeEditingClinic.id : "new"}
+                    onSave={handleSaveClinic}
+                    onCancel={() => {
+                        setSheetOpen(false);
+                        setEditingClinic(null);
+                    }}
+                    initialData={activeEditingClinic ?? undefined}
+                    onLinkPsychologist={handleLinkPsychologist}
+                    onUnlinkPsychologist={handleUnlinkPsychologist}
+                />
+            </AppSheet>
         </>
     );
 }
-export default ClinicasPage;

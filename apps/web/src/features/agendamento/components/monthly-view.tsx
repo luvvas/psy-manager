@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { Appointment } from "../types";
+import { dayKey, isSameDay, isSameMonth } from "../lib/dates";
 import { AppointmentCard } from "./appointment-card";
 
 interface MonthlyViewProps {
@@ -10,32 +11,14 @@ interface MonthlyViewProps {
 
 const WEEKDAY_HEADERS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
-function isSameDay(a: Date, b: Date): boolean {
-    return (
-        a.getFullYear() === b.getFullYear() &&
-        a.getMonth() === b.getMonth() &&
-        a.getDate() === b.getDate()
-    );
-}
-
-function isSameMonth(a: Date, b: Date): boolean {
-    return (
-        a.getFullYear() === b.getFullYear() &&
-        a.getMonth() === b.getMonth()
-    );
-}
-
 function getMonthGrid(date: Date): Date[] {
     const year = date.getFullYear();
     const month = date.getMonth();
 
     const firstDay = new Date(year, month, 1);
-    // getDay() is 0 (Sunday) to 6 (Saturday). We want Monday (1) to Sunday (0).
-    // map Sunday to 6, and Monday-Saturday to 0-5.
     const rawDow = firstDay.getDay();
     const startDow = rawDow === 0 ? 6 : rawDow - 1;
 
-    // Start from the Monday before (or on) the 1st
     const gridStart = new Date(firstDay);
     gridStart.setDate(firstDay.getDate() - startDow);
 
@@ -60,7 +43,7 @@ export function MonthlyView({ appointments, selectedDate, onDayClick }: MonthlyV
     const groupedAppointments = useMemo(() => {
         const map = new Map<string, Appointment[]>();
         for (const apt of appointments) {
-            const key = new Date(apt.date).toISOString().split("T")[0];
+            const key = dayKey(new Date(apt.date));
             if (!map.has(key)) {
                 map.set(key, []);
             }
@@ -70,14 +53,8 @@ export function MonthlyView({ appointments, selectedDate, onDayClick }: MonthlyV
     }, [appointments]);
 
     return (
-        /* Plain overflow container instead of ScrollArea: Radix wraps the children in a
-           display:table div that grows to the content's max-content width (long patient
-           names), pushing the last column past the right edge and hiding its border. */
         <div className="flex flex-1 min-h-0 flex-col overflow-auto rounded-xl bg-card shadow-sm">
-            {/* flex-1 stretches the month to the available height; on short screens the
-                rows keep their 100px minimum and the container scrolls instead. */}
             <div className="flex flex-1 flex-col min-w-[600px] select-none">
-                {/* Header days */}
                 <div className="grid grid-cols-7 border-b bg-muted/40">
                     {WEEKDAY_HEADERS.map((day) => (
                         <div
@@ -89,10 +66,9 @@ export function MonthlyView({ appointments, selectedDate, onDayClick }: MonthlyV
                     ))}
                 </div>
 
-                {/* Day grid */}
                 <div className="grid flex-1 grid-cols-7 grid-rows-[repeat(6,minmax(100px,1fr))] border-l bg-card">
                     {gridDays.map((day) => {
-                        const key = day.toISOString().split("T")[0];
+                        const key = dayKey(day);
                         const dayApts = groupedAppointments.get(key) || [];
                         const isToday = isSameDay(day, today);
                         const isCurrentMonth = isSameMonth(day, selectedDate);
@@ -110,7 +86,6 @@ export function MonthlyView({ appointments, selectedDate, onDayClick }: MonthlyV
                                     }
                                 }}
                             >
-                                {/* Day number */}
                                 <div className="flex items-center justify-between px-1">
                                     <span
                                         className={`flex size-6 items-center justify-center rounded-full text-xs transition-colors ${isToday
@@ -129,7 +104,6 @@ export function MonthlyView({ appointments, selectedDate, onDayClick }: MonthlyV
                                     )}
                                 </div>
 
-                                {/* Appointment pills */}
                                 <div className="mt-0.5 flex flex-col gap-px overflow-hidden">
                                     {dayApts.slice(0, 3).map((apt) => (
                                         <AppointmentCard

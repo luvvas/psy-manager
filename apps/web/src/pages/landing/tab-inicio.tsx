@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import multitaskImg from "@/assets/images/multitask.svg";
 
 const features = [
     {
@@ -151,7 +152,6 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
 export function TabInicio() {
     return (
         <>
-            {/* Hero */}
             <section className="mx-auto max-w-5xl px-6 pt-20 pb-16">
                 <div className="flex flex-col-reverse items-center gap-10 lg:flex-row lg:gap-16">
                     <div className="flex-1 text-center lg:text-left">
@@ -163,22 +163,23 @@ export function TabInicio() {
                             Simples, seguro e feito para psicólogos.
                         </p>
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 lg:justify-start">
-                            <Link to="/login?tab=register">
-                                <Button size="lg" className="gap-2">
+                            <Button asChild size="lg" className="gap-2">
+                                <Link to="/login?tab=register">
                                     Começar gratuitamente
                                     <ArrowRight className="size-4" />
-                                </Button>
-                            </Link>
-                            <Link to="/login">
-                                <Button size="lg" variant="outline">
-                                    Já tenho uma conta
-                                </Button>
-                            </Link>
+                                </Link>
+                            </Button>
+                            <Button asChild size="lg" variant="outline">
+                                <Link to="/login">Já tenho uma conta</Link>
+                            </Button>
                         </div>
                     </div>
                     <div className="flex-1 w-full max-w-md lg:max-w-none">
                         <img
-                            src="/images/multitask.svg"
+                            src={multitaskImg}
+                            width={960}
+                            height={500}
+                            fetchPriority="high"
                             alt="Ilustração de gerenciamento de consultório"
                             className="w-full h-auto"
                         />
@@ -186,7 +187,6 @@ export function TabInicio() {
                 </div>
             </section>
 
-            {/* Benefits strip */}
             <section className="border-y bg-muted/40">
                 <div className="mx-auto max-w-5xl px-6 py-5">
                     <ul className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:justify-center sm:gap-6">
@@ -200,7 +200,6 @@ export function TabInicio() {
                 </div>
             </section>
 
-            {/* Features */}
             <section className="mx-auto max-w-5xl px-6 py-20">
                 <div className="text-center mb-12">
                     <h2 className="text-2xl font-bold tracking-tight mb-2">Módulos integrados</h2>
@@ -222,7 +221,6 @@ export function TabInicio() {
                 </div>
             </section>
 
-            {/* Segurança */}
             <section className="border-t bg-muted/30">
                 <div className="mx-auto max-w-5xl px-6 py-20">
                     <div className="text-center mb-12">
@@ -248,7 +246,6 @@ export function TabInicio() {
                 </div>
             </section>
 
-            {/* FAQ */}
             <section className="border-t">
                 <div className="mx-auto max-w-3xl px-6 py-20">
                     <div className="text-center mb-10">
@@ -263,19 +260,18 @@ export function TabInicio() {
                 </div>
             </section>
 
-            {/* CTA bottom */}
             <section className="border-t bg-muted/40">
                 <div className="mx-auto max-w-5xl px-6 py-16 text-center">
                     <h2 className="text-2xl font-bold tracking-tight mb-3">
                         Pronto para organizar seu consultório?
                     </h2>
                     <p className="text-muted-foreground mb-8">Crie sua conta e comece a usar hoje mesmo.</p>
-                    <Link to="/login?tab=register">
-                        <Button size="lg" className="gap-2">
+                    <Button asChild size="lg" className="gap-2">
+                        <Link to="/login?tab=register">
                             Criar conta gratuita
                             <ArrowRight className="size-4" />
-                        </Button>
-                    </Link>
+                        </Link>
+                    </Button>
                 </div>
             </section>
         </>

@@ -6,8 +6,6 @@ import { ConsultaRoom } from "./components/consulta-room";
 import { Loader2, VideoOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const DEFAULT_ICE: RTCIceServer[] = [{ urls: "stun:stun.l.google.com:19302" }];
-
 export function PsychologistPage() {
     const { sessionId } = useParams<{ sessionId: string }>();
     const location = useLocation();
@@ -19,18 +17,16 @@ export function PsychologistPage() {
 
     const { data: session, isLoading, isError } = trpc.videoSession.get.useQuery(
         { id: sessionId! },
-        { enabled: !!sessionId, retry: false }
+        { enabled: !!sessionId }
     );
 
     const endMutation = trpc.videoSession.end.useMutation();
 
-    const iceServers = session?.iceServers ?? DEFAULT_ICE;
-
-    const { localStream, remoteStream, status, errorMessage, startCall, endCall } = useWebRtcCall({
+    const { localStream, remoteStream, status, errorMessage, startCall, endCall, switchDevice } = useWebRtcCall({
         sessionId: sessionId!,
         role: "psychologist",
         joinToken: wsAuthToken,
-        iceServers,
+        iceServers: session?.iceServers,
     });
 
     const startedRef = useRef(false);
@@ -50,7 +46,6 @@ export function PsychologistPage() {
         navigate("/agendamento");
     };
 
-    // O token só existe no state da navegação vinda da agenda (F5 ou link direto o perdem).
     if (!wsAuthToken) {
         return <Navigate to="/agendamento" replace />;
     }
@@ -63,7 +58,6 @@ export function PsychologistPage() {
         );
     }
 
-    // Sem isto a sala abria com status "idle" e uma tela escura sem mensagem.
     if (isError || !session) {
         return (
             <div className="flex h-svh flex-col items-center justify-center gap-4 p-6 text-center">
@@ -90,6 +84,8 @@ export function PsychologistPage() {
             status={status}
             errorMessage={errorMessage}
             patientJoinUrl={patientJoinUrl}
+            onSwitchAudioDevice={(deviceId) => switchDevice("audioinput", deviceId)}
+            onSwitchVideoDevice={(deviceId) => switchDevice("videoinput", deviceId)}
             onEndCall={handleEndCall}
         />
     );

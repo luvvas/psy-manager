@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ArrowDownLeft, ArrowUpRight, Wallet } from "lucide-react";
 import { HomePanel, MoreItems } from "./home-panel";
+import { formatCurrency } from "@/utils/format";
 
 export interface HomePendingPayment {
     id: string;
@@ -14,17 +15,16 @@ export interface HomePendingPayment {
 }
 
 interface PendingPaymentsProps {
+    isLoading?: boolean;
     payments: HomePendingPayment[];
     hiddenCount: number;
     totalToReceive: number;
 }
 
-const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
-
-export function PendingPayments({ payments, hiddenCount, totalToReceive }: PendingPaymentsProps) {
+export function PendingPayments({ payments, hiddenCount, totalToReceive, isLoading }: PendingPaymentsProps) {
     return (
         <HomePanel
+            isLoading={isLoading}
             title="Pagamentos pendentes"
             description={`${formatCurrency(totalToReceive)} a receber no total.`}
             action={{ label: "Ver todos", to: "/financeiro" }}

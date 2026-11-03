@@ -7,7 +7,6 @@ import { isOwnStorageKey } from "../utils/storage.utils";
 import { isSafeDocumentUrl } from "../utils/url.utils";
 import { assertPatientOwnership } from "../lib/ownership";
 
-// See isOwnStorageKey (issue #38).
 function assertStorageKeyOwnership(psychologistId: string, storageKey: string | null | undefined) {
     if (storageKey && !isOwnStorageKey(psychologistId, storageKey)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Arquivo não encontrado." });
@@ -38,7 +37,6 @@ export const documentRouter = router({
                 return { url: await storageService.createReadUrl(doc.storageKey, ctx.session.user.id) };
             }
 
-            // content is free text; only hand it out as a URL when it is one.
             return { url: doc.content && isSafeDocumentUrl(doc.content) ? doc.content : null };
         }),
 

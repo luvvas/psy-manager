@@ -15,13 +15,15 @@ export interface HomeUnsignedRecord {
 }
 
 interface UnsignedRecordsProps {
+    isLoading?: boolean;
     records: HomeUnsignedRecord[];
     hiddenCount: number;
 }
 
-export function UnsignedRecords({ records, hiddenCount }: UnsignedRecordsProps) {
+export function UnsignedRecords({ records, hiddenCount, isLoading }: UnsignedRecordsProps) {
     return (
         <HomePanel
+            isLoading={isLoading}
             title="Prontuários sem assinatura"
             description="Registros em rascunho, dos mais antigos aos mais recentes."
             isEmpty={records.length === 0}

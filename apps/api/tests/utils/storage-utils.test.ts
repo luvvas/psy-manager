@@ -19,8 +19,8 @@ describe("isOwnStorageKey (issue #38)", () => {
     test("recusa chaves de outro psicólogo, fora do prefixo ou com traversal", () => {
         const forged = [
             "documents/other-user/victim.pdf",
-            "documents/user-1234/x.pdf", // prefixo parecido, outro usuário
-            "documents/user-123/", // sem arquivo
+            "documents/user-1234/x.pdf",
+            "documents/user-123/",
             "documents/user-123/../other-user/victim.pdf",
             "documents/user-123/sub/x.pdf",
             "documents/user-123/..\\other-user\\victim.pdf",

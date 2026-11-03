@@ -4,8 +4,6 @@ import { patientCommands } from "../cqrs/patient/patient.commands";
 import { patientQueries } from "../cqrs/patient/patient.queries";
 import { TRPCError } from "@trpc/server";
 
-// Só o nome é obrigatório no cadastro do paciente. Campos opcionais chegam
-// vazios do formulário e viram null; quando preenchidos, o formato é validado.
 const optionalText = z
     .string()
     .trim()
@@ -60,7 +58,6 @@ export const patientRouter = router({
                 cpf: optionalCpf,
                 valorSessao: z.string().or(z.number()).optional().nullable(),
                 modeloCobranca: z.string().optional().nullable(),
-                // Extended Registration Fields
                 nomeSocial: z.string().optional().nullable(),
                 rg: z.string().optional().nullable(),
                 profissao: z.string().optional().nullable(),
@@ -84,7 +81,6 @@ export const patientRouter = router({
             })
         )
         .mutation(async ({ ctx, input }) => {
-            // Command side of CQRS: dispatches creation command to generate events
             const patientId = await patientCommands.create({
                 ...input,
                 psychologistId: ctx.session.user.id,
@@ -104,7 +100,6 @@ export const patientRouter = router({
                 cpf: optionalCpf,
                 valorSessao: z.string().or(z.number()).optional().nullable(),
                 modeloCobranca: z.string().optional().nullable(),
-                // Extended Registration Fields
                 nomeSocial: z.string().optional().nullable(),
                 rg: z.string().optional().nullable(),
                 profissao: z.string().optional().nullable(),
@@ -128,7 +123,6 @@ export const patientRouter = router({
             })
         )
         .mutation(async ({ ctx, input }) => {
-            // Command side of CQRS: replays history and appends update event
             await patientCommands.update({
                 ...input,
                 psychologistId: ctx.session.user.id,
@@ -143,7 +137,6 @@ export const patientRouter = router({
             })
         )
         .mutation(async ({ ctx, input }) => {
-            // Command side of CQRS: replays history and appends deletion event
             await patientCommands.delete({
                 id: input.id,
                 psychologistId: ctx.session.user.id,

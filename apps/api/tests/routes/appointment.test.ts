@@ -133,7 +133,6 @@ describe("appointment API", () => {
         await expect(
             caller().appointment.create(appointmentInput({ startTime: "10:00", endTime: "09:00" }))
         ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-        // A confirmação não passa por cima da validação do horário.
         await expect(
             caller().appointment.create(
                 appointmentInput({ startTime: "10:00", endTime: "09:00", allowScheduleConflicts: true })
@@ -167,7 +166,6 @@ describe("appointment API", () => {
         const { url } = await caller().appointment.getGoogleAuthUrl();
         const parsed = new URL(url);
         expect(parsed.searchParams.get("client_id")).toBe("google-client");
-        // state aleatório de uso único, não mais o id do usuário (auditoria F3)
         expect(parsed.searchParams.get("state")).not.toBe(USER_ID);
         expect(parsed.searchParams.get("state")!.length).toBeGreaterThanOrEqual(40);
 

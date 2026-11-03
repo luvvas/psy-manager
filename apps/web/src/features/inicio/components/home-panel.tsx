@@ -1,20 +1,19 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface HomePanelProps {
     title: string;
     description: string;
-    /** Link no canto do painel ("Ver agenda", "Ver todos"...). */
     action?: { label: string; to: string };
-    /** Mostrado no lugar de children quando não há itens. */
     empty?: { icon: LucideIcon; title: string; description: string };
     isEmpty?: boolean;
+    isLoading?: boolean;
     children?: React.ReactNode;
 }
 
-/** Moldura comum dos blocos da tela inicial: cabeçalho, lista e estado vazio. */
-export function HomePanel({ title, description, action, empty, isEmpty, children }: HomePanelProps) {
+export function HomePanel({ title, description, action, empty, isEmpty, isLoading = false, children }: HomePanelProps) {
     const EmptyIcon = empty?.icon;
 
     return (
@@ -34,7 +33,13 @@ export function HomePanel({ title, description, action, empty, isEmpty, children
                 )}
             </div>
 
-            {isEmpty && empty && EmptyIcon ? (
+            {isLoading ? (
+                <div className="flex flex-col gap-3 p-4">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-2/3" />
+                </div>
+            ) : isEmpty && empty && EmptyIcon ? (
                 <div className="m-4 flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed bg-muted/10 px-4 py-8 text-center">
                     <EmptyIcon className="mb-3 size-10 text-muted-foreground opacity-20" />
                     <h3 className="font-medium">{empty.title}</h3>
@@ -47,7 +52,6 @@ export function HomePanel({ title, description, action, empty, isEmpty, children
     );
 }
 
-/** Rodapé "+N mais" quando a lista foi cortada. */
 export function MoreItems({ count, to }: { count: number; to: string }) {
     if (count <= 0) return null;
     return (

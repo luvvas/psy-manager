@@ -30,7 +30,8 @@ const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
-const SIDEBAR_WIDTH_STORAGE_KEY = "sidebar-width-px"
+const SIDEBAR_WIDTH_STORAGE_KEY = "psy:sidebar-width:v1"
+const SIDEBAR_WIDTH_LEGACY_STORAGE_KEY = "sidebar-width-px"
 const SIDEBAR_WIDTH_MIN = 180
 const SIDEBAR_WIDTH_MAX = 400
 
@@ -43,6 +44,31 @@ type SidebarContextProps = {
   isMobile: boolean
   toggleSidebar: () => void
   setWidth: (px: number) => void
+  previewWidth: (px: number) => number
+}
+
+function clampSidebarWidth(px: number) {
+  return Math.round(Math.min(Math.max(px, SIDEBAR_WIDTH_MIN), SIDEBAR_WIDTH_MAX))
+}
+
+function readStoredSidebarWidth() {
+  try {
+    const saved = localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY)
+    if (saved !== null) {
+      const px = Number(saved)
+      return Number.isFinite(px) ? `${clampSidebarWidth(px)}px` : SIDEBAR_WIDTH
+    }
+    const legacy = localStorage.getItem(SIDEBAR_WIDTH_LEGACY_STORAGE_KEY)
+    if (legacy === null) return SIDEBAR_WIDTH
+    localStorage.removeItem(SIDEBAR_WIDTH_LEGACY_STORAGE_KEY)
+    const px = Number(legacy)
+    if (!Number.isFinite(px)) return SIDEBAR_WIDTH
+    const clamped = clampSidebarWidth(px)
+    localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(clamped))
+    return `${clamped}px`
+  } catch {
+    return SIDEBAR_WIDTH
+  }
 }
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null)
@@ -72,22 +98,26 @@ function SidebarProvider({
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
 
-  const [sidebarWidth, setSidebarWidthState] = React.useState<string>(() => {
-    try {
-      const saved = localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY)
-      if (saved) return `${saved}px`
-    } catch {}
-    return SIDEBAR_WIDTH
-  })
+  const wrapperRef = React.useRef<HTMLDivElement>(null)
+  const [sidebarWidth, setSidebarWidthState] = React.useState<string>(readStoredSidebarWidth)
 
-  const setWidth = React.useCallback((px: number) => {
-    const clamped = Math.min(Math.max(px, SIDEBAR_WIDTH_MIN), SIDEBAR_WIDTH_MAX)
-    setSidebarWidthState(`${clamped}px`)
-    try { localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(clamped)) } catch {}
+  const previewWidth = React.useCallback((px: number) => {
+    const clamped = clampSidebarWidth(px)
+    wrapperRef.current?.style.setProperty("--sidebar-width", `${clamped}px`)
+    return clamped
   }, [])
 
-  // This is the internal state of the sidebar.
-  // We use openProp and setOpenProp for control from outside the component.
+  const setWidth = React.useCallback((px: number) => {
+    const clamped = clampSidebarWidth(px)
+    wrapperRef.current?.style.setProperty("--sidebar-width", `${clamped}px`)
+    setSidebarWidthState(`${clamped}px`)
+    try {
+      localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(clamped))
+    } catch {
+      return
+    }
+  }, [])
+
   const [_open, _setOpen] = React.useState(defaultOpen)
   const open = openProp ?? _open
   const setOpen = React.useCallback(
@@ -99,18 +129,15 @@ function SidebarProvider({
         _setOpen(openState)
       }
 
-      // This sets the cookie to keep the sidebar state.
       document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
     },
     [setOpenProp, open]
   )
 
-  // Helper to toggle the sidebar.
   const toggleSidebar = React.useCallback(() => {
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
   }, [isMobile, setOpen, setOpenMobile])
 
-  // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
@@ -126,8 +153,6 @@ function SidebarProvider({
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [toggleSidebar])
 
-  // We add a state so that we can do data-state="expanded" or "collapsed".
-  // This makes it easier to style the sidebar with Tailwind classes.
   const state = open ? "expanded" : "collapsed"
 
   const contextValue = React.useMemo<SidebarContextProps>(
@@ -140,13 +165,15 @@ function SidebarProvider({
       setOpenMobile,
       toggleSidebar,
       setWidth,
+      previewWidth,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, setWidth]
+    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, setWidth, previewWidth]
   )
 
   return (
     <SidebarContext.Provider value={contextValue}>
       <div
+        ref={wrapperRef}
         data-slot="sidebar-wrapper"
         style={
           {
@@ -214,8 +241,8 @@ function Sidebar({
           side={side}
         >
           <SheetHeader className="sr-only">
-            <SheetTitle>Sidebar</SheetTitle>
-            <SheetDescription>Displays the mobile sidebar.</SheetDescription>
+            <SheetTitle>Menu</SheetTitle>
+            <SheetDescription>Menu de navegação do app.</SheetDescription>
           </SheetHeader>
           <div className="flex h-full w-full flex-col">{children}</div>
         </SheetContent>
@@ -232,7 +259,6 @@ function Sidebar({
       data-side={side}
       data-slot="sidebar"
     >
-      {/* This is what handles the sidebar gap on desktop */}
       <div
         data-slot="sidebar-gap"
         className={cn(
@@ -249,7 +275,6 @@ function Sidebar({
         data-side={side}
         className={cn(
           "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear data-[side=left]:left-0 data-[side=left]:group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)] data-[side=right]:right-0 data-[side=right]:group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)] md:flex",
-          // Adjust the padding for floating and inset variants.
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
             : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
@@ -290,7 +315,7 @@ function SidebarTrigger({
       {...props}
     >
       <PanelLeftIcon />
-      <span className="sr-only">Toggle Sidebar</span>
+      <span className="sr-only">Abrir ou fechar o menu</span>
     </Button>
   )
 }
@@ -302,10 +327,10 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
     <button
       data-sidebar="rail"
       data-slot="sidebar-rail"
-      aria-label="Toggle Sidebar"
+      aria-label="Abrir ou fechar o menu"
       tabIndex={-1}
       onClick={toggleSidebar}
-      title="Toggle Sidebar"
+      title="Abrir ou fechar o menu"
       className={cn(
         "absolute inset-y-0 z-20 hidden w-4 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:start-1/2 after:w-[2px] hover:after:bg-sidebar-border sm:flex ltr:-translate-x-1/2 rtl:-translate-x-1/2",
         "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",
@@ -606,7 +631,6 @@ function SidebarMenuSkeleton({
 }: React.ComponentProps<"div"> & {
   showIcon?: boolean
 }) {
-  // Random width between 50 to 90%.
   const [width] = React.useState(() => {
     return `${Math.floor(Math.random() * 40) + 50}%`
   })

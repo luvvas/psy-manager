@@ -1,33 +1,20 @@
 import { TrendingUp, TrendingDown, Wallet, Calendar } from "lucide-react";
 import { StatsCards as GenericStatsCards } from "@/components/stats-cards";
-
-export interface FinancialTransaction {
-    id: string;
-    type: string;
-    amount: string | number;
-    description: string;
-    date: Date;
-}
+import { formatCurrency } from "@/utils/format";
+import type { Transaction } from "../types";
 
 interface StatsCardsProps {
-    transactions: FinancialTransaction[];
+    isLoading?: boolean;
+    transactions: Transaction[];
 }
 
-const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-    }).format(value);
-};
-
-export function StatsCards({ transactions }: StatsCardsProps) {
-    const income = transactions
-        .filter((t) => t.type === "income")
-        .reduce((acc, curr) => acc + Number(curr.amount), 0);
-
-    const expenses = transactions
-        .filter((t) => t.type === "expense")
-        .reduce((acc, curr) => acc + Number(curr.amount), 0);
+export function StatsCards({ transactions, isLoading }: StatsCardsProps) {
+    let income = 0;
+    let expenses = 0;
+    for (const tx of transactions) {
+        if (tx.type === "income") income += Number(tx.amount);
+        else if (tx.type === "expense") expenses += Number(tx.amount);
+    }
 
     const balance = income - expenses;
 
@@ -58,5 +45,5 @@ export function StatsCards({ transactions }: StatsCardsProps) {
         },
     ];
 
-    return <GenericStatsCards items={stats} />;
+    return <GenericStatsCards items={stats} isLoading={isLoading} />;
 }

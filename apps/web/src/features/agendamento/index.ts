@@ -1,1 +1,0 @@
-export { AgendamentoPage } from "./page";

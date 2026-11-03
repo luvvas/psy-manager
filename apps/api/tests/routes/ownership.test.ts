@@ -16,9 +16,6 @@ import {
 
 beforeEach(resetRouterTestState);
 
-// Issue #36: IDs de paciente/agendamento vindos do cliente precisam pertencer
-// ao chamador. No mock do banco, `ownedPatientRows = []` simula a consulta de
-// posse sem resultado (objeto de outro psicólogo).
 describe("validação de posse de IDs referenciados (issue #36)", () => {
     describe("objeto de outro psicólogo → FORBIDDEN, sem gravar", () => {
         beforeEach(() => {
@@ -72,7 +69,6 @@ describe("validação de posse de IDs referenciados (issue #36)", () => {
             sessionId: "video-1",
         });
 
-        // Sem ID relacionado não há consulta de posse a falhar.
         state.ownedPatientRows = [];
         await expect(caller().financial.create(transactionInput({ patientId: null }))).resolves.toMatchObject({
             id: "transaction-1",

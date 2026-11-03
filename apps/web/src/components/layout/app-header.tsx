@@ -10,23 +10,14 @@ interface AppHeaderProps {
 
 export function AppHeader({ title, description, icon: Icon, actions }: AppHeaderProps) {
     return (
-        /*
-         * sticky + z-10 keeps the header visible while content scrolls.
-         * backgroundColor is set here; color is NOT — action buttons would
-         * otherwise inherit the foreground and render white-on-white.
-         */
         <header
             className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b px-4 transition-colors duration-300"
             style={{
-                // Sem cor de tema, usa o fundo da página: transparente deixava o
-                // conteúdo aparecer por baixo do header fixo ao rolar.
                 backgroundColor: "var(--app-header-bg, var(--background))",
             }}
         >
-            {/* No celular a sidebar vira um sheet fechado: sem este gatilho não há como abrir o menu. */}
             <SidebarTrigger className="-ml-1 md:hidden" style={{ color: "var(--app-header-fg, inherit)" }} />
             <div className="flex flex-1 items-center justify-between">
-                {/* Left: icon + title — color applied here, not on the header element */}
                 <div
                     className="flex items-center gap-3"
                     style={{ color: "var(--app-header-fg, inherit)" }}
@@ -55,8 +46,6 @@ export function AppHeader({ title, description, icon: Icon, actions }: AppHeader
                     </div>
                 </div>
 
-                {/* Right: action buttons — deliberately outside the colored div so
-                    they keep their own foreground styles and stay readable */}
                 {actions && <div className="flex items-center gap-2">{actions}</div>}
             </div>
         </header>

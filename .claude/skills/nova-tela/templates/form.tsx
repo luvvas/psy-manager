@@ -1,4 +1,3 @@
-// MODELO — formulário renderizado dentro do AppSheet. Copie para components/<entidade>-form.tsx.
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,8 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatPhone } from "@/utils/format";
 import { logger } from "@/lib/logger";
-// Outros controles prontos: DatePicker (@/components/date-picker),
-// TimeInput (@/components/time-input), FileInput (@/components/file-input).
 
 const schema = z.object({
     nome: z.string().min(2, "O nome é obrigatório"),
@@ -23,7 +20,7 @@ export type HealthPlanFormValues = z.infer<typeof schema>;
 interface HealthPlanFormProps {
     onSave: (values: HealthPlanFormValues) => Promise<void>;
     onCancel: () => void;
-    initialData?: HealthPlanFormValues;
+    initialData?: { nome: string; registroAns: string | null; telefone: string | null };
 }
 
 export function HealthPlanForm({ onSave, onCancel, initialData }: HealthPlanFormProps) {
@@ -37,7 +34,11 @@ export function HealthPlanForm({ onSave, onCancel, initialData }: HealthPlanForm
         formState: { errors },
     } = useForm<HealthPlanFormValues>({
         resolver: zodResolver(schema),
-        defaultValues: initialData ?? { nome: "", registroAns: "", telefone: "" },
+        defaultValues: {
+            nome: initialData?.nome ?? "",
+            registroAns: initialData?.registroAns ?? "",
+            telefone: initialData?.telefone ?? "",
+        },
     });
 
     const onSubmit = async (values: HealthPlanFormValues) => {

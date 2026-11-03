@@ -4,7 +4,8 @@ import { Home } from "lucide-react";
 import { AppHeader } from "@/components/layout/app-header";
 import { trpc } from "@/lib/trpc";
 import { useSession } from "@/lib/auth-client";
-import type { AppointmentStatus } from "@/features/agendamento/types";
+import { STATUS_FROM_API } from "@/features/agendamento/types";
+import { dayKey } from "@/features/agendamento/lib/dates";
 import { StatsCards } from "./components/stats-cards";
 import { UpcomingSessions } from "./components/upcoming-sessions";
 import { QuickLinks } from "./components/quick-links";
@@ -14,21 +15,8 @@ import { UnsignedRecords, type HomeUnsignedRecord } from "./components/unsigned-
 import type { HomeSession } from "./types";
 
 const MAX_UPCOMING = 8;
-/** Itens por bloco da segunda linha (aniversariantes, pendentes, prontuários). */
 const MAX_PER_PANEL = 5;
 const BIRTHDAY_WINDOW_DAYS = 30;
-
-// A API devolve status em inglês ou português, como na tela de agendamento.
-const STATUS_MAP: Record<string, AppointmentStatus> = {
-    confirmed: "confirmado",
-    confirmado: "confirmado",
-    pending: "pendente",
-    pendente: "pendente",
-    cancelled: "cancelado",
-    cancelado: "cancelado",
-    completed: "concluido",
-    concluido: "concluido",
-};
 
 function greeting(date: Date) {
     const hour = date.getHours();
@@ -42,30 +30,28 @@ export function InicioPage() {
 
     const now = useMemo(() => new Date(), []);
     const todayKey = format(now, "yyyy-MM-dd");
-    const monthRange = useMemo(() => ({ startDate: startOfMonth(now), endDate: endOfMonth(now) }), [now]);
 
-    const { data: dbAppointments } = trpc.appointment.list.useQuery(undefined, { retry: false });
-    const { data: dbPatients } = trpc.patient.list.useQuery(undefined, { retry: false });
-    const { data: dbTransactions } = trpc.financial.list.useQuery(monthRange, { retry: false });
-    // Pendências não têm período: uma cobrança de meses atrás continua pendente.
-    const { data: dbAllTransactions } = trpc.financial.list.useQuery(undefined, { retry: false });
-    const { data: dbRecords } = trpc.clinicalRecord.list.useQuery(undefined, { retry: false });
+    const appointmentsQuery = trpc.appointment.list.useQuery();
+    const patientsQuery = trpc.patient.list.useQuery();
+    const transactionsQuery = trpc.financial.list.useQuery();
+    const recordsQuery = trpc.clinicalRecord.list.useQuery();
+    const dbAppointments = appointmentsQuery.data;
+    const dbPatients = patientsQuery.data;
+    const dbAllTransactions = transactionsQuery.data;
+    const dbRecords = recordsQuery.data;
 
     const myId = session?.user?.id;
     const sessions: HomeSession[] = useMemo(
         () =>
             (dbAppointments ?? [])
-                // appointment.list também traz sessões de colegas que ocupam sala de uma
-                // clínica em comum; o Início mostra só a agenda da psicóloga logada.
                 .filter((app) => app.psychologistId === myId)
                 .map((app) => ({
                     id: app.id,
-                    // Mesma chave de dia das visões da agenda (data gravada em UTC).
-                    dayKey: new Date(app.date).toISOString().split("T")[0],
+                    dayKey: dayKey(new Date(app.date)),
                     startTime: app.startTime,
                     endTime: app.endTime,
                     patientName: app.patient?.nome ?? "Consulta reservada",
-                    status: STATUS_MAP[app.status] ?? "pendente",
+                    status: STATUS_FROM_API[app.status] ?? "pendente",
                     sessionType: (app.sessionType as HomeSession["sessionType"]) ?? undefined,
                 })),
         [dbAppointments, myId]
@@ -84,9 +70,12 @@ export function InicioPage() {
         .sort((a, b) => a.dayKey.localeCompare(b.dayKey) || a.startTime.localeCompare(b.startTime))
         .slice(0, MAX_UPCOMING);
 
-    const monthIncome = (dbTransactions ?? [])
-        .filter((t) => t.type === "income")
-        .reduce((acc, t) => acc + Number(t.amount), 0);
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+    let monthIncome = 0;
+    for (const t of dbAllTransactions ?? []) {
+        if (t.type === "income" && t.date >= monthStart && t.date <= monthEnd) monthIncome += Number(t.amount);
+    }
 
     const today = useMemo(() => startOfDay(now), [now]);
 
@@ -94,7 +83,6 @@ export function InicioPage() {
         const list: HomeBirthday[] = [];
         for (const p of dbPatients ?? []) {
             if (!p.dataNascimento) continue;
-            // Data de nascimento é gravada em UTC (meia-noite); lê dia/mês em UTC.
             const dob = new Date(p.dataNascimento);
             let next = new Date(today.getFullYear(), dob.getUTCMonth(), dob.getUTCDate());
             if (next < today) next = new Date(today.getFullYear() + 1, dob.getUTCMonth(), dob.getUTCDate());
@@ -128,7 +116,6 @@ export function InicioPage() {
                         isOverdue: startOfDay(date) < today,
                     };
                 })
-                // Mais antigas (e vencidas) primeiro.
                 .sort((a, b) => a.date.getTime() - b.date.getTime()),
         [dbAllTransactions, today]
     );
@@ -168,11 +155,12 @@ export function InicioPage() {
                     sessionsWeek={sessionsWeek}
                     patientCount={dbPatients?.length ?? 0}
                     monthIncome={monthIncome}
+                    isLoading={appointmentsQuery.isPending || patientsQuery.isPending || transactionsQuery.isPending}
                 />
 
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                     <div className="lg:col-span-2">
-                        <UpcomingSessions sessions={upcoming} todayKey={todayKey} />
+                        <UpcomingSessions sessions={upcoming} todayKey={todayKey} isLoading={appointmentsQuery.isPending} />
                     </div>
                     <div className="lg:col-span-1">
                         <QuickLinks />
@@ -183,15 +171,18 @@ export function InicioPage() {
                     <Birthdays
                         birthdays={allBirthdays.slice(0, MAX_PER_PANEL)}
                         hiddenCount={allBirthdays.length - MAX_PER_PANEL}
+                        isLoading={patientsQuery.isPending}
                     />
                     <PendingPayments
                         payments={allPending.slice(0, MAX_PER_PANEL)}
                         hiddenCount={allPending.length - MAX_PER_PANEL}
                         totalToReceive={totalToReceive}
+                        isLoading={transactionsQuery.isPending}
                     />
                     <UnsignedRecords
                         records={allUnsigned.slice(0, MAX_PER_PANEL)}
                         hiddenCount={allUnsigned.length - MAX_PER_PANEL}
+                        isLoading={recordsQuery.isPending}
                     />
                 </div>
             </div>

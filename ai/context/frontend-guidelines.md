@@ -36,9 +36,20 @@ See the `react-best-practices` skill.
 - Use the typed tRPC React client from `apps/web/src/lib/trpc.ts`.
 - Use `trpc.<router>.<procedure>.useQuery` for reads.
 - Use `trpc.<router>.<procedure>.useMutation` for writes.
-- Use `refetch` or `trpc.useUtils().<router>.<procedure>.invalidate()` after
-  mutations.
-- Keep API data mapping close to the page/component that needs the UI shape.
+- After mutations, `trpc.useUtils().<router>.invalidate()` — plus every other router
+  whose screen shows the same data (e.g. financial → Início). `refetch()` only updates
+  the local list.
+- Types come from the API: `RouterOutputs` / `RouterInputs` in `lib/trpc.ts`. No
+  hand-written `DBX` interfaces, no `any`, no `new Date(...)` (superjson sends Dates).
+- Query defaults live in `lib/query-client.ts` (retry policy, 401 → /login); don't pass
+  `retry: false` per screen. `queryClient` is a module singleton (logout clears it via
+  `lib/session.ts`).
+- Shared helpers: `formatCurrency` / `getErrorMessage` (`utils/format.ts`), CSV import
+  via `components/csv-import/`, `DataTable` with `isLoading` and `id`-keyed rows.
+- Browser storage keys are versioned and wrapped in try/catch: `psy:theme:v1` (last
+  applied theme, applied in `main.tsx` before the first paint and cleared on logout),
+  `psy:sidebar-width:v1`, `agenda:only-mine:v1`.
+- No comments in source code (see `CLAUDE.md`).
 
 ## Auth
 

@@ -1,36 +1,40 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/layout/app-header";
 import { Button } from "@/components/ui/button";
 import { Users, Plus, UploadCloud, ArrowRight, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { NewPatientForm } from "./components/patient-form";
-import { PatientsTable, type DBPatient } from "./components/patients-table";
-import { PatientCsvImporter, PATIENT_REQUIRED_FIELDS, type PatientFieldId } from "./components/patient-csv-importer";
+import { NewPatientForm, type PatientFormValues } from "./components/patient-form";
+import { PatientsTable, type Patient } from "./components/patients-table";
+import { mapCsvRowsToPatients, PATIENT_CSV_FIELDS } from "./csv-import";
+import { CsvColumnMapper } from "@/components/csv-import/csv-column-mapper";
+import { useCsvImport } from "@/components/csv-import/use-csv-import";
 import { AppSheet } from "@/components/layout/app-sheet";
-import { parseDate } from "@/utils/csv";
 
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-import Papa from "papaparse";
 
 export function PacientesPage() {
     const [isSheetOpen, setSheetOpen] = useState(false);
-    const [editingPatient, setEditingPatient] = useState<DBPatient | null>(null);
+    const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
     const [activeTab, setActiveTab] = useState("lista");
-    const [csvData, setCsvData] = useState<{ headers: string[]; rows: any[][] } | null>(null);
-    const [mappings, setMappings] = useState<Record<string, PatientFieldId | "skip">>({});
-    const [isImporting, setIsImporting] = useState(false);
+    const csv = useCsvImport(PATIENT_CSV_FIELDS);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const navigate = useNavigate();
 
-    const { data: dbPatients, refetch } = trpc.patient.list.useQuery(undefined, { retry: false });
+    const { data: dbPatients, isPending } = trpc.patient.list.useQuery();
+    const utils = trpc.useUtils();
+    const invalidatePatientData = () => {
+        utils.patient.invalidate();
+        utils.appointment.invalidate();
+        utils.financial.invalidate();
+    };
 
     const createPatientMutation = trpc.patient.create.useMutation({
         onSuccess: () => {
             toast.success("Paciente cadastrado com sucesso!");
-            refetch();
+            utils.patient.invalidate();
         },
         onError: (err) => toast.error(`Erro ao cadastrar: ${err.message}`),
     });
@@ -38,7 +42,7 @@ export function PacientesPage() {
     const updatePatientMutation = trpc.patient.update.useMutation({
         onSuccess: () => {
             toast.success("Paciente atualizado com sucesso!");
-            refetch();
+            invalidatePatientData();
         },
         onError: (err) => toast.error(`Erro ao atualizar: ${err.message}`),
     });
@@ -46,7 +50,7 @@ export function PacientesPage() {
     const deletePatientMutation = trpc.patient.delete.useMutation({
         onSuccess: () => {
             toast.success("Paciente excluído com sucesso!");
-            refetch();
+            invalidatePatientData();
         },
         onError: (err) => toast.error(`Erro ao excluir: ${err.message}`),
     });
@@ -54,46 +58,15 @@ export function PacientesPage() {
     const createManyMutation = trpc.patient.createMany.useMutation({
         onSuccess: (data) => {
             toast.success(`${data.count} paciente(s) importado(s) com sucesso!`);
-            setCsvData(null);
-            refetch();
+            csv.reset();
+            utils.patient.invalidate();
             setActiveTab("lista");
         },
-        onError: (err) => toast.error(`Erro na importação: ${err.message}`),
-        onSettled: () => setIsImporting(false),
+        onError: (err) => toast.error(`Erro ao importar: ${err.message}`),
     });
+    const isImporting = createManyMutation.isPending;
 
-    useEffect(() => {
-        if (csvData) {
-            const initial: Record<string, PatientFieldId | "skip"> = {};
-            csvData.headers.forEach((_, idx) => { initial[idx] = "skip"; });
-            setMappings(initial);
-        } else {
-            setMappings({});
-        }
-    }, [csvData]);
-
-    const allPatients: DBPatient[] = (dbPatients || []).map((p) => ({
-        id: p.id,
-        nome: p.nome,
-        email: p.email,
-        telefone: p.telefone,
-        dataNascimento: p.dataNascimento ? new Date(p.dataNascimento) : null,
-        cidade: p.cidade,
-        cpf: p.cpf,
-        valorSessao: p.valorSessao ?? null,
-        modeloCobranca: p.modeloCobranca ?? null,
-        createdAt: new Date(p.createdAt),
-        updatedAt: new Date(p.updatedAt || p.createdAt),
-    }));
-
-    const editingRecord = editingPatient ? dbPatients?.find((p) => p.id === editingPatient.id) : undefined;
-    const editingPatientRecord = editingRecord && {
-        ...editingRecord,
-        // A coluna é texto cifrado; a API devolve a data já decriptada.
-        dataNascimento: editingRecord.dataNascimento ? new Date(editingRecord.dataNascimento) : null,
-    };
-
-    const handleSavePatient = async (newPatient: any) => {
+    const handleSavePatient = async (newPatient: PatientFormValues) => {
         try {
             if (editingPatient) {
                 await updatePatientMutation.mutateAsync({ id: editingPatient.id, ...newPatient });
@@ -117,101 +90,20 @@ export function PacientesPage() {
         }
     };
 
-    const processFile = (file: File) => {
-        Papa.parse(file, {
-            complete: (results) => {
-                const data = results.data as any[][];
-                if (data.length > 0) {
-                    const headers = data[0].map((h: any) => String(h).trim());
-                    const rows = data.slice(1).filter(row => row.length > 1 || row[0] !== "");
-                    setCsvData({ headers, rows });
-                    setActiveTab("importacao");
-                    toast.success(`Arquivo "${file.name}" carregado!`);
-                } else {
-                    toast.error("Arquivo está vazio.");
-                }
-            },
-            error: (error) => toast.error(`Erro ao ler CSV: ${error.message}`),
-            skipEmptyLines: true,
-        });
+    const handleLoadFile = async (file: File) => {
+        if (await csv.loadFile(file)) setActiveTab("importacao");
     };
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
-        processFile(file);
+        void handleLoadFile(file);
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
-    const handleMappingChange = (columnIndex: string, value: PatientFieldId | "skip") => {
-        setMappings((prev) => ({ ...prev, [columnIndex]: value }));
-    };
-
-    const mappedFieldsValues = Object.values(mappings);
-    const requiredFieldCount = PATIENT_REQUIRED_FIELDS.length;
-    const mappedCount = PATIENT_REQUIRED_FIELDS.filter(f => mappedFieldsValues.includes(f.id)).length;
-    const isMappingComplete = mappedCount === requiredFieldCount;
-
-    const handleConfirmImport = async () => {
-        if (!csvData || !isMappingComplete) return;
-        setIsImporting(true);
-        try {
-            const reverseMap: Record<string, number> = {};
-            Object.entries(mappings).forEach(([colIdx, fieldId]) => {
-                if (fieldId !== "skip") reverseMap[fieldId] = parseInt(colIdx, 10);
-            });
-
-            const getCell = (row: any[], field: string): string | null => {
-                const idx = reverseMap[field];
-                if (idx === undefined) return null;
-                const val = String(row[idx] ?? "").trim();
-                return val || null;
-            };
-
-            const payload = csvData.rows
-                .filter(row => row.some((cell: any) => cell !== null && cell !== ""))
-                .map(row => ({
-                    nome: getCell(row, "nome") ?? "",
-                    email: getCell(row, "email"),
-                    telefone: getCell(row, "telefone"),
-                    dataNascimento: (() => {
-                        const v = getCell(row, "dataNascimento");
-                        return v ? parseDate(v) : null;
-                    })(),
-                    cpf: getCell(row, "cpf") || null,
-                    cidade: getCell(row, "cidade"),
-                    valorSessao: getCell(row, "valorSessao"),
-                    modeloCobranca: getCell(row, "modeloCobranca"),
-                    nomeSocial: getCell(row, "nomeSocial"),
-                    rg: getCell(row, "rg"),
-                    profissao: getCell(row, "profissao"),
-                    endereco: getCell(row, "endereco"),
-                    cep: getCell(row, "cep"),
-                    uf: getCell(row, "uf"),
-                    contatoEmergencia: getCell(row, "contatoEmergencia"),
-                    respLegalNome: getCell(row, "respLegalNome"),
-                    respLegalParentesco: getCell(row, "respLegalParentesco"),
-                    respLegalCpf: getCell(row, "respLegalCpf"),
-                    respLegalTelefone: getCell(row, "respLegalTelefone"),
-                    respLegalEmail: getCell(row, "respLegalEmail"),
-                    servicoContratadoTipo: getCell(row, "servicoContratadoTipo"),
-                    dataInicioAcompanhamento: (() => {
-                        const v = getCell(row, "dataInicioAcompanhamento");
-                        return v ? parseDate(v) : null;
-                    })(),
-                    formaPagamento: getCell(row, "formaPagamento"),
-                    formaPagamentoDetalhe: getCell(row, "formaPagamentoDetalhe"),
-                    responsavelFinanceiroTipo: getCell(row, "responsavelFinanceiroTipo"),
-                    responsavelFinanceiroDetalhe: getCell(row, "responsavelFinanceiroDetalhe"),
-                    origemContato: getCell(row, "origemContato"),
-                    origemContatoDetalhe: getCell(row, "origemContatoDetalhe"),
-                }));
-
-            await createManyMutation.mutateAsync(payload);
-        } catch (err) {
-            logger.error("Erro", err);
-            setIsImporting(false);
-        }
+    const handleConfirmImport = () => {
+        if (!csv.csvData || !csv.isMappingComplete) return;
+        createManyMutation.mutate(mapCsvRowsToPatients(csv.csvData.rows, csv.mappings));
     };
 
     return (
@@ -261,18 +153,18 @@ export function PacientesPage() {
                             <TabsTrigger value="lista">Lista</TabsTrigger>
                             <TabsTrigger value="importacao" className="relative">
                                 Importação
-                                {csvData && (
+                                {csv.csvData && (
                                     <span className="absolute top-1 right-1 size-2 bg-primary rounded-full animate-pulse" />
                                 )}
                             </TabsTrigger>
                         </TabsList>
 
-                        {activeTab === "importacao" && csvData && (
+                        {activeTab === "importacao" && csv.csvData && (
                             <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4">
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setCsvData(null)}
+                                    onClick={csv.reset}
                                     disabled={isImporting}
                                 >
                                     Cancelar
@@ -280,13 +172,13 @@ export function PacientesPage() {
                                 <Button
                                     size="sm"
                                     className="gap-1.5 shadow-sm min-w-30"
-                                    disabled={!isMappingComplete || isImporting}
+                                    disabled={!csv.isMappingComplete || isImporting}
                                     onClick={handleConfirmImport}
                                 >
                                     {isImporting ? (
                                         <Loader2 className="size-3.5 animate-spin" />
                                     ) : (
-                                        <>Importar {mappedCount}/{requiredFieldCount}</>
+                                        <>Importar {csv.mappedRequiredCount}/{csv.requiredCount}</>
                                     )}
                                     {!isImporting && <ArrowRight className="size-3.5" />}
                                 </Button>
@@ -296,7 +188,8 @@ export function PacientesPage() {
 
                     <TabsContent value="lista" className="outline-none">
                         <PatientsTable
-                            patients={allPatients}
+                            patients={dbPatients ?? []}
+                            isLoading={isPending}
                             onEdit={(patient) => {
                                 setEditingPatient(patient);
                                 setSheetOpen(true);
@@ -307,11 +200,12 @@ export function PacientesPage() {
                     </TabsContent>
 
                     <TabsContent value="importacao" className="flex-1 flex flex-col space-y-4 outline-none">
-                        <PatientCsvImporter
-                            csvData={csvData}
-                            mappings={mappings}
-                            onMappingChange={handleMappingChange}
-                            onFileSelect={processFile}
+                        <CsvColumnMapper
+                            fields={PATIENT_CSV_FIELDS}
+                            csvData={csv.csvData}
+                            mappings={csv.mappings}
+                            onMappingChange={csv.setMapping}
+                            onFileSelect={handleLoadFile}
                         />
                     </TabsContent>
                 </Tabs>
@@ -332,9 +226,7 @@ export function PacientesPage() {
                         setSheetOpen(false);
                         setEditingPatient(null);
                     }}
-                    // Registro completo da API, não a versão resumida da tabela: o form envia
-                    // todos os campos no update, e o que não viesse aqui seria apagado.
-                    initialData={editingPatientRecord}
+                    initialData={editingPatient ?? undefined}
                 />
             </AppSheet>
         </>

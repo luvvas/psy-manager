@@ -51,7 +51,6 @@ async function notifyDiscord(data: {
             }),
         });
     } catch {
-        // Notificação falhou — não bloqueia o salvamento
     }
 }
 

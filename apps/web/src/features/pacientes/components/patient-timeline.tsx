@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { trpc } from "@/lib/trpc";
+import { trpc, type RouterOutputs } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { FileText, Lock, FileCheck, ClipboardCopy, Download, Eye, ArrowLeft, Paperclip, FileSpreadsheet } from "lucide-react";
+import { FileText, Lock, FileCheck, ClipboardCopy, Download, Eye, ArrowLeft, Paperclip, FileSpreadsheet, type LucideIcon } from "lucide-react";
+
+type ClinicalRecord = RouterOutputs["clinicalRecord"]["list"][number];
 import { toast } from "sonner";
 import { safeUrl } from "@/utils/safe-url";
 import { format } from "date-fns";
@@ -12,7 +14,17 @@ interface PatientTimelineProps {
     patientId: string;
 }
 
-const CATEGORY_ICONS: Record<string, any> = {
+const CATEGORY_LABELS: Record<string, string> = {
+    evolucao: "Evolução",
+    contrato: "Contrato",
+    atestado: "Atestado",
+    laudo: "Laudo / Parecer",
+    documento_externo: "Documento externo",
+    teste_psicologico: "Teste psicológico",
+    outro: "Outro",
+};
+
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
     evolucao: ClipboardCopy,
     contrato: FileCheck,
     atestado: FileText,
@@ -23,32 +35,29 @@ const CATEGORY_ICONS: Record<string, any> = {
 };
 
 export function PatientTimeline({ patientId }: PatientTimelineProps) {
-    const [viewingDoc, setViewingDoc] = useState<any | null>(null);
+    const [viewingDoc, setViewingDoc] = useState<ClinicalRecord | null>(null);
 
     const utils = trpc.useUtils();
 
-    const { data: records, isLoading } = trpc.clinicalRecord.list.useQuery(
-        { patientId },
-        { retry: false }
-    );
+    const { data: records, isLoading } = trpc.clinicalRecord.list.useQuery({ patientId });
     const { data: downloadData } = trpc.clinicalRecord.getDownloadUrl.useQuery(
         { id: viewingDoc?.id || "" },
-        { enabled: !!viewingDoc, retry: false }
+        { enabled: !!viewingDoc }
     );
 
     const finalizeMutation = trpc.clinicalRecord.finalize.useMutation({
         onSuccess: () => {
             toast.success("Registro finalizado e assinado!");
-            utils.clinicalRecord.list.invalidate({ patientId });
+            utils.clinicalRecord.invalidate();
         },
         onError: (err) => {
             toast.error(`Erro ao finalizar: ${err.message}`);
         },
     });
 
-    const handleFinalize = async (id: string, title: string) => {
-        if (confirm(`Tem certeza que deseja FINALIZAR "${title}"? \nUma vez finalizado, este prontuário não poderá ser editado ou excluído.`)) {
-            await finalizeMutation.mutateAsync({ id });
+    const handleFinalize = (id: string, title: string) => {
+        if (window.confirm(`Tem certeza que deseja FINALIZAR "${title}"? \nUma vez finalizado, este prontuário não poderá ser editado ou excluído.`)) {
+            finalizeMutation.mutate({ id });
         }
     };
 
@@ -100,7 +109,6 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
 
     return (
         <div className="flex flex-col h-full">
-            {/* Timeline Content */}
             <div className="flex-1 overflow-y-auto pr-4 pb-12 pt-1">
                 {!records || records.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-center border rounded-lg border-dashed bg-muted/10">
@@ -119,21 +127,19 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
 
                             return (
                                 <div key={record.id} className="relative pl-8">
-                                    {/* Timeline dot */}
                                     <div className="absolute -left-[21px] top-0 rounded-full bg-background p-1">
                                         <div className="rounded-full bg-primary p-2">
                                             <Icon className="w-4 h-4 text-primary-foreground" />
                                         </div>
                                     </div>
 
-                                    {/* Content Card */}
                                     <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
                                         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 p-4">
                                             <div className="space-y-1">
                                                 <div className="flex items-center gap-2">
                                                     <h4 className="font-semibold leading-none">{record.title}</h4>
                                                     {isFinalized ? (
-                                                        <Badge variant="outline" className="text-[10px] h-5 border-green-500 text-green-600 bg-green-50/50">
+                                                        <Badge variant="outline" className="text-[10px] h-5 border-emerald-500 text-emerald-600 bg-emerald-50/50">
                                                             <Lock className="w-3 h-3 mr-1" /> Assinado
                                                         </Badge>
                                                     ) : (
@@ -142,8 +148,8 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
                                                         </Badge>
                                                     )}
                                                 </div>
-                                                <p className="text-sm text-muted-foreground capitalize">
-                                                    {record.category.replace("_", " ")} • {dateStr}
+                                                <p className="text-sm text-muted-foreground">
+                                                    {CATEGORY_LABELS[record.category] ?? record.category} • {dateStr}
                                                 </p>
                                             </div>
 
@@ -157,7 +163,7 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
-                                                        className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700 gap-1.5"
+                                                        className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 gap-1.5"
                                                         onClick={() => handleFinalize(record.id, record.title)}
                                                     >
                                                         <Lock className="w-4 h-4" /> Assinar

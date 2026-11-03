@@ -65,7 +65,6 @@ describe("clinic API", () => {
         ).rejects.toMatchObject({ code: "BAD_REQUEST", message: "not linked" });
     });
 
-    // Audit F1: vínculo virou convite com aceite; o membro pode sair.
     describe("convites de clínica", () => {
         test("lista, aceita e recusa convites do próprio usuário", async () => {
             await expect(caller().clinic.listInvites()).resolves.toMatchObject([{ clinicId: "clinic-2" }]);

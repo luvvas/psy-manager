@@ -36,11 +36,23 @@ export function formatCEP(value: string) {
 }
 
 export function formatRG(value: string) {
-    // A basic generic RG mask handling numerical structure: XX.XXX.XXX-X
-    // Note that RGs can theoretically contain letters, but this forces numeric display.
     const digits = value.replace(/[^\dX]/gi, "").toUpperCase().slice(0, 9);
     if (digits.length <= 2) return digits;
     if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
     if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
     return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}-${digits.slice(8)}`;
+}
+
+const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const BRL_WHOLE = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+
+export function formatCurrency(value: number | string | null | undefined, options?: { whole?: boolean }) {
+    const n = Number(value);
+    return (options?.whole ? BRL_WHOLE : BRL).format(Number.isFinite(n) ? n : 0);
+}
+
+export function getErrorMessage(error: unknown, fallback = "Erro inesperado. Tente novamente."): string {
+    if (error instanceof Error && error.message) return error.message;
+    if (typeof error === "string" && error) return error;
+    return fallback;
 }

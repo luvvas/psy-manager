@@ -1,20 +1,19 @@
-// Cada página entra no bundle só quando a rota é visitada (ou pré-carregada).
-// Os caminhos são literais de propósito: o bundler só divide o que enxerga.
-// Usado pelo `lazy` das rotas em router.tsx e pelo preload do menu lateral.
 export const pages = {
     auth: () => import("@/features/auth/page").then((m) => ({ Component: m.AuthPage })),
     resetPassword: () =>
         import("@/features/auth/reset-password-page").then((m) => ({ Component: m.ResetPasswordPage })),
-    join: () => import("@/features/consulta").then((m) => ({ Component: m.JoinPage })),
-    psychologistCall: () => import("@/features/consulta").then((m) => ({ Component: m.PsychologistPage })),
-    inicio: () => import("@/features/inicio").then((m) => ({ Component: m.InicioPage })),
-    agendamento: () => import("@/features/agendamento").then((m) => ({ Component: m.AgendamentoPage })),
+    join: () => import("@/features/consulta/join-page").then((m) => ({ Component: m.JoinPage })),
+    psychologistCall: () => import("@/features/consulta/psychologist-page").then((m) => ({ Component: m.PsychologistPage })),
+    inicio: () => import("@/features/inicio/page").then((m) => ({ Component: m.InicioPage })),
+    agendamento: () => import("@/features/agendamento/page").then((m) => ({ Component: m.AgendamentoPage })),
     googleCallback: () => import("@/pages/google-callback").then((m) => ({ Component: m.GoogleCallbackPage })),
-    pacientes: () => import("@/features/pacientes").then((m) => ({ Component: m.PacientesPage })),
-    pacienteDetalhes: () => import("@/features/pacientes").then((m) => ({ Component: m.PatientDetailsPage })),
-    clinicas: () => import("@/features/clinicas").then((m) => ({ Component: m.ClinicasPage })),
-    financeiro: () => import("@/features/financeiro").then((m) => ({ Component: m.FinanceiroPage })),
-    documentos: () => import("@/features/documentos").then((m) => ({ Component: m.DocumentosPage })),
+    pacientes: () => import("@/features/pacientes/page").then((m) => ({ Component: m.PacientesPage })),
+    pacienteDetalhes: () => import("@/features/pacientes/page-detalhes").then((m) => ({ Component: m.PatientDetailsPage })),
+    clinicas: () => import("@/features/clinicas/page").then((m) => ({ Component: m.ClinicasPage })),
+    financeiro: () => import("@/features/financeiro/page").then((m) => ({ Component: m.FinanceiroPage })),
+    documentos: () => import("@/features/documentos/page").then((m) => ({ Component: m.DocumentosPage })),
+    documentoDetalhes: () =>
+        import("@/features/documentos/page-detalhes").then((m) => ({ Component: m.DocumentoDetailsPage })),
     landing: () => import("@/pages/landing").then((m) => ({ Component: m.LandingGuard })),
     privacidade: () => import("@/pages/privacy-policy").then((m) => ({ Component: m.PrivacyPolicyPage })),
     termos: () => import("@/pages/terms-of-use").then((m) => ({ Component: m.TermsOfUsePage })),
@@ -29,7 +28,6 @@ const preloadByPath: Record<string, () => Promise<unknown>> = {
     "/documentos": pages.documentos,
 };
 
-/** Começa a baixar o chunk da página na intenção (hover/foco); o navegador cacheia o import. */
 export function preloadRoute(path: string) {
     void preloadByPath[path]?.();
 }

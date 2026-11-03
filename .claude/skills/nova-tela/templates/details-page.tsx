@@ -1,4 +1,3 @@
-// MODELO — tela de detalhe (/<slug>/:id). Copie para page-detalhes.tsx e registre a rota.
 import { useNavigate, useParams } from "react-router-dom";
 import { AppHeader } from "@/components/layout/app-header";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,7 @@ export function ConvenioDetailsPage() {
 
     const { data: item, isLoading } = trpc.healthPlan.getById.useQuery(
         { id: id! },
-        { enabled: !!id, retry: false }
+        { enabled: !!id }
     );
 
     if (isLoading) {
@@ -53,8 +52,8 @@ export function ConvenioDetailsPage() {
                 }
             />
 
-            <div className="flex-1 p-4 lg:p-6 overflow-hidden flex flex-col">
-                <div className="flex-1 h-full overflow-hidden">{/* conteúdo */}</div>
+            <div className="flex flex-col flex-1 min-h-0 gap-4 p-4 lg:p-6 overflow-hidden">
+                <div className="flex-1 min-h-0 overflow-auto" />
             </div>
         </div>
     );

@@ -57,8 +57,6 @@ export function WorkScheduleEditor({ value, onChange }: WorkScheduleEditorProps)
             {value && (
                 <>
                     <section>
-                        {/* Uma linha só: a duração fica com a largura do próprio rótulo e o
-                            intervalo com o resto, para "Intervalo entre sessões (min)" não quebrar. */}
                         <div className="flex gap-4">
                             <div className="w-28 shrink-0 space-y-2">
                                 <Label htmlFor="sessionMinutes" className="whitespace-nowrap">

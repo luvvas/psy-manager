@@ -1,5 +1,5 @@
 import { logger } from "@/lib/logger";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod/v3";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Trash2, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { formatCNPJ, formatPhone } from "@/utils/format";
+import { formatCNPJ, formatPhone, getErrorMessage } from "@/utils/format";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ClinicRooms } from "./clinic-rooms";
 
@@ -56,8 +56,8 @@ export function NewClinicForm({
     const {
         register,
         handleSubmit,
-        watch,
         setValue,
+        control,
         formState: { errors },
     } = useForm<ClinicFormValues>({
         resolver: zodResolver(clinicSchema),
@@ -71,15 +71,14 @@ export function NewClinicForm({
         },
     });
 
-    const cnpjWatch = watch("cnpj");
-    const phoneWatch = watch("phone");
+    const [cnpjWatch, phoneWatch] = useWatch({ control, name: ["cnpj", "phone"] });
 
     const onSubmitForm = async (data: ClinicFormValues) => {
         setIsSubmitting(true);
         try {
             await onSave(data);
         } catch (error) {
-            logger.error("Failed to save clinic", error);
+            logger.error("Erro ao salvar clínica", error);
         } finally {
             setIsSubmitting(false);
         }
@@ -92,8 +91,8 @@ export function NewClinicForm({
             await onLinkPsychologist(newPsyEmail);
             setNewPsyEmail("");
             toast.success("Convite enviado. Se o e-mail tiver conta, o psicólogo verá o convite e entra na clínica ao aceitar.");
-        } catch (error: any) {
-            toast.error(error.message || "Erro ao adicionar psicólogo");
+        } catch (error) {
+            toast.error(`Erro ao convidar: ${getErrorMessage(error, "tente novamente.")}`);
         } finally {
             setIsLinking(false);
         }
@@ -227,7 +226,6 @@ export function NewClinicForm({
             <TabsContent value="psicologos" className="flex-1 flex flex-col space-y-4 pt-1">
                 {initialData?.id && onLinkPsychologist && onUnlinkPsychologist && (
                     <div className="space-y-4">
-                        {/* Add psychologist input */}
                         <div className="flex gap-2">
                             <Input
                                 type="email"
@@ -252,7 +250,6 @@ export function NewClinicForm({
                             </Button>
                         </div>
 
-                        {/* Psychologists list */}
                         <div className="rounded-lg border bg-muted/20 divide-y max-h-[350px] overflow-y-auto">
                             {(initialData.psychologists || []).map((psy) => (
                                 <div key={psy.id} className="flex items-center justify-between p-3 text-sm">
@@ -264,14 +261,15 @@ export function NewClinicForm({
                                         type="button"
                                         variant="ghost"
                                         size="icon"
-                                        className="size-8 text-destructive hover:bg-destructive/10"
+                                        className="size-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        title="Remover vínculo"
                                         onClick={async () => {
                                             if (window.confirm(`Remover vínculo de ${psy.name}?`)) {
                                                 try {
                                                     await onUnlinkPsychologist(psy.id);
                                                     toast.success("Psicólogo removido com sucesso!");
-                                                } catch (error: any) {
-                                                    toast.error(error.message || "Erro ao desvincular");
+                                                } catch (error) {
+                                                    toast.error(`Erro ao desvincular: ${getErrorMessage(error, "tente novamente.")}`);
                                                 }
                                             }
                                         }}

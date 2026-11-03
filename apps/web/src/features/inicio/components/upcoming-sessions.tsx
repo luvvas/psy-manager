@@ -6,6 +6,7 @@ import type { HomeSession } from "../types";
 import { HomePanel } from "./home-panel";
 
 interface UpcomingSessionsProps {
+    isLoading?: boolean;
     sessions: HomeSession[];
     todayKey: string;
 }
@@ -15,9 +16,10 @@ function dayLabel(dayKey: string, todayKey: string) {
     return format(parseISO(dayKey), "EEE, dd 'de' MMM", { locale: ptBR });
 }
 
-export function UpcomingSessions({ sessions, todayKey }: UpcomingSessionsProps) {
+export function UpcomingSessions({ sessions, todayKey, isLoading }: UpcomingSessionsProps) {
     return (
         <HomePanel
+            isLoading={isLoading}
             title="Próximas sessões"
             description="Sessões de hoje em diante, por horário."
             action={{ label: "Ver agenda", to: "/agendamento" }}

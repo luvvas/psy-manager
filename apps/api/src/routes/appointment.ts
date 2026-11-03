@@ -4,7 +4,7 @@ import { appointmentCommands } from "../cqrs/appointment/appointment.commands";
 import { appointmentQueries } from "../cqrs/appointment/appointment.queries";
 import { googleCalendarService } from "../services/google-calendar.service";
 import { db } from "../db";
-import { account } from "../db/schema";
+import { account, APPOINTMENT_SESSION_TYPES, APPOINTMENT_TYPES } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import { assertClinicMembership, assertPatientOwnership, assertRoomAccess } from "../lib/ownership";
 import { optionalHttpUrl } from "../utils/url.utils";
@@ -16,19 +16,9 @@ import { TIME_HHMM } from "../lib/work-schedule";
 const dateInput = z.string().or(z.date()).transform((val) => new Date(val));
 const timeInput = z.string().regex(TIME_HHMM, "Use o formato HH:MM");
 
-// Conflito com a própria agenda e sessão fora do expediente não bloqueiam de
-// vez: o formulário avisa e a psicóloga confirma (sessão extra, reposição).
-// Sem a confirmação, a API recusa, o que também pega o caso de outra aba ter
-// marcado o mesmo horário entre o aviso e o salvar.
-// Sala ocupada é diferente: bloqueia sempre, a confirmação não vale para ela.
 const confirmField = { allowScheduleConflicts: z.boolean().optional().default(false) };
 const roomField = { roomId: z.string().min(1).optional().nullable() };
 
-/**
- * A sala é ocupada por onde a psicóloga está, não pelo canal: sessão online
- * atendida de uma sala da clínica também reserva a sala. A clínica vem da sala
- * (nunca do cliente) depois de checar que a psicóloga é membro ativo dela.
- */
 async function resolveRoom(psychologistId: string, input: { roomId?: string | null }) {
     if (!input.roomId) return { roomId: null, clinicId: null };
     const room = await assertRoomAccess(input.roomId, psychologistId);
@@ -88,7 +78,6 @@ async function assertSlotAccepted(
     }
 }
 
-/** checkSlot/freeSlots: só sonda salas e clínicas das quais a psicóloga é membro. */
 async function resolveRoomScope(psychologistId: string, input: { roomId?: string | null; clinicId?: string | null }) {
     if (input.roomId) {
         const room = await assertRoomAccess(input.roomId, psychologistId);
@@ -119,8 +108,8 @@ export const appointmentRouter = router({
                 startTime: timeInput,
                 endTime: timeInput,
                 status: z.string().min(1),
-                sessionType: z.string().min(1),
-                type: z.string().min(1),
+                sessionType: z.enum(APPOINTMENT_SESSION_TYPES),
+                type: z.enum(APPOINTMENT_TYPES),
                 isRecurring: z.boolean(),
                 notes: z.string().optional(),
                 meetingUrl: optionalHttpUrl,
@@ -152,8 +141,8 @@ export const appointmentRouter = router({
                 startTime: timeInput,
                 endTime: timeInput,
                 status: z.string().min(1),
-                sessionType: z.string().min(1),
-                type: z.string().min(1),
+                sessionType: z.enum(APPOINTMENT_SESSION_TYPES),
+                type: z.enum(APPOINTMENT_TYPES),
                 isRecurring: z.boolean(),
                 notes: z.string().optional(),
                 meetingUrl: optionalHttpUrl,
@@ -176,7 +165,6 @@ export const appointmentRouter = router({
             return { success: true };
         }),
 
-    /** Aviso em tempo real no formulário: conflitos e expediente do horário escolhido. */
     checkSlot: protectedProcedure
         .input(
             z.object({
@@ -193,7 +181,6 @@ export const appointmentRouter = router({
             return availabilityService.checkSlot(ctx.session.user.id, { ...input, ...scope });
         }),
 
-    /** Horários livres do dia dentro do expediente, para o agendamento rápido. */
     freeSlots: protectedProcedure
         .input(
             z.object({

@@ -4,13 +4,12 @@ import { getMonday, isSameDay } from "../lib/dates";
 import { StatsCards as GenericStatsCards } from "@/components/stats-cards";
 
 interface StatsCardsProps {
-    /** Só as sessões da psicóloga logada (sem as de colegas da clínica). */
+    isLoading?: boolean;
     appointments: Appointment[];
-    /** A semana dos cards é a da data selecionada no calendário. */
     selectedDate: Date;
 }
 
-export function StatsCards({ appointments, selectedDate }: StatsCardsProps) {
+export function StatsCards({ appointments, selectedDate, isLoading }: StatsCardsProps) {
     const today = new Date();
     const weekStart = getMonday(selectedDate);
     const weekEnd = new Date(weekStart);
@@ -57,5 +56,5 @@ export function StatsCards({ appointments, selectedDate }: StatsCardsProps) {
         },
     ];
 
-    return <GenericStatsCards items={stats} />;
+    return <GenericStatsCards items={stats} isLoading={isLoading} />;
 }

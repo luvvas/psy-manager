@@ -1,17 +1,16 @@
 import { CalendarDays, CalendarRange, TrendingUp, Users } from "lucide-react";
 import { StatsCards as GenericStatsCards } from "@/components/stats-cards";
+import { formatCurrency } from "@/utils/format";
 
 interface StatsCardsProps {
+    isLoading?: boolean;
     sessionsToday: number;
     sessionsWeek: number;
     patientCount: number;
     monthIncome: number;
 }
 
-const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
-
-export function StatsCards({ sessionsToday, sessionsWeek, patientCount, monthIncome }: StatsCardsProps) {
+export function StatsCards({ sessionsToday, sessionsWeek, patientCount, monthIncome, isLoading }: StatsCardsProps) {
     const stats = [
         {
             label: "Sessões hoje",
@@ -39,5 +38,5 @@ export function StatsCards({ sessionsToday, sessionsWeek, patientCount, monthInc
         },
     ];
 
-    return <GenericStatsCards items={stats} />;
+    return <GenericStatsCards items={stats} isLoading={isLoading} />;
 }

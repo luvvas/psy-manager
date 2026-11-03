@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { DollarSign, Plus, UploadCloud, ArrowRight, Loader2 } from "lucide-react";
 import { AppHeader } from "@/components/layout/app-header";
 import { Button } from "@/components/ui/button";
@@ -6,63 +6,72 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatsCards } from "./components/stats-cards";
 import { IncomeChart } from "./components/income-chart";
 import { CategoryPieChart } from "./components/category-pie-chart";
+import { RecentTransactions } from "./components/recent-transactions";
 import { DateRangePicker } from "./components/date-range-picker";
 import { TransactionForm } from "./components/transaction-form";
-import { CsvImporter, REQUIRED_FIELDS, type FieldId } from "./components/csv-importer";
 import { TransactionsTable } from "./components/transactions-table";
-import { mapCsvRowsToTransactions } from "@/utils/csv";
+import { mapCsvRowsToTransactions, TRANSACTION_CSV_FIELDS } from "./csv-import";
+import { CsvColumnMapper } from "@/components/csv-import/csv-column-mapper";
+import { useCsvImport } from "@/components/csv-import/use-csv-import";
 import { AppSheet } from "@/components/layout/app-sheet";
 import { trpc } from "@/lib/trpc";
 import { logger } from "@/lib/logger";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { startOfMonth, endOfMonth } from "date-fns";
 import type { DateRange } from "react-day-picker";
-import Papa from "papaparse";
+import { getErrorMessage } from "@/utils/format";
+import type { Transaction, TransactionInput } from "./types";
 
 export function FinanceiroPage() {
-    const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(() => ({
         from: startOfMonth(new Date()),
         to: endOfMonth(new Date()),
-    });
+    }));
+    const [queryRange, setQueryRange] = useState(() => ({
+        startDate: startOfMonth(new Date()) as Date | undefined,
+        endDate: endOfMonth(new Date()) as Date | undefined,
+    }));
+    const handleDateRangeChange = (range: DateRange | undefined) => {
+        setDateRange(range);
+        if (!range) setQueryRange({ startDate: undefined, endDate: undefined });
+        else if (range.from && range.to) setQueryRange({ startDate: range.from, endDate: range.to });
+    };
     const [isSheetOpen, setIsSheetOpen] = useState(false);
-    const [selectedTx, setSelectedTx] = useState<any | null>(null);
+    const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
     const [activeTab, setActiveTab] = useState("resumo");
-    const [sidebarTypeFilter, setSidebarTypeFilter] = useState<"all" | "income" | "expense">("all");
 
-    const [csvData, setCsvData] = useState<{ headers: string[]; rows: any[][] } | null>(null);
-    const [mappings, setMappings] = useState<Record<string, FieldId | "skip">>({});
-    const [isImporting, setIsImporting] = useState(false);
+    const csv = useCsvImport(TRANSACTION_CSV_FIELDS);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const { data: txList, refetch } = trpc.financial.list.useQuery({
-        startDate: dateRange?.from,
-        endDate: dateRange?.to,
+    const utils = trpc.useUtils();
+    const { data: txList, isPending: isLoadingTransactions } = trpc.financial.list.useQuery(queryRange, {
+        placeholderData: (previous) => previous,
     });
 
     const createMutation = trpc.financial.create.useMutation({
         onSuccess: () => {
-            toast.success("Transação registrada com sucesso!");
-            refetch();
+            toast.success("Transação cadastrada com sucesso!");
+            utils.financial.invalidate();
             closeSheet();
         },
-        onError: (err) => toast.error(`Erro: ${err.message}`),
+        onError: (err) => toast.error(`Erro ao cadastrar: ${err.message}`),
     });
 
     const updateMutation = trpc.financial.update.useMutation({
         onSuccess: () => {
-            toast.success("Transação atualizada!");
-            refetch();
+            toast.success("Transação atualizada com sucesso!");
+            utils.financial.invalidate();
             closeSheet();
         },
-        onError: (err) => toast.error(`Erro: ${err.message}`),
+        onError: (err) => toast.error(`Erro ao atualizar: ${err.message}`),
     });
 
     const deleteMutation = trpc.financial.delete.useMutation({
         onSuccess: () => {
-            toast.success("Removido com sucesso");
-            refetch();
+            toast.success("Transação excluída com sucesso!");
+            utils.financial.invalidate();
         },
+        onError: (err) => toast.error(`Erro ao excluir: ${err.message}`),
     });
 
     const createManyMutation = trpc.financial.createMany.useMutation({
@@ -71,26 +80,12 @@ export function FinanceiroPage() {
             handleImportComplete();
         },
         onError: (err) => {
-            toast.error(`Erro na importação: ${err.message}`);
+            toast.error(`Erro ao importar: ${err.message}`);
         },
-        onSettled: () => {
-            setIsImporting(false);
-        }
     });
+    const isImporting = createManyMutation.isPending;
 
-    useEffect(() => {
-        if (csvData) {
-            const initialMappings: Record<string, FieldId | "skip"> = {};
-            csvData.headers.forEach((_, idx) => {
-                initialMappings[idx] = "skip";
-            });
-            setMappings(initialMappings);
-        } else {
-            setMappings({});
-        }
-    }, [csvData]);
-
-    const openSheet = (tx?: any) => {
+    const openSheet = (tx?: Transaction) => {
         setSelectedTx(tx || null);
         setIsSheetOpen(true);
     };
@@ -100,7 +95,7 @@ export function FinanceiroPage() {
         setSelectedTx(null);
     };
 
-    const handleSave = async (data: any) => {
+    const handleSave = async (data: TransactionInput) => {
         if (selectedTx) {
             await updateMutation.mutateAsync({ id: selectedTx.id, ...data });
         } else {
@@ -108,78 +103,50 @@ export function FinanceiroPage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (confirm("Deseja realmente remover esta transação?")) {
-            await deleteMutation.mutateAsync({ id });
+    const handleDelete = (id: string, description: string) => {
+        if (window.confirm(`Deseja realmente excluir "${description}"?`)) {
+            deleteMutation.mutate({ id });
         }
     };
 
-    const processFile = (file: File) => {
-        Papa.parse(file, {
-            complete: (results) => {
-                const data = results.data as any[][];
-                if (data.length > 0) {
-                    const headers = data[0].map(h => String(h).trim());
-                    const rows = data.slice(1).filter(row => row.length > 1 || row[0] !== "");
-                    setCsvData({ headers, rows });
-                    setActiveTab("importacao");
-                    toast.success(`Arquivo "${file.name}" carregado!`);
-                } else {
-                    toast.error("Arquivo está vazio.");
-                }
-            },
-            error: (error) => {
-                toast.error(`Erro ao ler CSV: ${error.message}`);
-            },
-            skipEmptyLines: true,
-        });
+    const handleLoadFile = async (file: File) => {
+        if (await csv.loadFile(file)) setActiveTab("importacao");
     };
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
-        processFile(file);
+        void handleLoadFile(file);
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
-    const handleMappingChange = (columnIndex: string, value: FieldId | "skip") => {
-        setMappings((prev) => ({ ...prev, [columnIndex]: value }));
-    };
-
-    const mappedFieldsValues = Object.values(mappings);
-    const requiredFieldCount = REQUIRED_FIELDS.length;
-    const mappedCount = REQUIRED_FIELDS.filter(f => mappedFieldsValues.includes(f.id)).length;
-    const isMappingComplete = mappedCount === requiredFieldCount;
-
-    const handleConfirmImport = async () => {
-        if (!csvData || !isMappingComplete) return;
-
-        setIsImporting(true);
-
+    const handleConfirmImport = () => {
+        if (!csv.csvData || !csv.isMappingComplete) return;
+        let payload;
         try {
-            const payload = mapCsvRowsToTransactions(csvData.rows, mappings);
-            await createManyMutation.mutateAsync(payload);
+            payload = mapCsvRowsToTransactions(csv.csvData.rows, csv.mappings);
         } catch (err) {
-            // Antes o erro só ia para o logger e o import falhava em silêncio.
             logger.error("Erro ao importar transações", err);
-            toast.error(`Erro ao importar: ${err instanceof Error ? err.message : "verifique o arquivo."}`);
-            setIsImporting(false);
+            toast.error(`Erro ao importar: ${getErrorMessage(err, "verifique o arquivo.")}`);
+            return;
         }
+        createManyMutation.mutate(payload);
     };
 
     const handleImportComplete = () => {
-        setCsvData(null);
-        refetch();
+        csv.reset();
+        utils.financial.invalidate();
         setActiveTab("resumo");
     };
 
-    const allTransactions = txList || [];
-    const incomes = allTransactions.filter(t => t.type === "income");
-    const expenses = allTransactions.filter(t => t.type === "expense");
-
-    const formatValue = (val: string | number) => {
-        return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(val));
-    };
+    const allTransactions = txList ?? [];
+    const incomes: Transaction[] = [];
+    const expenses: Transaction[] = [];
+    for (const tx of allTransactions) {
+        if (tx.type === "income") incomes.push(tx);
+        else if (tx.type === "expense") expenses.push(tx);
+    }
+    const defaultType = activeTab === "despesas" ? "expense" : "income";
 
     return (
         <>
@@ -189,7 +156,7 @@ export function FinanceiroPage() {
                 icon={DollarSign}
                 actions={
                     <div className="flex items-center gap-2">
-                        <DateRangePicker date={dateRange} setDate={setDateRange} />
+                        <DateRangePicker date={dateRange} setDate={handleDateRangeChange} />
 
                         <input
                             type="file"
@@ -222,7 +189,7 @@ export function FinanceiroPage() {
             />
 
             <div className="flex flex-1 flex-col gap-4 p-4 lg:p-6">
-                <StatsCards transactions={allTransactions} />
+                <StatsCards transactions={allTransactions} isLoading={isLoadingTransactions} />
 
                 <Tabs
                     value={activeTab}
@@ -236,18 +203,18 @@ export function FinanceiroPage() {
                             <TabsTrigger value="despesas">Despesas</TabsTrigger>
                             <TabsTrigger value="importacao" className="relative">
                                 Importação
-                                {csvData && (
+                                {csv.csvData && (
                                     <span className="absolute top-1 right-1 size-2 bg-primary rounded-full animate-pulse" />
                                 )}
                             </TabsTrigger>
                         </TabsList>
 
-                        {activeTab === "importacao" && csvData && (
+                        {activeTab === "importacao" && csv.csvData && (
                             <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4">
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setCsvData(null)}
+                                    onClick={csv.reset}
                                     disabled={isImporting}
                                 >
                                     Cancelar
@@ -255,13 +222,13 @@ export function FinanceiroPage() {
                                 <Button
                                     size="sm"
                                     className="gap-1.5 shadow-sm min-w-[120px]"
-                                    disabled={!isMappingComplete || isImporting}
+                                    disabled={!csv.isMappingComplete || isImporting}
                                     onClick={handleConfirmImport}
                                 >
                                     {isImporting ? (
                                         <Loader2 className="size-3.5 animate-spin" />
                                     ) : (
-                                        <>Importar {mappedCount}/{requiredFieldCount}</>
+                                        <>Importar {csv.mappedRequiredCount}/{csv.requiredCount}</>
                                     )}
                                     {!isImporting && <ArrowRight className="size-3.5" />}
                                 </Button>
@@ -279,51 +246,12 @@ export function FinanceiroPage() {
                             </div>
                         </div>
 
-                        <div className="border rounded-xl p-4 bg-card shadow-sm space-y-3">
-                            <div className="flex items-center justify-between pb-1 border-b">
-                                <h3 className="font-semibold text-sm text-muted-foreground">Últimas Movimentações</h3>
-                                <Select
-                                    value={sidebarTypeFilter}
-                                    onValueChange={(v: any) => setSidebarTypeFilter(v)}
-                                >
-                                    <SelectTrigger className="h-8 w-[130px] text-xs">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all" className="text-xs">Tudo</SelectItem>
-                                        <SelectItem value="income" className="text-xs">Receitas</SelectItem>
-                                        <SelectItem value="expense" className="text-xs">Despesas</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-3 overflow-y-auto max-h-[350px] pr-1">
-                                {allTransactions
-                                    .filter(t => sidebarTypeFilter === "all" || t.type === sidebarTypeFilter)
-                                    .slice(0, 8)
-                                    .map(tx => (
-                                        <div key={tx.id} className="flex justify-between items-center text-sm border-b pb-3 last:border-0 hover:bg-accent/5 px-2 py-1.5 rounded-lg transition-colors">
-                                            <div className="flex flex-col gap-0.5">
-                                                <p className="font-medium leading-none text-foreground">{tx.description}</p>
-                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                    <span>{new Date(tx.date).toLocaleDateString("pt-BR", { timeZone: "UTC" })}</span>
-                                                    {tx.category && <span>• {tx.category}</span>}
-                                                </div>
-                                            </div>
-                                            <span className={`font-semibold tracking-tight ${tx.type === "income" ? "text-emerald-600" : "text-rose-600"}`}>
-                                                {tx.type === "income" ? "+" : "-"} {formatValue(tx.amount)}
-                                            </span>
-                                        </div>
-                                    ))}
-                                {allTransactions.length === 0 && <p className="text-xs text-muted-foreground p-4 text-center">Sem movimentações registradas.</p>}
-                                {allTransactions.length > 0 && allTransactions.filter(t => sidebarTypeFilter === "all" || t.type === sidebarTypeFilter).length === 0 && (
-                                    <p className="text-xs text-muted-foreground p-4 text-center">Nenhuma movimentação com este filtro.</p>
-                                )}
-                            </div>
-                        </div>
+                        <RecentTransactions transactions={allTransactions} />
                     </TabsContent>
 
                     <TabsContent value="receitas" className="space-y-4 outline-none">
                         <TransactionsTable
+                            isLoading={isLoadingTransactions}
                             data={incomes}
                             type="income"
                             onEdit={openSheet}
@@ -333,6 +261,7 @@ export function FinanceiroPage() {
 
                     <TabsContent value="despesas" className="space-y-4 outline-none">
                         <TransactionsTable
+                            isLoading={isLoadingTransactions}
                             data={expenses}
                             type="expense"
                             onEdit={openSheet}
@@ -341,11 +270,12 @@ export function FinanceiroPage() {
                     </TabsContent>
 
                     <TabsContent value="importacao" className="flex-1 flex flex-col space-y-4 outline-none">
-                        <CsvImporter
-                            csvData={csvData}
-                            mappings={mappings}
-                            onMappingChange={handleMappingChange}
-                            onFileSelect={processFile}
+                        <CsvColumnMapper
+                            fields={TRANSACTION_CSV_FIELDS}
+                            csvData={csv.csvData}
+                            mappings={csv.mappings}
+                            onMappingChange={csv.setMapping}
+                            onFileSelect={handleLoadFile}
                         />
                     </TabsContent>
                 </Tabs>
@@ -359,6 +289,7 @@ export function FinanceiroPage() {
                 {isSheetOpen && (
                     <TransactionForm
                         initialData={selectedTx}
+                        defaultType={defaultType}
                         onSave={handleSave}
                         onCancel={closeSheet}
                     />

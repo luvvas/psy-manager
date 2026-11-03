@@ -34,10 +34,8 @@ export function LandingPage() {
 
     return (
         <div className="min-h-screen bg-background text-foreground">
-            {/* Nav */}
             <header className="border-b bg-background/95 backdrop-blur sticky top-0 z-10">
                 <div className="mx-auto max-w-5xl px-6 flex items-center justify-between gap-4">
-                    {/* Logo + tabs */}
                     <div className="flex items-center gap-4 overflow-x-auto">
                         <div className="flex items-center gap-2.5 py-4 shrink-0">
                             <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -65,16 +63,13 @@ export function LandingPage() {
                         </nav>
                     </div>
 
-                    {/* Auth actions */}
                     <div className="flex items-center gap-3 py-4 shrink-0">
-                        <Link to="/login">
-                            <Button variant="ghost" size="sm">
-                                Entrar
-                            </Button>
-                        </Link>
-                        <Link to="/login?tab=register">
-                            <Button size="sm">Criar conta</Button>
-                        </Link>
+                        <Button asChild variant="ghost" size="sm">
+                            <Link to="/login">Entrar</Link>
+                        </Button>
+                        <Button asChild size="sm">
+                            <Link to="/login?tab=register">Criar conta</Link>
+                        </Button>
                     </div>
                 </div>
             </header>
@@ -83,7 +78,6 @@ export function LandingPage() {
             {tab === "funcionalidades" && <TabFuncionalidades />}
             {tab === "sobre" && <TabSobre />}
 
-            {/* Footer */}
             <footer className="border-t">
                 <div className="mx-auto max-w-5xl px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
                     <div className="flex items-center gap-2">

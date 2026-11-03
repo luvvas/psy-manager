@@ -51,7 +51,6 @@ describe("checkServerEnv (issue #40)", () => {
         expect(errors).toHaveLength(2);
         expect(errors.join(" ")).toContain("senha da DATABASE_URL");
         expect(errors.join(" ")).toContain("GOOGLE_CLIENT_SECRET");
-        // Defaults são aceitos fora de produção (dev local).
         expect(
             checkServerEnv(validEnv({ DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/psy_manager" }))
         ).toEqual([]);
@@ -70,7 +69,6 @@ describe("checkServerEnv (issue #40)", () => {
     });
 
     test("recusa BETTER_AUTH_SECRET que já foi publicado, em qualquer ambiente (auditoria F2)", () => {
-        // O valor real não é repetido aqui: simulamos um segredo vazado pelo hash.
         const leaked = randomBytes(32).toString("base64");
         const hash = createHash("sha256").update(leaked).digest("hex");
         COMPROMISED_SECRET_SHA256.add(hash);

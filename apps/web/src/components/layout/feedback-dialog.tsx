@@ -8,7 +8,6 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 
-// O formulário (zod + react-hook-form) só baixa quando o diálogo abre.
 const FeedbackForm = lazy(() => import("./feedback-form"));
 
 interface FeedbackDialogProps {

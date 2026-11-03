@@ -4,7 +4,6 @@ import type { TooltipValueType } from "recharts"
 
 import { cn } from "@/lib/utils"
 
-// Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const
 
 const INITIAL_DIMENSION = { width: 320, height: 200 } as const
@@ -79,9 +78,7 @@ function ChartContainer({
   )
 }
 
-// CSS custom property names: letters, digits, hyphens and underscores only
 const CSS_IDENT_RE = /^[a-zA-Z0-9_-]+$/
-// Accepted color formats: hex, rgb/rgba, hsl/hsla, oklch
 const CSS_COLOR_RE =
   /^(#[0-9a-fA-F]{3,8}|rgba?\([\d\s,./]+\)|hsla?\([\d\s,./°%]+\)|oklch\([\d\s./]+\))$/
 

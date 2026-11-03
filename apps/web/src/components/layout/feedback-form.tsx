@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod/v3";
 import { ImagePlus, Loader2, X } from "lucide-react";
@@ -53,12 +53,9 @@ function compressImage(file: File): Promise<string> {
 }
 
 interface FeedbackFormProps {
-    /** Fecha o diálogo (enviado com sucesso ou cancelado). */
     onClose: () => void;
 }
 
-// Carregado sob demanda pelo FeedbackDialog: zod e react-hook-form ficam fora do
-// bundle inicial. O diálogo desmonta este componente ao fechar, o que já zera o form.
 export default function FeedbackForm({ onClose }: FeedbackFormProps) {
     const location = useLocation();
     const [preview, setPreview] = useState<string | null>(null);
@@ -69,13 +66,13 @@ export default function FeedbackForm({ onClose }: FeedbackFormProps) {
         register,
         handleSubmit,
         setValue,
-        watch,
+        control,
         formState: { errors, isSubmitting },
     } = useForm<FeedbackFormValues>({
         resolver: zodResolver(feedbackSchema),
     });
 
-    const selectedCategory = watch("category");
+    const selectedCategory = useWatch({ control, name: "category" });
 
     const submit = trpc.feedback.submit.useMutation({
         onSuccess: () => {
@@ -107,30 +104,33 @@ export default function FeedbackForm({ onClose }: FeedbackFormProps) {
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
-    // Colar screenshot da área de transferência enquanto o form está aberto
-    useEffect(() => {
-        const handlePaste = (e: ClipboardEvent) => {
-            const items = e.clipboardData?.items;
-            if (!items) return;
-            for (const item of items) {
-                if (item.type.startsWith("image/")) {
-                    const file = item.getAsFile();
-                    if (file) handleImageFile(file);
-                    break;
-                }
+    const handlePaste = useEffectEvent((e: ClipboardEvent) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        for (const item of items) {
+            if (item.type.startsWith("image/")) {
+                const file = item.getAsFile();
+                if (file) handleImageFile(file);
+                break;
             }
-        };
-        window.addEventListener("paste", handlePaste);
-        return () => window.removeEventListener("paste", handlePaste);
+        }
+    });
+
+    useEffect(() => {
+        const onPaste = (e: ClipboardEvent) => handlePaste(e);
+        window.addEventListener("paste", onPaste);
+        return () => window.removeEventListener("paste", onPaste);
     }, []);
 
     const onSubmit = async (data: FeedbackFormValues) => {
-        await submit.mutateAsync({ ...data, page: location.pathname });
+        try {
+            await submit.mutateAsync({ ...data, page: location.pathname });
+        } catch {
+        }
     };
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-1">
-            {/* Category */}
             <div className="space-y-1.5">
                 <div className="grid grid-cols-2 gap-2">
                     {CATEGORIES.map((c) => (
@@ -154,7 +154,6 @@ export default function FeedbackForm({ onClose }: FeedbackFormProps) {
                 )}
             </div>
 
-            {/* Message */}
             <div className="space-y-1.5">
                 <Textarea
                     placeholder="Descreva o que aconteceu ou o que esperava que acontecesse..."
@@ -168,18 +167,18 @@ export default function FeedbackForm({ onClose }: FeedbackFormProps) {
                 )}
             </div>
 
-            {/* Screenshot */}
             <div className="space-y-1.5">
                 {preview ? (
                     <div className="relative">
                         <img
                             src={preview}
-                            alt="Screenshot"
+                            alt="Captura de tela anexada"
                             className="w-full rounded-lg border object-cover max-h-40"
                         />
                         <button
                             type="button"
                             onClick={removeImage}
+                            aria-label="Remover imagem"
                             className="absolute top-1.5 right-1.5 flex size-6 items-center justify-center rounded-full bg-background/80 border shadow-sm hover:bg-background"
                         >
                             <X className="size-3" />

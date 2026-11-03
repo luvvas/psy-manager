@@ -2,7 +2,6 @@ import { eq, and, asc, inArray } from "drizzle-orm";
 import { db } from "../db";
 import { clinic, clinicRoom, psychologistClinic, user } from "../db/schema";
 
-/** Só o dono (quem criou) gerencia a clínica e as salas dela. */
 async function isOwner(psychologistId: string, clinicId: string): Promise<boolean> {
     const [row] = await db
         .select({ id: clinic.id })
@@ -13,7 +12,6 @@ async function isOwner(psychologistId: string, clinicId: string): Promise<boolea
 
 export const clinicService = {
     async list(psychologistId: string) {
-        // Query 1: clinics where this psychologist is a member
         const clinics = await db
             .select({
                 id: clinic.id,
@@ -33,7 +31,6 @@ export const clinicService = {
 
         if (clinics.length === 0) return [];
 
-        // Query 2: all members of those clinics in a single IN query (replaces N sub-queries)
         const clinicIds = clinics.map((c) => c.id);
         const members = await db
             .select({
@@ -47,7 +44,6 @@ export const clinicService = {
             .innerJoin(user, eq(psychologistClinic.psychologistId, user.id))
             .where(and(inArray(psychologistClinic.clinicId, clinicIds), eq(psychologistClinic.status, "active")));
 
-        // Group members by clinicId in memory
         const membersByClinic = new Map<string, typeof members>();
         for (const member of members) {
             const list = membersByClinic.get(member.clinicId) ?? [];
@@ -55,7 +51,6 @@ export const clinicService = {
             membersByClinic.set(member.clinicId, list);
         }
 
-        // Salas ativas: todo membro vê, para escolher ao agendar presencial.
         const rooms = await db
             .select({ id: clinicRoom.id, clinicId: clinicRoom.clinicId, name: clinicRoom.name })
             .from(clinicRoom)
@@ -96,7 +91,6 @@ export const clinicService = {
             })
             .returning();
 
-        // Auto-link the creator psychologist to the clinic
         await db.insert(psychologistClinic).values({
             id: crypto.randomUUID(),
             clinicId: id,
@@ -158,7 +152,6 @@ export const clinicService = {
         return updated;
     },
 
-    /** Arquiva (não apaga): sessões já marcadas continuam mostrando a sala. */
     async archiveRoom(psychologistId: string, roomId: string) {
         const [room] = await db
             .select({ clinicId: clinicRoom.clinicId })
@@ -185,10 +178,6 @@ export const clinicService = {
         return deletedClinic ?? null;
     },
 
-    // Linking used to add the member immediately, letting anyone pull another
-    // psychologist into their clinic and read their agenda (audit F1). Now it
-    // only creates a pending invite that the invitee must accept. The response
-    // is the same whether or not the e-mail has an account.
     async linkPsychologist(requesterId: string, clinicId: string, psychologistEmail: string) {
         const [ownerClinic] = await db
             .select({ id: clinic.id })

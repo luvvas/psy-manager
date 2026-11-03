@@ -15,10 +15,6 @@ interface ClinicRoomsProps {
     rooms: Room[];
 }
 
-/**
- * Salas da clínica (só o dono abre este formulário). Na agenda, a sala é o
- * recurso disputado: duas psicólogas não podem usar a mesma no mesmo horário.
- */
 export function ClinicRooms({ clinicId, rooms }: ClinicRoomsProps) {
     const utils = trpc.useUtils();
     const [newName, setNewName] = useState("");
@@ -35,21 +31,21 @@ export function ClinicRooms({ clinicId, rooms }: ClinicRoomsProps) {
             setNewName("");
             refresh();
         },
-        onError: (err) => toast.error(err.message),
+        onError: (err) => toast.error(`Erro ao adicionar sala: ${err.message}`),
     });
     const renameRoom = trpc.clinic.renameRoom.useMutation({
         onSuccess: () => {
             setEditingId(null);
             refresh();
         },
-        onError: (err) => toast.error(err.message),
+        onError: (err) => toast.error(`Erro ao renomear sala: ${err.message}`),
     });
     const removeRoom = trpc.clinic.removeRoom.useMutation({
         onSuccess: () => {
-            toast.success("Sala removida.");
+            toast.success("Sala removida com sucesso!");
             refresh();
         },
-        onError: (err) => toast.error(err.message),
+        onError: (err) => toast.error(`Erro ao remover sala: ${err.message}`),
     });
 
     function handleAdd() {

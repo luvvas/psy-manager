@@ -20,25 +20,12 @@ import { appointmentCommands } from "../cqrs/appointment/appointment.commands";
 import { appointmentProjections } from "../cqrs/appointment/appointment.projections";
 import type { WorkSchedule } from "../lib/work-schedule";
 
-/*
- * Seed de desenvolvimento.
- *
- * Psicóloga principal: lucas@psymanager.com / 12345678 (ou SEED_USER_EMAIL /
- * SEED_USER_PASSWORD), criada se ainda não existir, com o volume de dados de sempre. Além dela, cria colegas com login próprio e
- * clínicas com salas, para testar a agenda compartilhada:
- *   - mesma clínica, mesmo horário, salas diferentes → permitido;
- *   - mesma sala, mesmo horário → bloqueado;
- *   - horário livre na agenda da psicóloga, mas com todas as salas ocupadas.
- * Os cenários fixos ficam no próximo dia útil (o resumo no fim mostra a data).
- */
-
 const PATIENTS_COUNT = 50;
 const COLLEAGUE_PATIENTS_COUNT = 12;
 const TRANSACTIONS_COUNT = 200;
 const COLLEAGUE_TRANSACTIONS_COUNT = 40;
 const DOCUMENTS_COUNT = 30;
 const CLINICAL_RECORDS_PER_PATIENT = 3;
-// Agendamentos em volta do dia em que o seed roda: N dias para trás e para frente.
 const APPOINTMENT_DAYS_BACK = 14;
 const APPOINTMENT_DAYS_FORWARD = 14;
 const SESSION_MINUTES = 50;
@@ -58,7 +45,6 @@ const TX_INCOME_CATEGORIES = ["Sessão", "Avaliação", "Consultoria", "Supervis
 const TX_EXPENSE_CATEGORIES = ["Aluguel", "Software", "Supervisão", "Material", "Marketing", "Impostos", "Outros"];
 const RECORD_CATEGORIES = ["evolucao", "anamnese", "outro"];
 
-// ── Expedientes (índice = dia da semana, 0 = domingo) ─────────────────────────
 const shift = (start: string, end: string) => ({ start, end });
 const week = (byDay: Partial<Record<number, { start: string; end: string }[]>>): WorkSchedule["days"] =>
     Array.from({ length: 7 }, (_, d) => byDay[d] ?? []);
@@ -124,7 +110,6 @@ const COLLEAGUES: ColleagueSpec[] = [
     },
 ];
 
-// ── Utilitários ───────────────────────────────────────────────────────────────
 function randomPastDate(monthsBack: number): Date {
     const d = new Date();
     d.setMonth(d.getMonth() - Math.floor(Math.random() * monthsBack));
@@ -144,7 +129,6 @@ function generateCpf(): string {
 
 const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 
-/** Inícios de sessão (de hora em hora: 50 min + 10 de intervalo) que cabem no expediente do dia. */
 function hourlyStarts(schedule: WorkSchedule, weekday: number): string[] {
     return schedule.days[weekday].flatMap(({ start, end }) => {
         const starts: string[] = [];
@@ -153,18 +137,12 @@ function hourlyStarts(schedule: WorkSchedule, weekday: number): string[] {
     });
 }
 
-/** Próximo dia útil depois de hoje (onde ficam os cenários fixos). */
 function nextWeekday(from: Date): Date {
     const d = new Date(from.getFullYear(), from.getMonth(), from.getDate() + 1);
     while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
     return d;
 }
 
-/**
- * Ocupação em memória, para o seed nunca gerar o que o app bloqueia: duas
- * sessões da mesma sala ou da mesma psicóloga no mesmo horário. Como todo
- * horário do seed começa em hora cheia com 50 min, conflito = mesmo início.
- */
 const busyPsy = new Set<string>();
 const busyRoom = new Set<string>();
 const psyKey = (psyId: string, date: Date, start: string) => `${psyId}|${dayKey(date)}|${start}`;
@@ -196,7 +174,6 @@ async function scheduleAppointment(opts: {
         startTime,
         endTime: addMinutes(startTime, SESSION_MINUTES),
         status: opts.status,
-        // Com sala: quase sempre presencial, mas às vezes online atendida da sala.
         sessionType: room
             ? faker.helpers.weightedArrayElement([
                   { value: "in_person", weight: 4 },
@@ -228,8 +205,6 @@ function randomStatus(date: Date, startTime: string, now: Date): string {
           ]);
 }
 
-// ── Usuários, pacientes, financeiro ───────────────────────────────────────────
-// Psicóloga principal: criada se não existir, para recriar o ambiente do zero.
 const MAIN_USER = {
     name: process.env.SEED_USER_NAME || "Lucas Machado",
     email: process.env.SEED_USER_EMAIL || "lucas@psymanager.com",
@@ -239,7 +214,6 @@ const MAIN_USER = {
 async function ensureMainUser(): Promise<{ id: string; name: string; created: boolean }> {
     const [found] = await db.select({ id: user.id, name: user.name }).from(user).where(eq(user.email, MAIN_USER.email));
     if (found) return { ...found, created: false };
-    // Pelo better-auth, para a senha ficar com o hash que o login espera.
     const result = await auth.api.signUpEmail({
         body: { name: MAIN_USER.name, email: MAIN_USER.email, password: MAIN_USER.password },
     });
@@ -250,7 +224,6 @@ async function ensureMainUser(): Promise<{ id: string; name: string; created: bo
 async function ensureColleague(spec: ColleagueSpec): Promise<string> {
     const [existing] = await db.select({ id: user.id }).from(user).where(eq(user.email, spec.email));
     if (existing) return existing.id;
-    // Pelo better-auth, para a senha ficar com o hash que o login espera.
     const result = await auth.api.signUpEmail({
         body: { name: spec.name, email: spec.email, password: SEED_PASSWORD },
     });
@@ -258,10 +231,6 @@ async function ensureColleague(spec: ColleagueSpec): Promise<string> {
     return result.user.id;
 }
 
-// Pelo comando do CQRS, como o app faz: o evento vai para o event store e a
-// projeção preenche a tabela. Inserir direto deixava o paciente sem histórico,
-// e editar/excluir falhava com "Paciente não encontrado". A criptografia
-// acontece na projeção.
 async function seedPatients(psychologistId: string, count: number): Promise<string[]> {
     const ids: string[] = [];
     for (let i = 0; i < count; i++) {
@@ -323,7 +292,6 @@ async function seedTransactions(psychologistId: string, patientIds: string[], co
     return { incomeCount, expenseCount };
 }
 
-// ── Clínicas e salas ──────────────────────────────────────────────────────────
 async function ensureClinic(opts: {
     name: string;
     ownerId: string;
@@ -375,9 +343,7 @@ async function ensureClinic(opts: {
     return { id: found.id, rooms };
 }
 
-// ── Seed ──────────────────────────────────────────────────────────────────────
 async function seed() {
-    // O seed cria contas com senha conhecida: nunca em produção.
     if (process.env.NODE_ENV === "production") {
         console.error("Seed bloqueado em produção (NODE_ENV=production).");
         process.exit(1);
@@ -391,14 +357,12 @@ async function seed() {
     patientProjections.init();
     appointmentProjections.init();
 
-    // ── Colegas e expedientes ─────────────────────────────────────────────────
     console.log(`Ensuring ${COLLEAGUES.length} colleague psychologists...`);
     const colleagueIds = {} as Record<ColleagueSpec["key"], string>;
     for (const spec of COLLEAGUES) {
         colleagueIds[spec.key] = await ensureColleague(spec);
         await db.update(user).set({ workSchedule: spec.schedule }).where(eq(user.id, colleagueIds[spec.key]));
     }
-    // Não sobrescreve o expediente que a principal já configurou no perfil.
     const [main] = await db.select({ workSchedule: user.workSchedule }).from(user).where(eq(user.id, psychologistId));
     const mainSchedule = main?.workSchedule ?? MAIN_SCHEDULE;
     if (!main?.workSchedule) {
@@ -406,7 +370,6 @@ async function seed() {
     }
     console.log(`  ✓ colleagues ready, work schedules set${main?.workSchedule ? " (main kept its own)" : ""}`);
 
-    // ── Clínicas e salas ──────────────────────────────────────────────────────
     console.log("Ensuring clinics and rooms...");
     const shared = await ensureClinic({
         name: SHARED_CLINIC_NAME,
@@ -418,19 +381,16 @@ async function seed() {
         name: COLLEAGUE_CLINIC_NAME,
         ownerId: colleagueIds.ana,
         roomNames: ["Sala A", "Sala B"],
-        // A principal recebe convite pendente, para testar o fluxo de aceitar.
         members: [
             { id: colleagueIds.bruno, status: "active" },
             { id: psychologistId, status: "pending" },
         ],
     });
-    // Clínica sem salas: sessão presencial nela não é controlada por sala.
     await ensureClinic({ name: NO_ROOMS_CLINIC_NAME, ownerId: psychologistId, roomNames: [], members: [] });
     console.log(`  ✓ ${SHARED_CLINIC_NAME}: ${shared.rooms.map((r) => r.name).join(", ")}`);
     console.log(`  ✓ ${COLLEAGUE_CLINIC_NAME}: ${colleagueClinic.rooms.map((r) => r.name).join(", ")} (convite pendente para a principal)`);
     console.log(`  ✓ ${NO_ROOMS_CLINIC_NAME}: sem salas`);
 
-    // ── Pacientes ─────────────────────────────────────────────────────────────
     console.log(`Creating patients...`);
     const patientsByPsy: Record<string, string[]> = {
         [psychologistId]: await seedPatients(psychologistId, PATIENTS_COUNT),
@@ -440,25 +400,20 @@ async function seed() {
     }
     console.log(`  ✓ ${PATIENTS_COUNT} for the main psychologist, ${COLLEAGUE_PATIENTS_COUNT} per colleague`);
 
-    // ── Cenários fixos de sala (próximo dia útil) ─────────────────────────────
     const now = new Date();
     const scenarioDay = nextWeekday(now);
     const [sala1, sala2, sala3] = shared.rooms;
     const patientOf = (psyId: string) => faker.helpers.arrayElement(patientsByPsy[psyId]);
     if (sala1 && sala2 && sala3) {
         const fixed: { psyId: string; start: string; room: SeedRoom; notes: string }[] = [
-            // 09:00 — só a Sala 1 ocupada: a principal ainda tem Sala 2 e 3.
             { psyId: colleagueIds.ana, start: "09:00", room: sala1, notes: "Seed: 09:00 só a Sala 1 ocupada" },
-            // 14:00 — clínica lotada: horário livre na agenda da principal, mas sem sala.
             { psyId: colleagueIds.ana, start: "14:00", room: sala1, notes: "Seed: 14:00 clínica lotada" },
             { psyId: colleagueIds.bruno, start: "14:00", room: sala2, notes: "Seed: 14:00 clínica lotada" },
             { psyId: colleagueIds.carla, start: "14:00", room: sala3, notes: "Seed: 14:00 clínica lotada" },
-            // 16:00 — principal e Bruno no mesmo horário, em salas diferentes (permitido).
             { psyId: psychologistId, start: "16:00", room: sala1, notes: "Seed: 16:00 mesma clínica, sala diferente do Bruno" },
             { psyId: colleagueIds.bruno, start: "16:00", room: sala2, notes: "Seed: 16:00 mesma clínica, sala diferente da principal" },
         ];
         for (const f of fixed) {
-            // Carla só atende seg/qua/sex; o cenário vale mesmo fora do expediente dela.
             await scheduleAppointment({
                 psychologistId: f.psyId,
                 patientId: patientOf(f.psyId),
@@ -469,15 +424,10 @@ async function seed() {
                 notes: f.notes,
             });
         }
-        // A principal fica livre às 09:00 e 14:00 nesse dia, para o teste fazer sentido.
         busyPsy.add(psyKey(psychologistId, scenarioDay, "09:00"));
         busyPsy.add(psyKey(psychologistId, scenarioDay, "14:00"));
     }
 
-    // ── Agendamentos aleatórios ───────────────────────────────────────────────
-    // Dentro do expediente de cada psicóloga; metade presencial em sala livre
-    // da clínica (sem sala livre, vira online). Data à meia-noite local, igual
-    // ao DatePicker do app.
     console.log(`Creating appointments from ${APPOINTMENT_DAYS_BACK} days ago to ${APPOINTMENT_DAYS_FORWARD} days ahead...`);
     const people = [
         { id: psychologistId, schedule: mainSchedule, perDay: { min: 3, max: 6 }, clinics: [shared] },
@@ -517,7 +467,6 @@ async function seed() {
     }
     console.log(`  ✓ ${appointmentCount} appointments (${inRoomCount} in a clinic room)`);
 
-    // ── Financeiro ────────────────────────────────────────────────────────────
     console.log("Creating financial transactions...");
     const mainTx = await seedTransactions(psychologistId, patientsByPsy[psychologistId], TRANSACTIONS_COUNT);
     for (const spec of COLLEAGUES) {
@@ -525,7 +474,6 @@ async function seed() {
     }
     console.log(`  ✓ main: ${mainTx.incomeCount} receitas, ${mainTx.expenseCount} despesas; ${COLLEAGUE_TRANSACTIONS_COUNT} per colleague`);
 
-    // ── Documents (main) ──────────────────────────────────────────────────────
     console.log(`Creating ${DOCUMENTS_COUNT} documents...`);
     const docValues = Array.from({ length: DOCUMENTS_COUNT }, () => ({
         id: randomUUID(),
@@ -550,7 +498,6 @@ async function seed() {
     await db.insert(document).values(docValues);
     console.log(`  ✓ ${DOCUMENTS_COUNT} documents created`);
 
-    // ── Clinical Records (main) ───────────────────────────────────────────────
     const mainPatients = patientsByPsy[psychologistId];
     const totalRecords = Math.min(mainPatients.length, 20) * CLINICAL_RECORDS_PER_PATIENT;
     console.log(`Creating ~${totalRecords} clinical records (${CLINICAL_RECORDS_PER_PATIENT} per patient, first 20 patients)...`);
@@ -576,7 +523,6 @@ async function seed() {
     await db.insert(clinicalRecord).values(recordValues);
     console.log(`  ✓ ${recordValues.length} clinical records created`);
 
-    // ── Resumo ────────────────────────────────────────────────────────────────
     const scenarioLabel = scenarioDay.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" });
     console.log("─────────────────────────────────────────────");
     console.log(

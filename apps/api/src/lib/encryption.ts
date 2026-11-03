@@ -3,7 +3,6 @@ import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 const ALGORITHM = "aes-256-gcm";
 const CURRENT_VERSION = "v1";
 
-// Cache the key buffer so we don't re-parse the env var on every call.
 let _keyCache: Buffer | null = null;
 
 function getKey(): Buffer {
@@ -19,14 +18,12 @@ export function encrypt(plaintext: string): string {
     const cipher = createCipheriv(ALGORITHM, getKey(), iv);
     const ct = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
     const tag = cipher.getAuthTag();
-    // Format: v1:<iv>:<tag>:<ciphertext>
     return [CURRENT_VERSION, iv, tag, ct].map((b, i) => (i === 0 ? b : (b as Buffer).toString("base64"))).join(":");
 }
 
 export function decrypt(ciphertext: string): string {
     const parts = ciphertext.split(":");
 
-    // Versioned format: v1:<iv>:<tag>:<ciphertext>
     if (parts.length === 4 && parts[0] === "v1") {
         const [, ivB64, tagB64, ctB64] = parts;
         const decipher = createDecipheriv(ALGORITHM, getKey(), Buffer.from(ivB64, "base64"));
@@ -37,7 +34,6 @@ export function decrypt(ciphertext: string): string {
         );
     }
 
-    // Legacy format (pre-versioning): <iv>:<tag>:<ciphertext>
     if (parts.length === 3) {
         const [ivB64, tagB64, ctB64] = parts;
         const decipher = createDecipheriv(ALGORITHM, getKey(), Buffer.from(ivB64, "base64"));
@@ -51,7 +47,6 @@ export function decrypt(ciphertext: string): string {
     throw new Error("Invalid ciphertext format");
 }
 
-// Handles null/undefined and empty strings; fallback for legacy unencrypted data
 export const encryptField = (v: string | null | undefined): string | null => {
     if (v == null) return null;
     if (v === "") return "";
@@ -70,16 +65,14 @@ let decryptFailures = 0;
 
 export const getDecryptFailureCount = () => decryptFailures;
 
-export const decryptField = (v: string | null | undefined): string | null => {
+export function decryptField(v: string): string;
+export function decryptField(v: string | null | undefined): string | null;
+export function decryptField(v: string | null | undefined): string | null {
     if (v == null) return null;
     if (v === "") return "";
     try {
         return decrypt(v);
     } catch (err) {
-        // Plaintext saved before field encryption existed is expected and
-        // returned as-is. A value in ciphertext format that fails to decrypt
-        // means a wrong ENCRYPTION_KEY or corrupted data: make it visible
-        // (the value itself is never logged).
         if (looksEncrypted(v)) {
             decryptFailures++;
             if (decryptFailures === 1 || decryptFailures % 100 === 0) {
@@ -91,4 +84,4 @@ export const decryptField = (v: string | null | undefined): string | null => {
         }
         return v;
     }
-};
+}

@@ -20,7 +20,9 @@ Referências vivas (leia a mais parecida com o pedido antes de escrever):
 | Tela de detalhe de um registro (`/x/:id`) | `apps/web/src/features/pacientes/page-detalhes.tsx` |
 | Placeholder "em breve" | `apps/web/src/pages/coming-soon.tsx` |
 
-Modelos prontos para copiar e adaptar estão em `templates/` ao lado deste arquivo.
+Modelos prontos para copiar e adaptar estão em `templates/` ao lado deste arquivo (exemplo
+fictício: feature `convenios`, router `trpc.healthPlan`). O código do projeto não tem
+comentários — não adicione ao copiar.
 
 ## 1. Entender o pedido
 
@@ -35,7 +37,6 @@ Antes de codar, defina (pergunte só o que não dá para deduzir):
 
 ```
 apps/web/src/features/<feature>/
-  index.ts                     # export { XPage } from "./page";
   page.tsx                     # a tela: header, estado, queries/mutations, layout
   page-detalhes.tsx            # (opcional) tela /<feature>/:id
   components/
@@ -46,22 +47,32 @@ apps/web/src/features/<feature>/
 
 - `<feature>` é o nome do domínio em pt-BR minúsculo (`pacientes`, `financeiro`).
 - A página exporta função nomeada `XPage` (`ClinicasPage`, `PacientesPage`).
+- Sem `index.ts` na feature: `route-modules.ts` importa o arquivo da página direto, para
+  lista e detalhe virarem chunks separados.
 - Componentes de UI base ficam em `@/components/ui/*` (shadcn). **Não** edite esses
   arquivos para resolver um caso de uma tela só; passe `className`.
 
 ## 3. Ligar a tela ao app
 
-1. **Rota** — `apps/web/src/router.tsx`, dentro de `children` do `AppLayout` (rotas
+Toda tela é carregada sob demanda (code splitting, skill `react-best-practices`,
+regra `bundle-route-lazy`). Nada de `element: <XPage />` com import estático.
+
+1. **Módulo da rota** — em `apps/web/src/route-modules.ts`, uma entrada em `pages` com o
+   caminho literal do arquivo (lista e detalhe em entradas separadas):
+   ```ts
+   convenios: () => import("@/features/convenios/page").then((m) => ({ Component: m.ConveniosPage })),
+   ```
+2. **Rota** — `apps/web/src/router.tsx`, dentro de `children` do `AppLayout` (rotas
    autenticadas), antes do `path: "*"`:
    ```tsx
-   { path: "<slug>", element: <XPage /> },
-   { path: "<slug>/:id", element: <XDetailsPage /> }, // se houver detalhe
+   { path: "<slug>", lazy: pages.convenios },
+   { path: "<slug>/:id", lazy: pages.convenioDetalhes }, // se houver detalhe
    ```
-   Importe de `@/features/<feature>` (o `index.ts`).
-2. **Menu lateral** — `NAV_ITEMS` em `apps/web/src/components/layout/app-sidebar.tsx`:
-   `{ title: "X", url: "/<slug>", icon: Icone, ready: true }`. O item fica ativo por
-   `pathname.startsWith(url)`, então a tela de detalhe também acende o menu.
-3. Tela ainda sem conteúdo? Use `ComingSoonPage` direto na rota (exemplo: `pagamentos`).
+3. **Menu lateral** — `NAV_ITEMS` em `apps/web/src/components/layout/app-sidebar.tsx`:
+   `{ title: "X", url: "/<slug>", icon: Icone, ready: true }`, e o mesmo caminho em
+   `preloadByPath` (`route-modules.ts`) para a tela baixar no hover do menu. O item fica
+   ativo por `pathname.startsWith(url)`, então a tela de detalhe também acende o menu.
+4. Tela ainda sem conteúdo? Use `ComingSoonPage` direto na rota (exemplo: `pagamentos`).
 
 ## 4. Esqueleto da página (obrigatório)
 
@@ -121,23 +132,32 @@ Variações do contêiner de conteúdo:
 ## 5. Dados (tRPC + React Query)
 
 ```tsx
-const { data, refetch } = trpc.x.list.useQuery(undefined, { retry: false });
+const { data, isPending } = trpc.x.list.useQuery();
+const utils = trpc.useUtils();
 
 const createMutation = trpc.x.create.useMutation({
-    onSuccess: () => { toast.success("X cadastrado com sucesso!"); refetch(); },
+    onSuccess: () => { toast.success("X cadastrado com sucesso!"); utils.x.invalidate(); },
     onError: (err) => toast.error(`Erro ao cadastrar: ${err.message}`),
 });
 ```
 
-- Sempre `retry: false` nas queries de tela.
-- Depois de mutation: `refetch()` da lista da própria tela, ou
-  `trpc.useUtils()` + `utils.x.list.invalidate(...)` quando a lista é de outro componente.
+- **Não** passe `retry: false`: a política é global em `lib/query-client.ts` (4xx não
+  repete; rede/5xx tenta uma vez a mais).
+- Depois de mutation, `utils.<router>.invalidate()` — e também os routers de **outras**
+  telas que mostram o mesmo dado (ex.: transação → Início; paciente → agenda e financeiro).
+  `refetch()` só atualiza a lista local e deixa o resto velho.
+- Carregamento: passe `isPending` como `isLoading` para a `DataTable`/KPIs (esqueleto em
+  vez de "nenhum cadastro"). Nunca use `isFetching` para trocar a tela por esqueleto.
 - Mensagens: `toast.success("... com sucesso!")` / ``toast.error(`Erro ao <verbo>: ${err.message}`)``
   (`sonner`). Erros inesperados em `catch`: `logger.error("Erro ao ...", error)` (`@/lib/logger`), nunca `console.log`.
-- Converta a resposta para o tipo da tabela num `map` (`DBX`), transformando datas com
-  `new Date(...)`. O tipo `DBX` é exportado pelo componente de tabela.
+- Tipos vêm da API: `type X = RouterOutputs["x"]["list"][number]` (`@/lib/trpc`),
+  exportado pelo componente de tabela. Nada de interface escrita à mão nem `any`; o
+  superjson já entrega datas como `Date` (sem `new Date(...)`). Payload de formulário:
+  `RouterInputs["x"]["create"]`.
+- Formulário de edição recebe o **registro completo** (`initialData={editing}`), nunca
+  uma versão resumida: o form envia todos os campos e o que faltasse seria apagado.
 - Exclusão: `window.confirm(\`Deseja realmente excluir "${nome}"?\`)` antes da mutation.
-- Edição e criação usam o mesmo sheet: estado `isSheetOpen` + `editingX: DBX | null`.
+- Edição e criação usam o mesmo sheet: estado `isSheetOpen` + `editingX: X | null`.
   Ao fechar o sheet, zere `editingX`.
 
 ## 6. Grid (DataTable)
@@ -158,6 +178,10 @@ Use sempre `@/components/data-table` (busca, header com cor de tema, estado vazi
   `text-destructive hover:text-destructive hover:bg-destructive/10`.
 - `searchFilter` busca nos campos que o usuário digitaria (nome, documento, e-mail);
   `emptyState` com título, descrição e o ícone da tela.
+- Os itens precisam ter `id` (é a chave da linha; `getRowKey` só para outro campo).
+  Passe `isLoading={isPending}`. A busca já filtra com `useDeferredValue`.
+- Valores em dinheiro: `formatCurrency` de `@/utils/format` (nunca `new Intl.NumberFormat`
+  dentro do componente — é caro e era recriado por célula).
 
 ## 7. Formulário (AppSheet + react-hook-form + zod)
 
@@ -190,6 +214,11 @@ Ver `templates/form.tsx`.
 - **KPI cards**: `StatsCards` genérico (`@/components/stats-cards`) com 4 itens
   `{ label, value, icon, color }`, `color` no formato `"text-emerald-600 bg-emerald-500/10"`.
   Crie `components/stats-cards.tsx` na feature que só calcula os itens. Fica no topo do conteúdo.
+- **Importação de CSV**: nunca copie o fluxo de outra tela. Defina os campos num
+  `features/<feature>/csv-import.ts` (`CsvField[]` com `required`, mais a função
+  `mapCsvRowsTo<X>` tipada com `RouterInputs`), e use `useCsvImport(fields)` +
+  `<CsvColumnMapper>` de `@/components/csv-import/` (PapaParse carrega sob demanda). Ver
+  `features/pacientes/csv-import.ts`. Conversores de célula: `parseDate`/`parseCurrency` de `@/utils/csv`.
 - **Abas na tela** (`Lista` / `Importação`): `Tabs` controlado, `TabsList className="grid w-full max-w-xs grid-cols-N"`
   (4 abas: `max-w-xl`) numa linha `flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4`;
   ações que só valem para uma aba aparecem à direita da `TabsList`. Uma aba sozinha não
@@ -243,7 +272,7 @@ Stack: Hono + tRPC + Drizzle (Postgres), em `apps/api/src`.
 
 ## 11. Conferir antes de entregar
 
-- `npx tsc --noEmit -p .` em `apps/web` (e em `apps/api` se mexeu lá) sem erros.
+- `bun run build:web` (roda `tsc -b`) e `bun run --filter @psy-manager/web lint` sem erros novos; `npx tsc --noEmit -p .` em `apps/api` se mexeu lá.
 - Revise a tela contra o checklist: header com `size="sm"` e ação principal à direita;
   textos todos em pt-BR (incluindo `title` dos botões, toasts, placeholders e estado vazio);
   larguras da grid somando 100%; ordem Editar → específicas → Deletar; rota + menu ligados.

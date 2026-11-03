@@ -34,6 +34,6 @@ import { ptBR } from "date-fns/locale"
 import { Button } from "@/components/ui/button" // import from the file that defines it
 ```
 
-**Feature barrels in this project:** `features/<x>/index.ts` exist so the router has one entry per feature. Keep them to the page exports with named re-exports (`export { FinanceiroPage } from "./page"`), not `export *` of components.
+**Feature barrels in this project:** there are none. `route-modules.ts` imports each page file directly (`import("@/features/pacientes/page-detalhes")`), so a list page and its detail page become separate chunks. A shared barrel put both — and the patient join page with the psychologist call page — in the same chunk.
 
 Reference: [Vite — Avoid Barrel Files](https://vite.dev/guide/performance#avoid-barrel-files)
