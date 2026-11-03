@@ -2,25 +2,24 @@
 import { FileBadge, Pencil, Phone, ShieldCheck, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
+import type { RouterOutputs } from "@/lib/trpc";
 
-export interface DBHealthPlan {
-    id: string;
-    nome: string;
-    registroAns: string | null;
-    telefone: string | null;
-    createdAt: Date;
-}
+// Tipo vindo da API (router fictício neste modelo). Nada de interface escrita à mão
+// nem de `new Date(...)`: o superjson já entrega datas como Date.
+export type HealthPlan = RouterOutputs["healthPlan"]["list"][number];
 
 interface HealthPlansTableProps {
-    healthPlans: DBHealthPlan[];
-    onEdit: (row: DBHealthPlan) => void;
+    healthPlans: HealthPlan[];
+    /** `isPending` da query: linhas de esqueleto em vez do estado vazio. */
+    isLoading?: boolean;
+    onEdit: (row: HealthPlan) => void;
     onDelete: (id: string, nome: string) => void;
     // Ações específicas (ex.: abrir detalhe) entram aqui, entre editar e deletar.
 }
 
-export function HealthPlansTable({ healthPlans, onEdit, onDelete }: HealthPlansTableProps) {
+export function HealthPlansTable({ healthPlans, isLoading, onEdit, onDelete }: HealthPlansTableProps) {
     // Larguras somam 100%.
-    const columns: DataTableColumn<DBHealthPlan>[] = [
+    const columns: DataTableColumn<HealthPlan>[] = [
         {
             header: "Nome",
             className: "w-[40%]",
@@ -84,8 +83,8 @@ export function HealthPlansTable({ healthPlans, onEdit, onDelete }: HealthPlansT
     return (
         <DataTable
             data={healthPlans}
+            isLoading={isLoading}
             columns={columns}
-            getRowKey={(row) => row.id}
             searchPlaceholder="Buscar por nome ou registro ANS..."
             searchFilter={(row, query) => {
                 const term = query.toLowerCase();

@@ -10,18 +10,22 @@ import { logger } from "@/lib/logger";
 import { toast } from "sonner";
 import { Plus, ShieldCheck } from "lucide-react";
 import { HealthPlanForm, type HealthPlanFormValues } from "./components/health-plan-form";
-import { HealthPlansTable, type DBHealthPlan } from "./components/health-plans-table";
+import { HealthPlansTable, type HealthPlan } from "./components/health-plans-table";
 
 export function ConveniosPage() {
     const [isSheetOpen, setSheetOpen] = useState(false);
-    const [editing, setEditing] = useState<DBHealthPlan | null>(null);
+    const [editing, setEditing] = useState<HealthPlan | null>(null);
 
-    const { data, refetch } = trpc.healthPlan.list.useQuery(undefined, { retry: false });
+    // Sem `retry: false`: a política de retry é global (lib/query-client.ts).
+    const { data, isPending } = trpc.healthPlan.list.useQuery();
+    const utils = trpc.useUtils();
 
     const createMutation = trpc.healthPlan.create.useMutation({
         onSuccess: () => {
             toast.success("Convênio cadastrado com sucesso!");
-            refetch();
+            // Invalida o router inteiro (lista, detalhe, contadores); acrescente aqui
+            // outros routers que mostram este dado (ex.: utils.patient.invalidate()).
+            utils.healthPlan.invalidate();
         },
         onError: (err) => toast.error(`Erro ao cadastrar: ${err.message}`),
     });
@@ -29,7 +33,7 @@ export function ConveniosPage() {
     const updateMutation = trpc.healthPlan.update.useMutation({
         onSuccess: () => {
             toast.success("Convênio atualizado com sucesso!");
-            refetch();
+            utils.healthPlan.invalidate();
         },
         onError: (err) => toast.error(`Erro ao atualizar: ${err.message}`),
     });
@@ -37,19 +41,10 @@ export function ConveniosPage() {
     const deleteMutation = trpc.healthPlan.delete.useMutation({
         onSuccess: () => {
             toast.success("Convênio excluído com sucesso!");
-            refetch();
+            utils.healthPlan.invalidate();
         },
         onError: (err) => toast.error(`Erro ao excluir: ${err.message}`),
     });
-
-    // Resposta da API -> tipo da tabela (datas viram Date aqui).
-    const rows: DBHealthPlan[] = (data ?? []).map((r) => ({
-        id: r.id,
-        nome: r.nome,
-        registroAns: r.registroAns,
-        telefone: r.telefone,
-        createdAt: new Date(r.createdAt),
-    }));
 
     const openNew = () => {
         setEditing(null);
@@ -100,7 +95,8 @@ export function ConveniosPage() {
             <div className="flex flex-1 flex-col gap-4 p-4 lg:p-6">
                 {/* <StatsCards ... /> quando a tela tiver KPIs */}
                 <HealthPlansTable
-                    healthPlans={rows}
+                    healthPlans={data ?? []}
+                    isLoading={isPending}
                     onEdit={(row) => {
                         setEditing(row);
                         setSheetOpen(true);
@@ -118,11 +114,9 @@ export function ConveniosPage() {
                     key={editing ? editing.id : "new"}
                     onSave={handleSave}
                     onCancel={closeSheet}
-                    initialData={
-                        editing
-                            ? { nome: editing.nome, registroAns: editing.registroAns ?? "", telefone: editing.telefone ?? "" }
-                            : undefined
-                    }
+                    // Sempre o registro completo da API: o form envia todos os campos no
+                    // update, e campo que não viesse aqui seria apagado.
+                    initialData={editing ?? undefined}
                 />
             </AppSheet>
         </>

@@ -12,7 +12,7 @@ export function ConvenioDetailsPage() {
 
     const { data: item, isLoading } = trpc.healthPlan.getById.useQuery(
         { id: id! },
-        { enabled: !!id, retry: false }
+        { enabled: !!id }
     );
 
     if (isLoading) {
@@ -53,8 +53,9 @@ export function ConvenioDetailsPage() {
                 }
             />
 
-            <div className="flex-1 p-4 lg:p-6 overflow-hidden flex flex-col">
-                <div className="flex-1 h-full overflow-hidden">{/* conteúdo */}</div>
+            {/* min-h-0: sem ele o filho flex não encolhe e a rolagem interna não funciona. */}
+            <div className="flex flex-col flex-1 min-h-0 gap-4 p-4 lg:p-6 overflow-hidden">
+                <div className="flex-1 min-h-0 overflow-auto">{/* conteúdo */}</div>
             </div>
         </div>
     );
