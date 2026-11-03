@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { Appointment } from "../types";
+import { dayKey, isSameDay, isSameMonth } from "../lib/dates";
 import { AppointmentCard } from "./appointment-card";
 
 interface MonthlyViewProps {
@@ -9,21 +10,6 @@ interface MonthlyViewProps {
 }
 
 const WEEKDAY_HEADERS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
-
-function isSameDay(a: Date, b: Date): boolean {
-    return (
-        a.getFullYear() === b.getFullYear() &&
-        a.getMonth() === b.getMonth() &&
-        a.getDate() === b.getDate()
-    );
-}
-
-function isSameMonth(a: Date, b: Date): boolean {
-    return (
-        a.getFullYear() === b.getFullYear() &&
-        a.getMonth() === b.getMonth()
-    );
-}
 
 function getMonthGrid(date: Date): Date[] {
     const year = date.getFullYear();
@@ -57,7 +43,7 @@ export function MonthlyView({ appointments, selectedDate, onDayClick }: MonthlyV
     const groupedAppointments = useMemo(() => {
         const map = new Map<string, Appointment[]>();
         for (const apt of appointments) {
-            const key = new Date(apt.date).toISOString().split("T")[0];
+            const key = dayKey(new Date(apt.date));
             if (!map.has(key)) {
                 map.set(key, []);
             }
@@ -82,7 +68,7 @@ export function MonthlyView({ appointments, selectedDate, onDayClick }: MonthlyV
 
                 <div className="grid flex-1 grid-cols-7 grid-rows-[repeat(6,minmax(100px,1fr))] border-l bg-card">
                     {gridDays.map((day) => {
-                        const key = day.toISOString().split("T")[0];
+                        const key = dayKey(day);
                         const dayApts = groupedAppointments.get(key) || [];
                         const isToday = isSameDay(day, today);
                         const isCurrentMonth = isSameMonth(day, selectedDate);

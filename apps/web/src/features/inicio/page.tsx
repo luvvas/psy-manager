@@ -4,7 +4,8 @@ import { Home } from "lucide-react";
 import { AppHeader } from "@/components/layout/app-header";
 import { trpc } from "@/lib/trpc";
 import { useSession } from "@/lib/auth-client";
-import type { AppointmentStatus } from "@/features/agendamento/types";
+import { STATUS_FROM_API } from "@/features/agendamento/types";
+import { dayKey } from "@/features/agendamento/lib/dates";
 import { StatsCards } from "./components/stats-cards";
 import { UpcomingSessions } from "./components/upcoming-sessions";
 import { QuickLinks } from "./components/quick-links";
@@ -16,17 +17,6 @@ import type { HomeSession } from "./types";
 const MAX_UPCOMING = 8;
 const MAX_PER_PANEL = 5;
 const BIRTHDAY_WINDOW_DAYS = 30;
-
-const STATUS_MAP: Record<string, AppointmentStatus> = {
-    confirmed: "confirmado",
-    confirmado: "confirmado",
-    pending: "pendente",
-    pendente: "pendente",
-    cancelled: "cancelado",
-    cancelado: "cancelado",
-    completed: "concluido",
-    concluido: "concluido",
-};
 
 function greeting(date: Date) {
     const hour = date.getHours();
@@ -57,11 +47,11 @@ export function InicioPage() {
                 .filter((app) => app.psychologistId === myId)
                 .map((app) => ({
                     id: app.id,
-                    dayKey: new Date(app.date).toISOString().split("T")[0],
+                    dayKey: dayKey(new Date(app.date)),
                     startTime: app.startTime,
                     endTime: app.endTime,
                     patientName: app.patient?.nome ?? "Consulta reservada",
-                    status: STATUS_MAP[app.status] ?? "pendente",
+                    status: STATUS_FROM_API[app.status] ?? "pendente",
                     sessionType: (app.sessionType as HomeSession["sessionType"]) ?? undefined,
                 })),
         [dbAppointments, myId]

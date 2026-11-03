@@ -1,32 +1,15 @@
-import { Button } from "@/components/ui/button";
 import {
     Tooltip,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
-import { useSession } from "@/lib/auth-client";
-import { trpc } from "@/lib/trpc";
-import { Clock, DoorOpen, ExternalLink, Loader2, Repeat, Video } from "lucide-react";
-import { toast } from "sonner";
-import { safeUrl } from "@/utils/safe-url";
-import { useNavigate } from "react-router-dom";
+import { Clock, DoorOpen, Repeat } from "lucide-react";
 import type { Appointment } from "../types";
 import { APPOINTMENT_TYPE_LABELS } from "../types";
+import { isVideoCallAvailable } from "../lib/time";
 import { StatusBadge } from "./status-badge";
+import { VideoCallButton } from "./video-call-button";
 import { cn } from "@/lib/utils";
-
-function isVideoCallAvailable(date: Date, startTime: string, endTime: string): boolean {
-    const now = new Date();
-    const [sh, sm] = startTime.split(":").map(Number);
-    const [eh, em] = endTime.split(":").map(Number);
-    const windowStart = new Date(date);
-    windowStart.setHours(sh, sm, 0, 0);
-    windowStart.setMinutes(windowStart.getMinutes() - 15);
-    const windowEnd = new Date(date);
-    windowEnd.setHours(eh, em, 0, 0);
-    windowEnd.setMinutes(windowEnd.getMinutes() + 15);
-    return now >= windowStart && now <= windowEnd;
-}
 
 interface AppointmentCardProps {
     appointment: Appointment;
@@ -41,27 +24,11 @@ const TYPE_DOT_COLORS: Record<Appointment["type"], string> = {
 };
 
 export function AppointmentCard({ appointment, compact }: AppointmentCardProps) {
-    const { data: session } = useSession();
-    const isOthers = session?.user?.id !== appointment.psychologistId;
+    const isOthers = !appointment.isMine;
     const canStartVideo =
         appointment.sessionType === "online" &&
-        !isOthers &&
+        appointment.isMine &&
         isVideoCallAvailable(appointment.date, appointment.startTime, appointment.endTime);
-
-    const createSession = trpc.videoSession.create.useMutation({
-        onError: () => toast.error("Não foi possível iniciar a videochamada."),
-    });
-    const navigate = useNavigate();
-    const safeMeetingUrl = safeUrl(appointment.meetingUrl);
-
-    async function handleStartVideo(e: React.MouseEvent) {
-        e.stopPropagation();
-        if (!window.confirm("Deseja iniciar a videochamada com este paciente?")) return;
-        const result = await createSession.mutateAsync({ appointmentId: appointment.id });
-        navigate(`/consulta/${result.sessionId}`, {
-            state: { wsAuthToken: result.wsAuthToken, patientJoinUrl: result.patientJoinUrl },
-        });
-    }
 
     if (compact) {
         return (
@@ -112,32 +79,7 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
 
             {canStartVideo && (
                 <div className="mt-2 pt-2 border-t">
-                    {safeMeetingUrl ? (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full gap-1.5 text-xs h-7"
-                            onClick={(e) => { e.stopPropagation(); window.open(safeMeetingUrl, "_blank", "noopener"); }}
-                        >
-                            <ExternalLink className="size-3" />
-                            Entrar na videochamada
-                        </Button>
-                    ) : (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full gap-1.5 text-xs h-7"
-                            onClick={handleStartVideo}
-                            disabled={createSession.isPending}
-                        >
-                            {createSession.isPending ? (
-                                <Loader2 className="size-3 animate-spin" />
-                            ) : (
-                                <Video className="size-3" />
-                            )}
-                            Iniciar videochamada
-                        </Button>
-                    )}
+                    <VideoCallButton appointmentId={appointment.id} meetingUrl={appointment.meetingUrl} compact />
                 </div>
             )}
         </div>
