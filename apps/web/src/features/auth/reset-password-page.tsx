@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { resetPassword } from "@/lib/auth-client";
+import { logger } from "@/lib/logger";
 
 const schema = z
     .object({
@@ -28,13 +29,12 @@ export function ResetPasswordPage() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const token = searchParams.get("token") ?? "";
-    const [isLoading, setIsLoading] = useState(false);
     const [done, setDone] = useState(false);
 
     const {
         register,
         handleSubmit,
-        formState: { errors },
+        formState: { errors, isSubmitting },
     } = useForm<FormValues>({
         resolver: zodResolver(schema),
         defaultValues: { newPassword: "", confirmPassword: "" },
@@ -46,11 +46,14 @@ export function ResetPasswordPage() {
             return;
         }
 
-        setIsLoading(true);
-
-        const { error } = await resetPassword({ newPassword: data.newPassword, token });
-
-        setIsLoading(false);
+        let error;
+        try {
+            ({ error } = await resetPassword({ newPassword: data.newPassword, token }));
+        } catch (err) {
+            logger.error("Erro ao redefinir senha", err);
+            toast.error("Não foi possível conectar. Verifique sua internet e tente novamente.");
+            return;
+        }
 
         if (error) {
             toast.error(error.message || "Link inválido ou expirado. Solicite um novo link.");
@@ -94,7 +97,7 @@ export function ResetPasswordPage() {
                                 <Input
                                     id="new-password"
                                     type="password"
-                                    disabled={isLoading}
+                                    disabled={isSubmitting}
                                     {...register("newPassword")}
                                 />
                                 {errors.newPassword && (
@@ -106,15 +109,15 @@ export function ResetPasswordPage() {
                                 <Input
                                     id="confirm-password"
                                     type="password"
-                                    disabled={isLoading}
+                                    disabled={isSubmitting}
                                     {...register("confirmPassword")}
                                 />
                                 {errors.confirmPassword && (
                                     <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
                                 )}
                             </div>
-                            <Button type="submit" className="w-full" disabled={isLoading}>
-                                {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+                            <Button type="submit" className="w-full" disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
                                 Redefinir senha
                             </Button>
                         </form>

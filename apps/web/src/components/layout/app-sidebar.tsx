@@ -15,7 +15,8 @@ import {
     SidebarTrigger,
     useSidebar,
 } from "@/components/ui/sidebar";
-import { signOut, useSession } from "@/lib/auth-client";
+import { useSession } from "@/lib/auth-client";
+import { signOutAndReset } from "@/lib/session";
 import {
     Brain,
     Building2,
@@ -151,7 +152,7 @@ export function AppSidebar() {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
 
     const handleLogout = async () => {
-        await signOut();
+        await signOutAndReset();
         navigate("/login");
     };
 

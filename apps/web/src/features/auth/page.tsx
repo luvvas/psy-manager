@@ -11,6 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { signIn, signUp, requestPasswordReset } from "@/lib/auth-client";
+import { logger } from "@/lib/logger";
+import { queryClient } from "@/lib/query-client";
+import { useRedirectAfterLogin } from "./use-redirect-after-login";
 import { formatCRP } from "@/utils/format";
 
 const loginSchema = z.object({
@@ -40,6 +43,7 @@ import { toast } from "sonner";
 
 export function AuthPage() {
     const navigate = useNavigate();
+    const redirectTo = useRedirectAfterLogin();
     const [searchParams] = useSearchParams();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -86,48 +90,50 @@ export function AuthPage() {
         defaultValues: { email: "" },
     });
 
-    const handleForgot = async (data: ForgotFormValues) => {
+    // Garante que o botão para de girar mesmo se a requisição lançar (ex.: sem rede).
+    const run = async (action: () => Promise<void>) => {
         setIsLoading(true);
         setError(null);
+        try {
+            await action();
+        } catch (err) {
+            logger.error("Erro de autenticação", err);
+            setError("Não foi possível conectar. Verifique sua internet e tente novamente.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
+    const handleForgot = (data: ForgotFormValues) => run(async () => {
         const { error } = await requestPasswordReset({
             email: data.email,
             redirectTo: `${window.location.origin}/redefinir-senha`,
         });
-
-        setIsLoading(false);
 
         if (error) {
             setError(error.message || "Erro ao solicitar redefinição de senha");
         } else {
             setView("forgot-sent");
         }
-    };
+    });
 
-    const handleLogin = async (data: LoginFormValues) => {
-        setIsLoading(true);
-        setError(null);
-
+    const handleLogin = (data: LoginFormValues) => run(async () => {
         const { error, data: sessionData } = await signIn.email({
             email: data.email,
             password: data.password,
         });
-
-        setIsLoading(false);
 
         if (error) {
             setError(error.message || "Email ou senha incorretos");
             toast.error(error.message || "Email ou senha incorretos. Por favor, tente novamente.");
         } else {
             toast.success(`Boas-vindas de volta, Dr(a). ${sessionData?.user?.name || ""}!`);
-            navigate("/inicio");
+            queryClient.clear(); // nada de cache de outra conta que usou esta aba
+            navigate(redirectTo, { replace: true });
         }
-    };
+    });
 
-    const handleRegister = async (data: RegisterFormValues) => {
-        setIsLoading(true);
-        setError(null);
-
+    const handleRegister = (data: RegisterFormValues) => run(async () => {
         const consentedAt = new Date().toISOString();
         const consentVersion = "2025-05";
 
@@ -142,16 +148,15 @@ export function AuthPage() {
             consentVersion,
         } as any);
 
-        setIsLoading(false);
-
         if (error) {
             setError(error.message || "Erro ao criar conta");
             toast.error(error.message || "Houve um erro ao realizar o cadastro. Verifique os dados.");
         } else {
             toast.success("Conta criada com sucesso! Boas-vindas ao psy-manager.");
-            navigate("/inicio");
+            queryClient.clear();
+            navigate("/inicio", { replace: true });
         }
-    };
+    });
 
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
