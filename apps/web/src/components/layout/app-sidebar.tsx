@@ -283,7 +283,10 @@ export function AppSidebar() {
                         </div>
                     }
                 >
-                    <ProfileForm onSuccess={() => setIsProfileOpen(false)} />
+                    <ProfileForm
+                        onSuccess={() => setIsProfileOpen(false)}
+                        onCancel={() => setIsProfileOpen(false)}
+                    />
                 </Suspense>
             </AppSheet>
         </>
