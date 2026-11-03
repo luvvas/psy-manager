@@ -65,7 +65,9 @@ let decryptFailures = 0;
 
 export const getDecryptFailureCount = () => decryptFailures;
 
-export const decryptField = (v: string | null | undefined): string | null => {
+export function decryptField(v: string): string;
+export function decryptField(v: string | null | undefined): string | null;
+export function decryptField(v: string | null | undefined): string | null {
     if (v == null) return null;
     if (v === "") return "";
     try {
@@ -82,4 +84,4 @@ export const decryptField = (v: string | null | undefined): string | null => {
         }
         return v;
     }
-};
+}

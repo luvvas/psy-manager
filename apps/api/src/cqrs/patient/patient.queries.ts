@@ -12,14 +12,16 @@ export function decryptPatientSummary<T extends { nome: string | null; email: st
     };
 }
 
-function decryptPatient<T extends Record<string, any>>(row: T): T {
-    const decryptedDate = decryptField(row.dataNascimento as string);
+type PatientRow = typeof patient.$inferSelect;
+
+function decryptPatient(row: PatientRow): Omit<PatientRow, "dataNascimento"> & { dataNascimento: Date | null } {
+    const decryptedDate = decryptField(row.dataNascimento);
     return {
         ...row,
         nome: decryptField(row.nome),
         email: decryptField(row.email),
         telefone: decryptField(row.telefone),
-        dataNascimento: (decryptedDate ? new Date(decryptedDate) : row.dataNascimento) as T[keyof T],
+        dataNascimento: decryptedDate ? new Date(decryptedDate) : null,
         cpf: decryptField(row.cpf),
         rg: decryptField(row.rg),
         nomeSocial: decryptField(row.nomeSocial),
