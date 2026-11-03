@@ -71,7 +71,8 @@ export type PatientFormValues = z.infer<typeof patientSchema>;
 interface NewPatientFormProps {
     onSave: (patient: PatientFormValues) => Promise<void>;
     onCancel: () => void;
-    initialData?: any;
+    /** Registro completo do paciente: campo ausente aqui é gravado vazio ao salvar. */
+    initialData?: Partial<PatientFormValues>;
 }
 
 export function NewPatientForm({ onSave, onCancel, initialData }: NewPatientFormProps) {
