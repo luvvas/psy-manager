@@ -103,11 +103,11 @@ export function IncomeChart({ transactions }: IncomeChartProps) {
                             />
                             <Tooltip
                                 contentStyle={{
-                                    backgroundColor: "hsl(var(--popover))",
-                                    borderColor: "hsl(var(--border))",
+                                    backgroundColor: "var(--popover)",
+                                    borderColor: "var(--border)",
                                     borderRadius: "8px",
                                     fontSize: "12px",
-                                    color: "hsl(var(--foreground))",
+                                    color: "var(--popover-foreground)",
                                 }}
                                 itemStyle={{ padding: 0 }}
                                 formatter={(value: any) => [formatCurrency(Number(value || 0))]}

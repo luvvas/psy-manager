@@ -79,33 +79,13 @@ export function ClinicasPage() {
 
     const linkMutation = trpc.clinic.linkPsychologist.useMutation({
         onSuccess: () => {
-            refetch();
-            if (editingClinic) {
-                const updated = dbClinics?.find(c => c.id === editingClinic.id);
-                if (updated) {
-                    setEditingClinic({
-                        ...updated,
-                        createdAt: new Date(updated.createdAt),
-                        updatedAt: new Date(updated.updatedAt),
-                    });
-                }
-            }
+            refetch(); // o form lê activeEditingClinic, que vem da lista recarregada
         },
     });
 
     const unlinkMutation = trpc.clinic.unlinkPsychologist.useMutation({
         onSuccess: () => {
-            refetch();
-            if (editingClinic) {
-                const updated = dbClinics?.find(c => c.id === editingClinic.id);
-                if (updated) {
-                    setEditingClinic({
-                        ...updated,
-                        createdAt: new Date(updated.createdAt),
-                        updatedAt: new Date(updated.updatedAt),
-                    });
-                }
-            }
+            refetch(); // o form lê activeEditingClinic, que vem da lista recarregada
         },
     });
 

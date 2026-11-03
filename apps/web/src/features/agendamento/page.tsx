@@ -16,15 +16,8 @@ import { type Appointment, type AppointmentStatus } from "./types";
 import { useSession } from "@/lib/auth-client";
 
 import { CalendarDashboard, type ViewMode } from "./components/calendar-dashboard";
+import { getMonday } from "./lib/dates";
 
-function getMonday(date: Date): Date {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - (day === 0 ? 6 : day - 1);
-    d.setDate(diff);
-    d.setHours(0, 0, 0, 0);
-    return d;
-}
 
 function formatWeekRange(date: Date): string {
     const monday = getMonday(date);
@@ -191,6 +184,8 @@ export function AgendamentoPage() {
 
     const myId = session?.user?.id;
     const hasOthersAppointments = mappedAppointments.some((a) => a.psychologistId !== myId);
+    // KPIs falam da agenda da psicóloga logada, independente do filtro do calendário.
+    const myAppointments = mappedAppointments.filter((a) => a.psychologistId === myId);
     const calendarAppointments = useMemo(
         () => (onlyMine && myId ? mappedAppointments.filter((a) => a.psychologistId === myId) : mappedAppointments),
         [mappedAppointments, onlyMine, myId]
@@ -428,7 +423,7 @@ export function AgendamentoPage() {
 
             <div className="flex flex-col flex-1 min-h-0 gap-4 p-4 lg:p-6 overflow-hidden" onClick={handleCalendarClick}>
                 {/* Stats */}
-                <StatsCards appointments={mappedAppointments} />
+                <StatsCards appointments={myAppointments} selectedDate={selectedDate} />
 
                 <CalendarDashboard
                     view={view}

@@ -1,16 +1,8 @@
 import * as Sentry from "@sentry/react";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { httpBatchLink } from "@trpc/client";
-import { StrictMode, useState } from "react";
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { RouterProvider } from "react-router-dom";
-import superjson from "superjson";
 import "./index.css";
-import { trpc } from "./lib/trpc";
-import { router } from "./router";
-
-import { Toaster } from "@/components/ui/sonner";
+import { App } from "./app";
 
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,
@@ -32,36 +24,26 @@ Sentry.init({
   },
 });
 
-function Root() {
-  const [queryClient] = useState(() => new QueryClient());
-  const [trpcClient] = useState(() =>
-    trpc.createClient({
-      links: [
-        httpBatchLink({
-          url: `${import.meta.env.VITE_API_URL || ""}/trpc`,
-          transformer: superjson,
-          fetch: (url, options) => fetch(url, { ...options, credentials: "include" }),
-        }),
-      ],
-    })
-  );
-
-  return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <RouterProvider router={router} />
-          <Toaster position="bottom-right" />
-        </TooltipProvider>
-      </QueryClientProvider>
-    </trpc.Provider>
-  );
-}
+// Com as rotas em chunks, uma aba aberta antes de um deploy pede chunks de hash
+// antigo, que não existem mais. Recarrega para pegar o index.html novo — no
+// máximo uma vez por minuto, para não entrar em loop se o erro persistir (ex.: sem rede).
+const LAST_RELOAD_KEY = "psy:chunk-reload-at";
+window.addEventListener("vite:preloadError", (event) => {
+  try {
+    const last = Number(sessionStorage.getItem(LAST_RELOAD_KEY) ?? 0);
+    if (Date.now() - last < 60_000) return; // o erro segue para o error boundary
+    sessionStorage.setItem(LAST_RELOAD_KEY, String(Date.now()));
+  } catch {
+    return;
+  }
+  event.preventDefault();
+  window.location.reload();
+});
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Sentry.ErrorBoundary fallback={<p>Ocorreu um erro inesperado.</p>}>
-      <Root />
+      <App />
     </Sentry.ErrorBoundary>
   </StrictMode>
 );

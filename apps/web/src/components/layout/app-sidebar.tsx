@@ -15,7 +15,8 @@ import {
     SidebarTrigger,
     useSidebar,
 } from "@/components/ui/sidebar";
-import { signOut, useSession } from "@/lib/auth-client";
+import { useSession } from "@/lib/auth-client";
+import { signOutAndReset } from "@/lib/session";
 import {
     Brain,
     Building2,
@@ -26,11 +27,15 @@ import {
     LogOut,
     MessageSquareDot,
     Users,
+    Loader2,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { preloadRoute } from "@/route-modules";
 import { FeedbackDialog } from "./feedback-dialog";
-import { ProfileForm } from "./profile-form";
+
+// O perfil (zod + react-hook-form + editor de expediente) só baixa ao abrir o sheet.
+const ProfileForm = lazy(() => import("./profile-form").then((m) => ({ default: m.ProfileForm })));
 
 function ResizableSidebarRail() {
     const { state, toggleSidebar, setWidth } = useSidebar();
@@ -147,7 +152,7 @@ export function AppSidebar() {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
 
     const handleLogout = async () => {
-        await signOut();
+        await signOutAndReset();
         navigate("/login");
     };
 
@@ -198,7 +203,11 @@ export function AppSidebar() {
                                             isActive={location.pathname.startsWith(item.url)}
                                             tooltip={item.title}
                                         >
-                                            <Link to={item.url}>
+                                            <Link
+                                                to={item.url}
+                                                onMouseEnter={() => preloadRoute(item.url)}
+                                                onFocus={() => preloadRoute(item.url)}
+                                            >
                                                 <item.icon />
                                                 <span>{item.title}</span>
                                                 {!item.ready && (
@@ -268,7 +277,15 @@ export function AppSidebar() {
                 onOpenChange={setIsProfileOpen}
                 title="Meu Perfil"
             >
-                <ProfileForm onSuccess={() => setIsProfileOpen(false)} />
+                <Suspense
+                    fallback={
+                        <div className="flex justify-center py-16">
+                            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                        </div>
+                    }
+                >
+                    <ProfileForm onSuccess={() => setIsProfileOpen(false)} />
+                </Suspense>
             </AppSheet>
         </>
     );

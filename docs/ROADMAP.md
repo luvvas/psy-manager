@@ -39,7 +39,7 @@ Trocar `dswfc48bg9ft6.cloudfront.net` por um domínio real. Route 53 (DNS) + ACM
 
 ### 13. Escala horizontal: Auto Scaling Group + ALB
 ALB na frente do EC2 + ASG escalando por CPU. Depende do Redis (estágio 10) pra
-sessões compartilhadas. Ver `ai/tasks/task-alb-auto-scaling.md`.
+sessões compartilhadas. (A task foi removida na saída da AWS; está no histórico do git.)
 - **Domínio**: [Resiliência](saa-c03/dominio-2-resiliencia.md) · **Custo**: ALB ~$16/mês
 
 ### 14. VPC avançada: subnets privadas + NAT Gateway

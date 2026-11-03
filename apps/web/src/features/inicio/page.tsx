@@ -51,19 +51,24 @@ export function InicioPage() {
     const { data: dbAllTransactions } = trpc.financial.list.useQuery(undefined, { retry: false });
     const { data: dbRecords } = trpc.clinicalRecord.list.useQuery(undefined, { retry: false });
 
+    const myId = session?.user?.id;
     const sessions: HomeSession[] = useMemo(
         () =>
-            (dbAppointments ?? []).map((app) => ({
-                id: app.id,
-                // Mesma chave de dia das visões da agenda (data gravada em UTC).
-                dayKey: new Date(app.date).toISOString().split("T")[0],
-                startTime: app.startTime,
-                endTime: app.endTime,
-                patientName: app.patient?.nome ?? "Consulta reservada",
-                status: STATUS_MAP[app.status] ?? "pendente",
-                sessionType: (app.sessionType as HomeSession["sessionType"]) ?? undefined,
-            })),
-        [dbAppointments]
+            (dbAppointments ?? [])
+                // appointment.list também traz sessões de colegas que ocupam sala de uma
+                // clínica em comum; o Início mostra só a agenda da psicóloga logada.
+                .filter((app) => app.psychologistId === myId)
+                .map((app) => ({
+                    id: app.id,
+                    // Mesma chave de dia das visões da agenda (data gravada em UTC).
+                    dayKey: new Date(app.date).toISOString().split("T")[0],
+                    startTime: app.startTime,
+                    endTime: app.endTime,
+                    patientName: app.patient?.nome ?? "Consulta reservada",
+                    status: STATUS_MAP[app.status] ?? "pendente",
+                    sessionType: (app.sessionType as HomeSession["sessionType"]) ?? undefined,
+                })),
+        [dbAppointments, myId]
     );
 
     const active = sessions.filter((s) => s.status !== "cancelado");

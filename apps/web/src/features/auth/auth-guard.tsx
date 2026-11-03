@@ -1,55 +1,22 @@
-import { useEffect } from "react";
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { PageLoader } from "@/components/page-loader";
 import { useSession } from "@/lib/auth-client";
-import { Loader2 } from "lucide-react";
+import { useRedirectAfterLogin } from "./use-redirect-after-login";
 
 export function AuthGuard() {
     const { data: session, isPending } = useSession();
-    const navigate = useNavigate();
     const location = useLocation();
 
-    useEffect(() => {
-        if (!isPending && !session) {
-            navigate("/login", { state: { from: location }, replace: true });
-        }
-    }, [isPending, session, navigate, location]);
-
-    if (isPending) {
-        return (
-            <div className="flex min-h-screen items-center justify-center">
-                <Loader2 className="size-8 animate-spin text-primary" />
-            </div>
-        );
-    }
-
-    if (!session) {
-        return null;
-    }
-
+    if (isPending) return <PageLoader />;
+    if (!session) return <Navigate to="/login" state={{ from: location }} replace />;
     return <Outlet />;
 }
 
 export function PublicOnlyGuard() {
     const { data: session, isPending } = useSession();
-    const navigate = useNavigate();
+    const redirectTo = useRedirectAfterLogin();
 
-    useEffect(() => {
-        if (!isPending && session) {
-            navigate("/inicio", { replace: true });
-        }
-    }, [isPending, session, navigate]);
-
-    if (isPending) {
-        return (
-            <div className="flex min-h-screen items-center justify-center bg-muted/40">
-                <Loader2 className="size-8 animate-spin text-primary" />
-            </div>
-        );
-    }
-
-    if (session) {
-        return null;
-    }
-
+    if (isPending) return <PageLoader />;
+    if (session) return <Navigate to={redirectTo} replace />;
     return <Outlet />;
 }

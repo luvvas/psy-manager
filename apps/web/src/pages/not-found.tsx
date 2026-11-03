@@ -22,7 +22,7 @@ export function NotFoundPage() {
                         </p>
                     </div>
                     <Button asChild variant="outline" size="sm">
-                        <Link to="/agendamento">Voltar ao início</Link>
+                        <Link to="/inicio">Voltar ao início</Link>
                     </Button>
                 </div>
             </div>

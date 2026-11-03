@@ -15,12 +15,17 @@ export default defineConfig({
                       authToken: process.env.SENTRY_AUTH_TOKEN,
                       org: process.env.SENTRY_ORG,
                       project: process.env.SENTRY_PROJECT,
+                      // Os mapas só servem ao Sentry: apaga depois do upload para não
+                      // irem para a imagem do nginx (dist/ é copiado inteiro).
+                      sourcemaps: { filesToDeleteAfterUpload: ["./dist/**/*.map"] },
                   }),
               ]
             : []),
     ],
     build: {
-        sourcemap: true,
+        // Só gera mapas quando há upload para o Sentry (CI). "hidden" não deixa o
+        // comentário sourceMappingURL nos .js, então o navegador nem procura os mapas.
+        sourcemap: process.env.SENTRY_AUTH_TOKEN ? "hidden" : false,
     },
     resolve: {
         alias: {

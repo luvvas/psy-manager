@@ -12,6 +12,6 @@ export async function uploadFileToTarget(file: File, target: UploadTarget) {
     });
 
     if (!response.ok) {
-        throw new Error("Nao foi possivel enviar o arquivo.");
+        throw new Error("Não foi possível enviar o arquivo.");
     }
 }

@@ -11,12 +11,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { signOut } from "@/lib/auth-client";
+import { signOutAndReset } from "@/lib/session";
 import { applyTheme, type ThemeConfig } from "@/lib/theme";
 import { trpc } from "@/lib/trpc";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Clock, Download, Loader2, Palette, Shield, TriangleAlert, User, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -150,7 +150,7 @@ export function ProfileForm({ onSuccess, defaultTab = "perfil" }: ProfileFormPro
 
     const deleteAccountMutation = trpc.psychologist.deleteAccount.useMutation({
         onSuccess: async () => {
-            await signOut();
+            await signOutAndReset();
             navigate("/", { replace: true });
         },
         onError: (err) => {
@@ -182,7 +182,23 @@ export function ProfileForm({ onSuccess, defaultTab = "perfil" }: ProfileFormPro
         }
     }, [profile, reset]);
 
+    // A troca de cor aplica uma prévia na hora. Ao fechar o sheet sem salvar, volta
+    // ao tema salvo — o efeito do AppLayout não roda de novo, porque o salvo não mudou.
+    // Só restaura se houve prévia (o StrictMode desmonta uma vez em dev, antes de tudo).
+    const savedThemeRef = useRef<ThemeConfig | null>(null);
+    const previewingRef = useRef(false);
+    useEffect(() => {
+        savedThemeRef.current = (profile?.themeConfig ?? null) as ThemeConfig | null;
+    }, [profile?.themeConfig]);
+    useEffect(
+        () => () => {
+            if (previewingRef.current) applyTheme(savedThemeRef.current);
+        },
+        []
+    );
+
     function handleColorChange(key: keyof ThemeConfig, hex: string) {
+        previewingRef.current = true;
         const next = { ...themeConfig, [key]: hex };
         setThemeConfig(next);
         applyTheme(next);
@@ -212,6 +228,8 @@ export function ProfileForm({ onSuccess, defaultTab = "perfil" }: ProfileFormPro
                 themeConfig: config,
                 workSchedule,
             });
+            savedThemeRef.current = config;
+            previewingRef.current = false;
             applyTheme(config);
         } finally {
             setIsSubmitting(false);

@@ -58,5 +58,5 @@ patients, clinics, finance, documents, and clinical records.
 - Database schema: `apps/api/src/db/schema.ts`
 - CQRS/event sourcing: `apps/api/src/lib/cqrs/` and `apps/api/src/cqrs/`
 - Storage service: `apps/api/src/services/storage.service.ts`
-- Deployment notes: `step-by-step.md`, `next-step.md`, `.github/workflows/deploy-ec2.yml`
+- Deployment notes: `ai/context/deployment.md`, `docs/progress/15-saida-aws-cloudflare.md`, `.github/workflows/deploy.yml`
 

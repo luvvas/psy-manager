@@ -1,8 +1,9 @@
 import { useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
-import { Brain, Loader2 } from "lucide-react";
+import { Brain } from "lucide-react";
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
+import { PageLoader } from "@/components/page-loader";
 import { Button } from "@/components/ui/button";
 import { TabFuncionalidades } from "./tab-funcionalidades";
 import { TabInicio } from "./tab-inicio";
@@ -19,13 +20,7 @@ const tabLabels: Record<Tab, string> = {
 export function LandingGuard() {
     const { data: session, isPending } = useSession();
 
-    if (isPending) {
-        return (
-            <div className="flex min-h-screen items-center justify-center">
-                <Loader2 className="size-8 animate-spin text-primary" />
-            </div>
-        );
-    }
+    if (isPending) return <PageLoader />;
 
     if (session) {
         return <Navigate to="/inicio" replace />;

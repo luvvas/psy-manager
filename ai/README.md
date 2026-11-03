@@ -1,46 +1,34 @@
 # AI Workspace
 
-This folder is the project context layer for AI-assisted work on `psy-manager`.
-Use it to keep prompts, architecture notes, conventions, and task specs versioned
-with the codebase.
+Project knowledge for AI-assisted work on `psy-manager`, versioned with the code.
 
-## How To Use This Folder
-
-For most implementation work, give the AI this load order:
-
-1. `ai/context/project-brief.md`
-2. `ai/context/stack-and-scripts.md`
-3. `ai/context/architecture.md`
-4. `ai/context/domain-model.md`
-5. A focused guide, such as `ai/context/frontend-guidelines.md` or `ai/context/backend-guidelines.md`
-6. One task file from `ai/tasks/`
-
-Example prompt:
-
-```text
-Read ai/context/project-brief.md, ai/context/architecture.md,
-ai/context/frontend-guidelines.md, and ai/tasks/<task-name>.md.
-Implement the task, keep changes scoped, and run the relevant checks.
-```
+The entry point is the root `CLAUDE.md`: it is loaded automatically, holds the rules,
+and tells the agent which file below to read for each kind of task. Repeatable
+workflows live as skills in `.claude/skills/`, not as prompts here.
 
 ## Folder Map
 
-- `context/`: durable project knowledge that should stay true across many tasks.
-  Start with the brief/architecture files, then load `api-surface.md` or
-  `frontend-surface.md` when the task needs a route or screen map.
-- `workflows/`: how to collaborate with AI on this repo.
-- `prompts/`: reusable role prompts for implementation, debugging, review, and UI work.
-- `tasks/`: one-off task specs. Copy `_template.md` before starting new work.
-- `memory/`: current state, known risks, and working notes that may change frequently.
+- `context/` — durable knowledge that stays true across many tasks (architecture,
+  domain, API/screen maps, guidelines, deployment). Read on demand.
+- `memory/current-state.md` — what is true *right now*: open findings, known gaps,
+  things verified as correct that should not be "fixed". Changes often.
+- `tasks/` — planned work orders. `_template.md` is the starting point; the
+  `executar-task` skill runs or writes them. Delete a task once it is done and
+  merged (git keeps the history).
 
-## Rules For Future AI Work
+## Skills (`.claude/skills/`)
 
-- Keep user-facing UI text in Brazilian Portuguese.
-- Follow `CONTRIBUTING.md` when writing commits. The repo uses Conventional
-  Commits, the commit history is the source of truth for release notes, and
-  `.githooks/commit-msg` rejects messages that do not match.
-- Do not read or paste secrets from `.env`; use `.env.example` for public config shape.
-- Respect uncommitted user changes. Check `git status --short` before editing.
-- Prefer existing patterns in `apps/api/src/routes`, `apps/api/src/services`, and `apps/web/src/features`.
-- Keep changes small enough to review. Split large work into multiple task files.
-- After implementation, update the relevant files in `ai/` when architecture, workflows, or assumptions change.
+| Skill | When |
+|---|---|
+| `nova-tela` | New screen/CRUD in `apps/web` following the existing pattern |
+| `react-best-practices` | Writing, reviewing or refactoring React code in `apps/web` |
+| `executar-task` | Running or writing a file in `ai/tasks/` |
+| `security-audit` | Full-codebase security audit with PDF report |
+
+Code review and debugging use Claude Code's built-in `/code-review` and normal
+investigation; the project-specific checklist for both is in `CLAUDE.md`.
+
+## Keeping This Folder True
+
+After a change to architecture, deployment, or a documented assumption, update the
+matching file here in the same piece of work. Stale context is worse than none.
