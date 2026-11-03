@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatsCards } from "./components/stats-cards";
 import { IncomeChart } from "./components/income-chart";
 import { CategoryPieChart } from "./components/category-pie-chart";
+import { RecentTransactions } from "./components/recent-transactions";
 import { DateRangePicker } from "./components/date-range-picker";
 import { TransactionForm } from "./components/transaction-form";
 import { TransactionsTable } from "./components/transactions-table";
@@ -15,12 +16,11 @@ import { useCsvImport } from "@/components/csv-import/use-csv-import";
 import { AppSheet } from "@/components/layout/app-sheet";
 import { trpc } from "@/lib/trpc";
 import { logger } from "@/lib/logger";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { startOfMonth, endOfMonth } from "date-fns";
 import type { DateRange } from "react-day-picker";
-import { formatCurrency, getErrorMessage } from "@/utils/format";
-import type { Transaction, TransactionInput, TransactionTypeFilter } from "./types";
+import { getErrorMessage } from "@/utils/format";
+import type { Transaction, TransactionInput } from "./types";
 
 export function FinanceiroPage() {
     const [dateRange, setDateRange] = useState<DateRange | undefined>(() => ({
@@ -39,7 +39,6 @@ export function FinanceiroPage() {
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
     const [activeTab, setActiveTab] = useState("resumo");
-    const [sidebarTypeFilter, setSidebarTypeFilter] = useState<TransactionTypeFilter>("all");
 
     const csv = useCsvImport(TRANSACTION_CSV_FIELDS);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -51,20 +50,20 @@ export function FinanceiroPage() {
 
     const createMutation = trpc.financial.create.useMutation({
         onSuccess: () => {
-            toast.success("Transação registrada com sucesso!");
+            toast.success("Transação cadastrada com sucesso!");
             utils.financial.invalidate();
             closeSheet();
         },
-        onError: (err) => toast.error(`Erro: ${err.message}`),
+        onError: (err) => toast.error(`Erro ao cadastrar: ${err.message}`),
     });
 
     const updateMutation = trpc.financial.update.useMutation({
         onSuccess: () => {
-            toast.success("Transação atualizada!");
+            toast.success("Transação atualizada com sucesso!");
             utils.financial.invalidate();
             closeSheet();
         },
-        onError: (err) => toast.error(`Erro: ${err.message}`),
+        onError: (err) => toast.error(`Erro ao atualizar: ${err.message}`),
     });
 
     const deleteMutation = trpc.financial.delete.useMutation({
@@ -140,9 +139,14 @@ export function FinanceiroPage() {
         setActiveTab("resumo");
     };
 
-    const allTransactions = txList || [];
-    const incomes = allTransactions.filter(t => t.type === "income");
-    const expenses = allTransactions.filter(t => t.type === "expense");
+    const allTransactions = txList ?? [];
+    const incomes: Transaction[] = [];
+    const expenses: Transaction[] = [];
+    for (const tx of allTransactions) {
+        if (tx.type === "income") incomes.push(tx);
+        else if (tx.type === "expense") expenses.push(tx);
+    }
+    const defaultType = activeTab === "despesas" ? "expense" : "income";
 
     return (
         <>
@@ -242,47 +246,7 @@ export function FinanceiroPage() {
                             </div>
                         </div>
 
-                        <div className="border rounded-xl p-4 bg-card shadow-sm space-y-3">
-                            <div className="flex items-center justify-between pb-1 border-b">
-                                <h3 className="font-semibold text-sm text-muted-foreground">Últimas Movimentações</h3>
-                                <Select
-                                    value={sidebarTypeFilter}
-                                    onValueChange={(v) => setSidebarTypeFilter(v as TransactionTypeFilter)}
-                                >
-                                    <SelectTrigger className="h-8 w-[130px] text-xs">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all" className="text-xs">Tudo</SelectItem>
-                                        <SelectItem value="income" className="text-xs">Receitas</SelectItem>
-                                        <SelectItem value="expense" className="text-xs">Despesas</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-3 overflow-y-auto max-h-[350px] pr-1">
-                                {allTransactions
-                                    .filter(t => sidebarTypeFilter === "all" || t.type === sidebarTypeFilter)
-                                    .slice(0, 8)
-                                    .map(tx => (
-                                        <div key={tx.id} className="flex justify-between items-center text-sm border-b pb-3 last:border-0 hover:bg-accent/5 px-2 py-1.5 rounded-lg transition-colors">
-                                            <div className="flex flex-col gap-0.5">
-                                                <p className="font-medium leading-none text-foreground">{tx.description}</p>
-                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                    <span>{new Date(tx.date).toLocaleDateString("pt-BR", { timeZone: "UTC" })}</span>
-                                                    {tx.category && <span>• {tx.category}</span>}
-                                                </div>
-                                            </div>
-                                            <span className={`font-semibold tracking-tight ${tx.type === "income" ? "text-emerald-600" : "text-rose-600"}`}>
-                                                {tx.type === "income" ? "+" : "-"} {formatCurrency(tx.amount)}
-                                            </span>
-                                        </div>
-                                    ))}
-                                {allTransactions.length === 0 && <p className="text-xs text-muted-foreground p-4 text-center">Sem movimentações registradas.</p>}
-                                {allTransactions.length > 0 && allTransactions.filter(t => sidebarTypeFilter === "all" || t.type === sidebarTypeFilter).length === 0 && (
-                                    <p className="text-xs text-muted-foreground p-4 text-center">Nenhuma movimentação com este filtro.</p>
-                                )}
-                            </div>
-                        </div>
+                        <RecentTransactions transactions={allTransactions} />
                     </TabsContent>
 
                     <TabsContent value="receitas" className="space-y-4 outline-none">
@@ -325,6 +289,7 @@ export function FinanceiroPage() {
                 {isSheetOpen && (
                     <TransactionForm
                         initialData={selectedTx}
+                        defaultType={defaultType}
                         onSave={handleSave}
                         onCancel={closeSheet}
                     />

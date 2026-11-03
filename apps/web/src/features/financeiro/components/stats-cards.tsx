@@ -1,28 +1,20 @@
 import { TrendingUp, TrendingDown, Wallet, Calendar } from "lucide-react";
 import { StatsCards as GenericStatsCards } from "@/components/stats-cards";
 import { formatCurrency } from "@/utils/format";
-
-export interface FinancialTransaction {
-    id: string;
-    type: string;
-    amount: string | number;
-    description: string;
-    date: Date;
-}
+import type { Transaction } from "../types";
 
 interface StatsCardsProps {
     isLoading?: boolean;
-    transactions: FinancialTransaction[];
+    transactions: Transaction[];
 }
 
 export function StatsCards({ transactions, isLoading }: StatsCardsProps) {
-    const income = transactions
-        .filter((t) => t.type === "income")
-        .reduce((acc, curr) => acc + Number(curr.amount), 0);
-
-    const expenses = transactions
-        .filter((t) => t.type === "expense")
-        .reduce((acc, curr) => acc + Number(curr.amount), 0);
+    let income = 0;
+    let expenses = 0;
+    for (const tx of transactions) {
+        if (tx.type === "income") income += Number(tx.amount);
+        else if (tx.type === "expense") expenses += Number(tx.amount);
+    }
 
     const balance = income - expenses;
 
