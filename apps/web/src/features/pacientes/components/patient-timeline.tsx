@@ -14,6 +14,16 @@ interface PatientTimelineProps {
     patientId: string;
 }
 
+const CATEGORY_LABELS: Record<string, string> = {
+    evolucao: "Evolução",
+    contrato: "Contrato",
+    atestado: "Atestado",
+    laudo: "Laudo / Parecer",
+    documento_externo: "Documento externo",
+    teste_psicologico: "Teste psicológico",
+    outro: "Outro",
+};
+
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
     evolucao: ClipboardCopy,
     contrato: FileCheck,
@@ -129,7 +139,7 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
                                                 <div className="flex items-center gap-2">
                                                     <h4 className="font-semibold leading-none">{record.title}</h4>
                                                     {isFinalized ? (
-                                                        <Badge variant="outline" className="text-[10px] h-5 border-green-500 text-green-600 bg-green-50/50">
+                                                        <Badge variant="outline" className="text-[10px] h-5 border-emerald-500 text-emerald-600 bg-emerald-50/50">
                                                             <Lock className="w-3 h-3 mr-1" /> Assinado
                                                         </Badge>
                                                     ) : (
@@ -138,8 +148,8 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
                                                         </Badge>
                                                     )}
                                                 </div>
-                                                <p className="text-sm text-muted-foreground capitalize">
-                                                    {record.category.replace("_", " ")} • {dateStr}
+                                                <p className="text-sm text-muted-foreground">
+                                                    {CATEGORY_LABELS[record.category] ?? record.category} • {dateStr}
                                                 </p>
                                             </div>
 
@@ -153,7 +163,7 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
-                                                        className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700 gap-1.5"
+                                                        className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 gap-1.5"
                                                         onClick={() => handleFinalize(record.id, record.title)}
                                                     >
                                                         <Lock className="w-4 h-4" /> Assinar

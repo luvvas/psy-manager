@@ -1,5 +1,5 @@
 import { logger } from "@/lib/logger";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod/v3";
 import { Button } from "@/components/ui/button";
@@ -75,7 +75,6 @@ export function NewPatientForm({ onSave, onCancel, initialData }: NewPatientForm
     const {
         register,
         handleSubmit,
-        watch,
         setValue,
         control,
         formState: { errors },
@@ -117,12 +116,28 @@ export function NewPatientForm({ onSave, onCancel, initialData }: NewPatientForm
         },
     });
 
-    const cpfWatch = watch("cpf");
-    const rgWatch = watch("rg");
-    const telefoneWatch = watch("telefone");
-    const cepWatch = watch("cep");
-    const respCpfWatch = watch("respLegalCpf");
-    const respTelefoneWatch = watch("respLegalTelefone");
+    const [
+        cpfWatch,
+        rgWatch,
+        telefoneWatch,
+        cepWatch,
+        respCpfWatch,
+        respTelefoneWatch,
+        responsavelFinanceiroTipo,
+        origemContato,
+    ] = useWatch({
+        control,
+        name: [
+            "cpf",
+            "rg",
+            "telefone",
+            "cep",
+            "respLegalCpf",
+            "respLegalTelefone",
+            "responsavelFinanceiroTipo",
+            "origemContato",
+        ],
+    });
 
     const onSubmitForm = async (data: PatientFormValues) => {
         setIsSubmitting(true);
@@ -364,7 +379,7 @@ export function NewPatientForm({ onSave, onCancel, initialData }: NewPatientForm
                         />
                     </div>
 
-                    {watch("responsavelFinanceiroTipo") === "outro" && (
+                    {responsavelFinanceiroTipo === "outro" && (
                         <div className="bg-muted/30 p-3 rounded border animate-in slide-in-from-top-2">
                             <Label htmlFor="responsavelFinanceiroDetalhe" className="text-xs font-medium">Dados Financeiros do Terceiro</Label>
                             <Input
@@ -394,7 +409,7 @@ export function NewPatientForm({ onSave, onCancel, initialData }: NewPatientForm
                             )}
                         />
                     </div>
-                    {watch("origemContato") === "outro" && (
+                    {origemContato === "outro" && (
                         <Input placeholder="Detalhe a origem..." {...register("origemContatoDetalhe")} />
                     )}
                 </TabsContent>

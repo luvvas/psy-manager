@@ -95,7 +95,7 @@ export function PatientDetailsPage() {
                         </Button>
                         <Button size="sm" onClick={() => setSheetOpen(true)} className="gap-1.5">
                             <Plus className="size-4" />
-                            Novo Prontuário
+                            Novo Registro
                         </Button>
                     </div>
                 }
@@ -110,7 +110,7 @@ export function PatientDetailsPage() {
             <AppSheet
                 open={isSheetOpen}
                 onOpenChange={setSheetOpen}
-                title="Novo Registro Clínico"
+                title="Novo Registro"
             >
                 <ClinicalRecordForm
                     onSave={handleSave}
