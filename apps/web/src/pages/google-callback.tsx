@@ -1,8 +1,10 @@
-import { useEffect, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useEffectEvent, useRef } from "react";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+
+const INVALID_CODE_TOAST_ID = "google-callback-invalid-code";
 
 export function GoogleCallbackPage() {
     const navigate = useNavigate();
@@ -22,23 +24,31 @@ export function GoogleCallbackPage() {
         },
     });
 
+    const connect = useEffectEvent((authCode: string, authState: string) => {
+        connectMutation.mutate({ code: authCode, state: authState });
+    });
+
     useEffect(() => {
-        if (code && state && !hasTriggered.current) {
-            hasTriggered.current = true;
-            connectMutation.mutate({ code, state });
-        } else if (!code || !state) {
-            toast.error("Código de autorização inválido recebido.");
-            navigate("/agendamento");
+        if (!code || !state) {
+            toast.error("Código de autorização inválido recebido.", { id: INVALID_CODE_TOAST_ID });
+            return;
         }
-    }, [code, state, navigate]);
+        if (hasTriggered.current) return;
+        hasTriggered.current = true;
+        connect(code, state);
+    }, [code, state]);
+
+    if (!code || !state) {
+        return <Navigate to="/agendamento" replace />;
+    }
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+        <div className="flex flex-1 flex-col items-center justify-center bg-background p-4">
             <div className="flex flex-col items-center gap-4 text-center max-w-sm">
                 <Loader2 className="size-10 animate-spin text-primary" />
                 <h1 className="text-xl font-bold tracking-tight">Conectando sua Agenda...</h1>
                 <p className="text-sm text-muted-foreground">
-                    Aguarde enquanto autenticamos e integramos sua conta do Google com o Psy-Manager.
+                    Aguarde enquanto autenticamos e integramos sua conta do Google com o psy-manager.
                 </p>
             </div>
         </div>
