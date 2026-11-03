@@ -1,5 +1,5 @@
 import { logger } from "@/lib/logger";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod/v3";
 import { Button } from "@/components/ui/button";
@@ -56,8 +56,8 @@ export function NewClinicForm({
     const {
         register,
         handleSubmit,
-        watch,
         setValue,
+        control,
         formState: { errors },
     } = useForm<ClinicFormValues>({
         resolver: zodResolver(clinicSchema),
@@ -71,8 +71,7 @@ export function NewClinicForm({
         },
     });
 
-    const cnpjWatch = watch("cnpj");
-    const phoneWatch = watch("phone");
+    const [cnpjWatch, phoneWatch] = useWatch({ control, name: ["cnpj", "phone"] });
 
     const onSubmitForm = async (data: ClinicFormValues) => {
         setIsSubmitting(true);
