@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { Appointment } from "../types";
+import { dayKey, getMonday, isSameDay, MONTH_SHORT_FORMAT } from "../lib/dates";
 import { AppointmentCard } from "./appointment-card";
 
 interface WeeklyViewProps {
@@ -20,29 +21,12 @@ const WEEKDAY_NAMES = [
 
 const WEEKDAY_SHORT = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
-function getMonday(date: Date): Date {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - (day === 0 ? 6 : day - 1);
-    d.setDate(diff);
-    d.setHours(0, 0, 0, 0);
-    return d;
-}
-
-function isSameDay(a: Date, b: Date): boolean {
-    return (
-        a.getFullYear() === b.getFullYear() &&
-        a.getMonth() === b.getMonth() &&
-        a.getDate() === b.getDate()
-    );
-}
-
 function formatDayNumber(date: Date): string {
     return date.getDate().toString().padStart(2, "0");
 }
 
 function formatMonthShort(date: Date): string {
-    return date.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
+    return MONTH_SHORT_FORMAT.format(date).replace(".", "");
 }
 
 export function WeeklyView({ appointments, selectedDate, onDayClick }: WeeklyViewProps) {
@@ -64,11 +48,11 @@ export function WeeklyView({ appointments, selectedDate, onDayClick }: WeeklyVie
     const groupedAppointments = useMemo(() => {
         const map = new Map<string, Appointment[]>();
         for (const day of weekDays) {
-            const key = day.toISOString().split("T")[0];
+            const key = dayKey(day);
             map.set(key, []);
         }
         for (const apt of appointments) {
-            const key = new Date(apt.date).toISOString().split("T")[0];
+            const key = dayKey(new Date(apt.date));
             if (map.has(key)) {
                 map.get(key)!.push(apt);
             }
@@ -83,7 +67,7 @@ export function WeeklyView({ appointments, selectedDate, onDayClick }: WeeklyVie
         <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-7 min-h-full">
                 {weekDays.map((day, i) => {
-                    const key = day.toISOString().split("T")[0];
+                    const key = dayKey(day);
                     const dayAppointments = groupedAppointments.get(key) || [];
                     const isToday = isSameDay(day, today);
                     const isWeekend = i >= 5;

@@ -1,19 +1,12 @@
 import { useMemo } from "react";
 import { Separator } from "@/components/ui/separator";
 import type { Appointment } from "../types";
+import { FULL_DAY_LABEL_FORMAT, isSameDay } from "../lib/dates";
 import { AppointmentCard } from "./appointment-card";
 
 interface DailyListViewProps {
     appointments: Appointment[];
     selectedDate: Date;
-}
-
-function isSameDay(a: Date, b: Date): boolean {
-    return (
-        a.getFullYear() === b.getFullYear() &&
-        a.getMonth() === b.getMonth() &&
-        a.getDate() === b.getDate()
-    );
 }
 
 export function DailyView({
@@ -26,12 +19,7 @@ export function DailyView({
             .sort((a, b) => a.startTime.localeCompare(b.startTime));
     }, [appointments, selectedDate]);
 
-    const formattedDate = selectedDate.toLocaleDateString("pt-BR", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-    });
+    const formattedDate = FULL_DAY_LABEL_FORMAT.format(selectedDate);
 
     return (
         <div className="flex flex-col flex-1 min-h-0 gap-4">
