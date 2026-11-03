@@ -46,6 +46,10 @@ See the `react-best-practices` skill.
   `lib/session.ts`).
 - Shared helpers: `formatCurrency` / `getErrorMessage` (`utils/format.ts`), CSV import
   via `components/csv-import/`, `DataTable` with `isLoading` and `id`-keyed rows.
+- Browser storage keys are versioned and wrapped in try/catch: `psy:theme:v1` (last
+  applied theme, applied in `main.tsx` before the first paint and cleared on logout),
+  `psy:sidebar-width:v1`, `agenda:only-mine:v1`.
+- No comments in source code (see `CLAUDE.md`).
 
 ## Auth
 
