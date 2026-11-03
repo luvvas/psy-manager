@@ -22,12 +22,61 @@ function isHex(v: string | undefined): v is string {
 }
 
 const STYLE_ID = "psy-theme";
+const CACHE_KEY = "psy:theme:v1";
+const THEME_KEYS = ["primary", "sidebar", "button", "tableHeader"] as const;
 
-export function applyTheme(config: ThemeConfig | null | undefined) {
+function pickValid(config: ThemeConfig | null | undefined): ThemeConfig | null {
+    if (!config) return null;
+    const result: ThemeConfig = {};
+    let found = false;
+    for (const key of THEME_KEYS) {
+        const value = config[key];
+        if (isHex(value)) {
+            result[key] = value;
+            found = true;
+        }
+    }
+    return found ? result : null;
+}
+
+function saveCachedTheme(config: ThemeConfig | null) {
+    try {
+        if (config) localStorage.setItem(CACHE_KEY, JSON.stringify(config));
+        else localStorage.removeItem(CACHE_KEY);
+    } catch {
+        return;
+    }
+}
+
+export function loadCachedTheme(): ThemeConfig | null {
+    try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (!raw) return null;
+        const parsed: unknown = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object") return null;
+        const record = parsed as Record<string, unknown>;
+        const config: ThemeConfig = {};
+        for (const key of THEME_KEYS) {
+            const value = record[key];
+            if (typeof value === "string") config[key] = value;
+        }
+        return pickValid(config);
+    } catch {
+        return null;
+    }
+}
+
+export function clearCachedTheme() {
+    saveCachedTheme(null);
+}
+
+export function applyTheme(input: ThemeConfig | null | undefined) {
     const existing = document.getElementById(STYLE_ID);
     if (existing) existing.remove();
 
-    if (!config || (!isHex(config.primary) && !isHex(config.sidebar) && !isHex(config.button) && !isHex(config.tableHeader))) return;
+    const config = pickValid(input);
+    saveCachedTheme(config);
+    if (!config) return;
 
     const vars: string[] = [];
 

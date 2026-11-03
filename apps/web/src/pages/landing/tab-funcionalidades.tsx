@@ -6,7 +6,13 @@ import {
     CarouselPrevious,
     type CarouselApi,
 } from "@/components/ui/carousel";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import agendamentoImg from "@/assets/screenshots/agendamento.png";
+import consultaImg from "@/assets/screenshots/consulta.png";
+import documentosImg from "@/assets/screenshots/documentos.png";
+import financeiroImg from "@/assets/screenshots/financeiro.png";
+import pacientesImg from "@/assets/screenshots/pacientes.png";
 import {
     BarChart3,
     Calendar,
@@ -14,24 +20,31 @@ import {
     FolderOpen,
     Users,
     Video,
-    X,
 } from "lucide-react";
 import { type ElementType, useEffect, useState } from "react";
 
-const featureSlides: {
+interface Screenshot {
+    src: string;
+    width: number;
+    height: number;
+}
+
+interface FeatureSlide {
     icon: ElementType;
     title: string;
     subtitle: string;
     description: string;
-    image?: string;
-}[] = [
+    image?: Screenshot;
+}
+
+const featureSlides: FeatureSlide[] = [
     {
         icon: Calendar,
         title: "Agendamento",
         subtitle: "Calendário visual com múltiplas visões",
         description:
             "Visualize sua agenda no formato diário, semanal ou mensal. Crie, edite e cancele consultas diretamente no calendário, com sincronização ao Google Agenda.",
-        image: "/screenshots/agendamento.png",
+        image: { src: agendamentoImg, width: 1918, height: 909 },
     },
     {
         icon: Users,
@@ -39,7 +52,7 @@ const featureSlides: {
         subtitle: "Cadastro e histórico completos",
         description:
             "Gerencie todos os seus pacientes em um só lugar. Acesse informações de contato, histórico de atendimentos e linha do tempo clínica com rapidez.",
-        image: "/screenshots/pacientes.png",
+        image: { src: pacientesImg, width: 1901, height: 910 },
     },
     {
         icon: FileText,
@@ -54,7 +67,7 @@ const featureSlides: {
         subtitle: "Fluxo de caixa e receitas em tempo real",
         description:
             "Acompanhe receitas e despesas, visualize gráficos de fluxo de caixa e importe lançamentos via CSV para manter suas finanças organizadas.",
-        image: "/screenshots/financeiro.png",
+        image: { src: financeiroImg, width: 1902, height: 908 },
     },
     {
         icon: FolderOpen,
@@ -62,7 +75,7 @@ const featureSlides: {
         subtitle: "Biblioteca de modelos e arquivos PDF",
         description:
             "Armazene contratos, modelos de anamnese e outros documentos PDF. Visualize, baixe e edite metadados diretamente na plataforma.",
-        image: "/screenshots/documentos.png",
+        image: { src: documentosImg, width: 1916, height: 909 },
     },
     {
         icon: Video,
@@ -70,14 +83,14 @@ const featureSlides: {
         subtitle: "Sessões de vídeo integradas",
         description:
             "Realize atendimentos online diretamente pela plataforma. Envie um link de convite ao paciente e conduza a sessão sem sair do psy-manager.",
-        image: "/screenshots/consulta.png",
+        image: { src: consultaImg, width: 1918, height: 907 },
     },
 ];
 
 export function TabFuncionalidades() {
     const [api, setApi] = useState<CarouselApi>();
     const [current, setCurrent] = useState(0);
-    const [lightbox, setLightbox] = useState<string | null>(null);
+    const [lightbox, setLightbox] = useState<FeatureSlide | null>(null);
 
     useEffect(() => {
         if (!api) return;
@@ -87,13 +100,6 @@ export function TabFuncionalidades() {
             api.off("select", onSelect).off("reInit", onSelect);
         };
     }, [api]);
-
-    useEffect(() => {
-        if (!lightbox) return;
-        const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setLightbox(null); };
-        window.addEventListener("keydown", onKey);
-        return () => window.removeEventListener("keydown", onKey);
-    }, [lightbox]);
 
     return (
         <>
@@ -129,7 +135,7 @@ export function TabFuncionalidades() {
                     className="w-full"
                 >
                     <CarouselContent>
-                        {featureSlides.map((slide) => {
+                        {featureSlides.map((slide, index) => {
                             const Icon = slide.icon;
                             return (
                                 <CarouselItem key={slide.title}>
@@ -147,14 +153,18 @@ export function TabFuncionalidades() {
                                             {slide.image ? (
                                                 <button
                                                     type="button"
+                                                    aria-label={`Ampliar tela do módulo ${slide.title}`}
                                                     className="w-full cursor-zoom-in"
-                                                    onClick={() => setLightbox(slide.image!)}
+                                                    onClick={() => setLightbox(slide)}
                                                 >
                                                     <img
-                                                        src={slide.image}
-                                                        alt={`Screenshot do módulo ${slide.title}`}
-                                                        className="w-full object-cover object-top"
-                                                        style={{ aspectRatio: "auto" }}
+                                                        src={slide.image.src}
+                                                        width={slide.image.width}
+                                                        height={slide.image.height}
+                                                        alt={`Tela do módulo ${slide.title}`}
+                                                        loading={index === 0 ? "eager" : "lazy"}
+                                                        decoding="async"
+                                                        className="h-auto w-full object-cover object-top"
                                                     />
                                                 </button>
                                             ) : (
@@ -195,27 +205,23 @@ export function TabFuncionalidades() {
             </div>
         </div>
 
-        {lightbox && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-                    onClick={() => setLightbox(null)}
-                >
-                    <button
-                        type="button"
-                        aria-label="Fechar imagem"
-                        onClick={() => setLightbox(null)}
-                        className="absolute top-4 right-4 flex size-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
-                    >
-                        <X className="size-5" />
-                    </button>
+        <Dialog open={lightbox !== null} onOpenChange={(open) => { if (!open) setLightbox(null); }}>
+            <DialogContent aria-describedby={undefined} className="w-auto max-w-[calc(100%-2rem)] bg-transparent p-0 ring-0 sm:max-w-[min(90vw,1600px)]">
+                <DialogTitle className="sr-only">
+                    {lightbox ? `Tela do módulo ${lightbox.title}` : "Tela ampliada"}
+                </DialogTitle>
+                {lightbox?.image && (
                     <img
-                        src={lightbox}
-                        alt="Screenshot ampliado"
-                        className="max-h-[90vh] max-w-full rounded-lg shadow-2xl"
-                        onClick={(e) => e.stopPropagation()}
+                        src={lightbox.image.src}
+                        width={lightbox.image.width}
+                        height={lightbox.image.height}
+                        alt={`Tela do módulo ${lightbox.title} ampliada`}
+                        decoding="async"
+                        className="h-auto max-h-[90vh] w-auto max-w-full rounded-lg shadow-2xl"
                     />
-                </div>
-            )}
+                )}
+            </DialogContent>
+        </Dialog>
         </>
     );
 }

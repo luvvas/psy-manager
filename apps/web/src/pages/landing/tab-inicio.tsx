@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import multitaskImg from "@/assets/images/multitask.svg";
 
 const features = [
     {
@@ -162,22 +163,23 @@ export function TabInicio() {
                             Simples, seguro e feito para psicólogos.
                         </p>
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 lg:justify-start">
-                            <Link to="/login?tab=register">
-                                <Button size="lg" className="gap-2">
+                            <Button asChild size="lg" className="gap-2">
+                                <Link to="/login?tab=register">
                                     Começar gratuitamente
                                     <ArrowRight className="size-4" />
-                                </Button>
-                            </Link>
-                            <Link to="/login">
-                                <Button size="lg" variant="outline">
-                                    Já tenho uma conta
-                                </Button>
-                            </Link>
+                                </Link>
+                            </Button>
+                            <Button asChild size="lg" variant="outline">
+                                <Link to="/login">Já tenho uma conta</Link>
+                            </Button>
                         </div>
                     </div>
                     <div className="flex-1 w-full max-w-md lg:max-w-none">
                         <img
-                            src="/images/multitask.svg"
+                            src={multitaskImg}
+                            width={960}
+                            height={500}
+                            fetchPriority="high"
                             alt="Ilustração de gerenciamento de consultório"
                             className="w-full h-auto"
                         />
@@ -264,12 +266,12 @@ export function TabInicio() {
                         Pronto para organizar seu consultório?
                     </h2>
                     <p className="text-muted-foreground mb-8">Crie sua conta e comece a usar hoje mesmo.</p>
-                    <Link to="/login?tab=register">
-                        <Button size="lg" className="gap-2">
+                    <Button asChild size="lg" className="gap-2">
+                        <Link to="/login?tab=register">
                             Criar conta gratuita
                             <ArrowRight className="size-4" />
-                        </Button>
-                    </Link>
+                        </Link>
+                    </Button>
                 </div>
             </section>
         </>
