@@ -27,7 +27,7 @@ export function ClinicasPage() {
             toast.success("Convite aceito. A clínica foi adicionada à sua lista.");
             invalidateClinicData();
         },
-        onError: (err) => toast.error(err.message),
+        onError: (err) => toast.error(`Erro ao aceitar convite: ${err.message}`),
     });
 
     const declineInviteMutation = trpc.clinic.declineInvite.useMutation({
@@ -35,7 +35,7 @@ export function ClinicasPage() {
             toast.success("Convite recusado.");
             invalidateClinicData();
         },
-        onError: (err) => toast.error(err.message),
+        onError: (err) => toast.error(`Erro ao recusar convite: ${err.message}`),
     });
 
     const leaveMutation = trpc.clinic.leave.useMutation({
@@ -43,7 +43,7 @@ export function ClinicasPage() {
             toast.success("Você saiu da clínica.");
             invalidateClinicData();
         },
-        onError: (err) => toast.error(err.message),
+        onError: (err) => toast.error(`Erro ao sair da clínica: ${err.message}`),
     });
 
     const createMutation = trpc.clinic.create.useMutation({

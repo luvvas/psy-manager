@@ -31,21 +31,21 @@ export function ClinicRooms({ clinicId, rooms }: ClinicRoomsProps) {
             setNewName("");
             refresh();
         },
-        onError: (err) => toast.error(err.message),
+        onError: (err) => toast.error(`Erro ao adicionar sala: ${err.message}`),
     });
     const renameRoom = trpc.clinic.renameRoom.useMutation({
         onSuccess: () => {
             setEditingId(null);
             refresh();
         },
-        onError: (err) => toast.error(err.message),
+        onError: (err) => toast.error(`Erro ao renomear sala: ${err.message}`),
     });
     const removeRoom = trpc.clinic.removeRoom.useMutation({
         onSuccess: () => {
-            toast.success("Sala removida.");
+            toast.success("Sala removida com sucesso!");
             refresh();
         },
-        onError: (err) => toast.error(err.message),
+        onError: (err) => toast.error(`Erro ao remover sala: ${err.message}`),
     });
 
     function handleAdd() {

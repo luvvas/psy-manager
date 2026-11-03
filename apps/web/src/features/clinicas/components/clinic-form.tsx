@@ -78,7 +78,7 @@ export function NewClinicForm({
         try {
             await onSave(data);
         } catch (error) {
-            logger.error("Failed to save clinic", error);
+            logger.error("Erro ao salvar clínica", error);
         } finally {
             setIsSubmitting(false);
         }
@@ -261,7 +261,8 @@ export function NewClinicForm({
                                         type="button"
                                         variant="ghost"
                                         size="icon"
-                                        className="size-8 text-destructive hover:bg-destructive/10"
+                                        className="size-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        title="Remover vínculo"
                                         onClick={async () => {
                                             if (window.confirm(`Remover vínculo de ${psy.name}?`)) {
                                                 try {

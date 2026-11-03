@@ -50,6 +50,7 @@ export function CalendarDashboard({
                         size="icon"
                         className="size-8"
                         onClick={() => onNavigate(-1)}
+                        title="Período anterior"
                         id="btn-prev"
                     >
                         <ChevronLeft className="size-4" />
@@ -82,6 +83,7 @@ export function CalendarDashboard({
                         size="icon"
                         className="size-8"
                         onClick={() => onNavigate(1)}
+                        title="Próximo período"
                         id="btn-next"
                     >
                         <ChevronRight className="size-4" />
