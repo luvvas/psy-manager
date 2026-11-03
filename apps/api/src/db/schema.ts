@@ -114,6 +114,12 @@ export const verification = pgTable("verification", {
     updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Valores aceitos: a coluna é text, então o tipo vem daqui e a API valida com z.enum.
+export const APPOINTMENT_SESSION_TYPES = ["online", "in_person"] as const;
+export type AppointmentSessionType = (typeof APPOINTMENT_SESSION_TYPES)[number];
+export const APPOINTMENT_TYPES = ["individual", "casal", "infantil", "avaliacao"] as const;
+export type AppointmentType = (typeof APPOINTMENT_TYPES)[number];
+
 export const appointment = pgTable("appointment", {
     id: text("id").primaryKey(),
     psychologistId: text("psychologist_id")
@@ -126,8 +132,8 @@ export const appointment = pgTable("appointment", {
     startTime: text("start_time").notNull(),
     endTime: text("end_time").notNull(),
     status: text("status").notNull().default("pending"), // pending, confirmed, cancelled, completed
-    sessionType: text("session_type").notNull().default("online"), // online, in_person
-    type: text("type").notNull().default("individual"), // individual, casal, infantil, avaliacao
+    sessionType: text("session_type").$type<AppointmentSessionType>().notNull().default("online"),
+    type: text("type").$type<AppointmentType>().notNull().default("individual"),
     isRecurring: boolean("is_recurring").notNull().default(false),
     notes: text("notes"),
     meetingUrl: text("meeting_url"),
@@ -198,19 +204,25 @@ export const eventStore = pgTable("event_store", {
     createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Coluna text: o tipo vem daqui e a API valida com z.enum.
+export const TRANSACTION_TYPES = ["income", "expense"] as const;
+export type TransactionType = (typeof TRANSACTION_TYPES)[number];
+export const TRANSACTION_STATUSES = ["paid", "pending"] as const;
+export type TransactionStatus = (typeof TRANSACTION_STATUSES)[number];
+
 export const financialTransaction = pgTable("financial_transaction", {
     id: text("id").primaryKey(),
     psychologistId: text("psychologist_id")
         .notNull()
         .references(() => user.id, { onDelete: "cascade" }),
-    type: text("type").notNull(), // income (receita), expense (despesa)
+    type: text("type").$type<TransactionType>().notNull(),
     description: text("description").notNull(),
     amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
     date: timestamp("date").notNull(),
     category: text("category"), // e.g., Aluguel, Sessão, Software, etc.
     patientId: text("patient_id")
         .references(() => patient.id, { onDelete: "set null" }),
-    status: text("status").notNull().default("paid"), // paid, pending, overdue
+    status: text("status").$type<TransactionStatus>().notNull().default("paid"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

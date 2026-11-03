@@ -4,7 +4,7 @@ import { appointmentCommands } from "../cqrs/appointment/appointment.commands";
 import { appointmentQueries } from "../cqrs/appointment/appointment.queries";
 import { googleCalendarService } from "../services/google-calendar.service";
 import { db } from "../db";
-import { account } from "../db/schema";
+import { account, APPOINTMENT_SESSION_TYPES, APPOINTMENT_TYPES } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import { assertClinicMembership, assertPatientOwnership, assertRoomAccess } from "../lib/ownership";
 import { optionalHttpUrl } from "../utils/url.utils";
@@ -119,8 +119,8 @@ export const appointmentRouter = router({
                 startTime: timeInput,
                 endTime: timeInput,
                 status: z.string().min(1),
-                sessionType: z.string().min(1),
-                type: z.string().min(1),
+                sessionType: z.enum(APPOINTMENT_SESSION_TYPES),
+                type: z.enum(APPOINTMENT_TYPES),
                 isRecurring: z.boolean(),
                 notes: z.string().optional(),
                 meetingUrl: optionalHttpUrl,
@@ -152,8 +152,8 @@ export const appointmentRouter = router({
                 startTime: timeInput,
                 endTime: timeInput,
                 status: z.string().min(1),
-                sessionType: z.string().min(1),
-                type: z.string().min(1),
+                sessionType: z.enum(APPOINTMENT_SESSION_TYPES),
+                type: z.enum(APPOINTMENT_TYPES),
                 isRecurring: z.boolean(),
                 notes: z.string().optional(),
                 meetingUrl: optionalHttpUrl,

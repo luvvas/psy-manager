@@ -1,3 +1,4 @@
+import { TRANSACTION_STATUSES, TRANSACTION_TYPES } from "../db/schema";
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc/index";
 import { financialService } from "../services/financial.service";
@@ -18,13 +19,13 @@ export const financialRouter = router({
     create: protectedProcedure
         .input(
             z.object({
-                type: z.enum(["income", "expense"]),
+                type: z.enum(TRANSACTION_TYPES),
                 description: z.string().min(1),
                 amount: z.string().or(z.number()),
                 date: z.string().or(z.date()).transform((v) => new Date(v)),
                 category: z.string().optional().nullable(),
                 patientId: z.string().optional().nullable(),
-                status: z.string().optional(),
+                status: z.enum(TRANSACTION_STATUSES).optional(),
             })
         )
         .mutation(async ({ ctx, input }) => {
@@ -36,12 +37,12 @@ export const financialRouter = router({
         .input(
             z.array(
                 z.object({
-                    type: z.enum(["income", "expense"]),
+                    type: z.enum(TRANSACTION_TYPES),
                     description: z.string().min(1),
                     amount: z.string().or(z.number()),
                     date: z.string().or(z.date()).transform((v) => new Date(v)),
                     category: z.string().optional().nullable(),
-                    status: z.string().optional(),
+                    status: z.enum(TRANSACTION_STATUSES).optional(),
                 })
             )
         )
@@ -53,13 +54,13 @@ export const financialRouter = router({
         .input(
             z.object({
                 id: z.string().min(1),
-                type: z.enum(["income", "expense"]).optional(),
+                type: z.enum(TRANSACTION_TYPES).optional(),
                 description: z.string().min(1).optional(),
                 amount: z.string().or(z.number()).optional(),
                 date: z.string().or(z.date()).transform((v) => v ? new Date(v) : undefined).optional(),
                 category: z.string().optional().nullable(),
                 patientId: z.string().optional().nullable(),
-                status: z.string().optional(),
+                status: z.enum(TRANSACTION_STATUSES).optional(),
             })
         )
         .mutation(async ({ ctx, input }) => {
