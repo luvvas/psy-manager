@@ -32,6 +32,22 @@ Sentry.init({
   },
 });
 
+// Com as rotas em chunks, uma aba aberta antes de um deploy pede chunks de hash
+// antigo, que não existem mais. Recarrega para pegar o index.html novo — no
+// máximo uma vez por minuto, para não entrar em loop se o erro persistir (ex.: sem rede).
+const LAST_RELOAD_KEY = "psy:chunk-reload-at";
+window.addEventListener("vite:preloadError", (event) => {
+  try {
+    const last = Number(sessionStorage.getItem(LAST_RELOAD_KEY) ?? 0);
+    if (Date.now() - last < 60_000) return; // o erro segue para o error boundary
+    sessionStorage.setItem(LAST_RELOAD_KEY, String(Date.now()));
+  } catch {
+    return;
+  }
+  event.preventDefault();
+  window.location.reload();
+});
+
 function Root() {
   const [queryClient] = useState(() => new QueryClient());
   const [trpcClient] = useState(() =>

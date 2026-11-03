@@ -1,22 +1,14 @@
 import { AppLayout } from "@/components/layout/app-layout";
-import { AgendamentoPage } from "@/features/agendamento";
+import { PageLoader } from "@/components/page-loader";
 import { AuthGuard, PublicOnlyGuard } from "@/features/auth/auth-guard";
-import { AuthPage } from "@/features/auth/page";
-import { ResetPasswordPage } from "@/features/auth/reset-password-page";
-import { ClinicasPage } from "@/features/clinicas";
-import { JoinPage, PsychologistPage } from "@/features/consulta";
-import { DocumentosPage } from "@/features/documentos";
-import { FinanceiroPage } from "@/features/financeiro";
-import { InicioPage } from "@/features/inicio";
-import { PacientesPage, PatientDetailsPage } from "@/features/pacientes";
 import { ComingSoonPage } from "@/pages/coming-soon";
-import { GoogleCallbackPage } from "@/pages/google-callback";
-import { LandingGuard } from "@/pages/landing";
 import { NotFoundPage } from "@/pages/not-found";
-import { PrivacyPolicyPage } from "@/pages/privacy-policy";
-import { TermsOfUsePage } from "@/pages/terms-of-use";
+import { pages } from "@/route-modules";
 import { CreditCard } from "lucide-react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
+
+// Só o esqueleto (layout, guards e páginas mínimas) fica no bundle inicial; cada
+// página é um chunk carregado pelo `lazy` da rota (ver route-modules.ts).
 
 const appRoutes = [
     {
@@ -25,17 +17,17 @@ const appRoutes = [
         children: [
             {
                 index: true,
-                element: <AuthPage />,
+                lazy: pages.auth,
             },
         ],
     },
     {
         path: "/redefinir-senha",
-        element: <ResetPasswordPage />,
+        lazy: pages.resetPassword,
     },
     {
         path: "/consulta/entrar/:token",
-        element: <JoinPage />,
+        lazy: pages.join,
     },
     {
         path: "/",
@@ -43,7 +35,7 @@ const appRoutes = [
         children: [
             {
                 path: "consulta/:sessionId",
-                element: <PsychologistPage />,
+                lazy: pages.psychologistCall,
             },
             {
                 path: "/",
@@ -51,35 +43,35 @@ const appRoutes = [
                 children: [
                     {
                         path: "inicio",
-                        element: <InicioPage />,
+                        lazy: pages.inicio,
                     },
                     {
                         path: "agendamento",
-                        element: <AgendamentoPage />,
+                        lazy: pages.agendamento,
                     },
                     {
                         path: "google-callback",
-                        element: <GoogleCallbackPage />,
+                        lazy: pages.googleCallback,
                     },
                     {
                         path: "pacientes",
-                        element: <PacientesPage />,
+                        lazy: pages.pacientes,
                     },
                     {
                         path: "pacientes/:id",
-                        element: <PatientDetailsPage />,
+                        lazy: pages.pacienteDetalhes,
                     },
                     {
                         path: "clinicas",
-                        element: <ClinicasPage />,
+                        lazy: pages.clinicas,
                     },
                     {
                         path: "financeiro",
-                        element: <FinanceiroPage />,
+                        lazy: pages.financeiro,
                     },
                     {
                         path: "documentos",
-                        element: <DocumentosPage />,
+                        lazy: pages.documentos,
                     },
                     {
                         path: "pagamentos",
@@ -112,15 +104,15 @@ const appRoutes = [
 const webOnlyRoutes = [
     {
         path: "/",
-        element: <LandingGuard />,
+        lazy: pages.landing,
     },
     {
         path: "/politica-de-privacidade",
-        element: <PrivacyPolicyPage />,
+        lazy: pages.privacidade,
     },
     {
         path: "/termos-de-uso",
-        element: <TermsOfUsePage />,
+        lazy: pages.termos,
     },
     {
         path: "*",
@@ -129,6 +121,9 @@ const webOnlyRoutes = [
 ];
 
 export const router = createBrowserRouter([
-    ...webOnlyRoutes,
-    ...appRoutes,
+    {
+        // Rota raiz sem caminho: só existe para o HydrateFallback cobrir todas as rotas.
+        HydrateFallback: PageLoader,
+        children: [...webOnlyRoutes, ...appRoutes],
+    },
 ]);

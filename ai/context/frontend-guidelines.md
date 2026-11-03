@@ -26,6 +26,11 @@ features/<feature>/
 
 Prefer extending existing feature folders before creating new global components.
 
+Every page is code-split: add it to `apps/web/src/route-modules.ts` and use
+`lazy: pages.<name>` in `router.tsx` (sidebar items also go in `preloadByPath`).
+Heavy dialogs/sheets (zod forms, charts) are `React.lazy` inside `<Suspense>`.
+See the `react-best-practices` skill.
+
 ## Data Access
 
 - Use the typed tRPC React client from `apps/web/src/lib/trpc.ts`.
