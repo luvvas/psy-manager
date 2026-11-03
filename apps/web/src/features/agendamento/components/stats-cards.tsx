@@ -4,9 +4,7 @@ import { getMonday, isSameDay } from "../lib/dates";
 import { StatsCards as GenericStatsCards } from "@/components/stats-cards";
 
 interface StatsCardsProps {
-    /** Só as sessões da psicóloga logada (sem as de colegas da clínica). */
     appointments: Appointment[];
-    /** A semana dos cards é a da data selecionada no calendário. */
     selectedDate: Date;
 }
 

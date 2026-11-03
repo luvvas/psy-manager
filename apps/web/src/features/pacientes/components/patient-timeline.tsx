@@ -99,7 +99,6 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
 
     return (
         <div className="flex flex-col h-full">
-            {/* Timeline Content */}
             <div className="flex-1 overflow-y-auto pr-4 pb-12 pt-1">
                 {!records || records.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-center border rounded-lg border-dashed bg-muted/10">
@@ -118,14 +117,12 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
 
                             return (
                                 <div key={record.id} className="relative pl-8">
-                                    {/* Timeline dot */}
                                     <div className="absolute -left-[21px] top-0 rounded-full bg-background p-1">
                                         <div className="rounded-full bg-primary p-2">
                                             <Icon className="w-4 h-4 text-primary-foreground" />
                                         </div>
                                     </div>
 
-                                    {/* Content Card */}
                                     <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
                                         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 p-4">
                                             <div className="space-y-1">

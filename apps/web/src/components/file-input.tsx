@@ -8,11 +8,6 @@ interface FileInputProps extends Omit<React.ComponentProps<"input">, "type"> {
     placeholder?: string;
 }
 
-/**
- * Input de arquivo com textos em português. O <input type="file"> nativo usa o
- * idioma do navegador ("Browse... No file selected" no Firefox) e o texto não
- * pode ser trocado por CSS, então ele fica escondido e é acionado por um botão.
- */
 export function FileInput({
     className,
     buttonLabel = "Escolher arquivo",

@@ -1,4 +1,3 @@
-// MODELO — formulário renderizado dentro do AppSheet. Copie para components/<entidade>-form.tsx.
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,8 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatPhone } from "@/utils/format";
 import { logger } from "@/lib/logger";
-// Outros controles prontos: DatePicker (@/components/date-picker),
-// TimeInput (@/components/time-input), FileInput (@/components/file-input).
 
 const schema = z.object({
     nome: z.string().min(2, "O nome é obrigatório"),
@@ -23,10 +20,6 @@ export type HealthPlanFormValues = z.infer<typeof schema>;
 interface HealthPlanFormProps {
     onSave: (values: HealthPlanFormValues) => Promise<void>;
     onCancel: () => void;
-    /**
-     * Registro completo da API ao editar. Campo que faltar aqui abre vazio e é gravado
-     * vazio ao salvar — foi assim que a edição de paciente apagava dados.
-     */
     initialData?: { nome: string; registroAns: string | null; telefone: string | null };
 }
 

@@ -34,7 +34,6 @@ interface TransactionFormProps {
 export function TransactionForm({ type, initialData, onSave, onCancel }: TransactionFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Fetch patients for the selector
     const { data: patients } = trpc.patient.list.useQuery();
 
     const {

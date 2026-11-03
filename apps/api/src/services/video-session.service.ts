@@ -15,18 +15,18 @@ export const videoSessionService = {
     async create(psychologistId: string, appointmentId?: string) {
         const id = randomUUID();
         const patientToken = generatePatientToken();
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
         await db.insert(videoSession).values({
             id,
             psychologistId,
             appointmentId: appointmentId ?? null,
-            patientToken: hashToken(patientToken), // store hash, not plaintext
+            patientToken: hashToken(patientToken),
             status: "pending",
             expiresAt,
         });
 
-        return { id, patientToken }; // return original for URL
+        return { id, patientToken };
     },
 
     async getById(psychologistId: string, id: string) {
@@ -69,8 +69,6 @@ export const videoSessionService = {
 
         if (!s) return null;
 
-        // Expose only the first name — enough for the patient join page UX
-        // without disclosing the full name via a public, token-gated endpoint.
         return {
             ...s,
             psychologistName: s.psychologistName.split(" ")[0],

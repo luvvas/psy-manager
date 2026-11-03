@@ -25,7 +25,6 @@ const genericDocumentSchema = z.object({
 
 type FormValues = z.infer<typeof genericDocumentSchema>;
 
-/** O que o formulário entrega: metadados + o PDF escolhido (ausente na edição sem troca). */
 export type GenericDocumentFormValues = FormValues & { file?: File };
 
 interface GenericDocumentFormProps {

@@ -18,9 +18,9 @@ interface CategoryPieChartProps {
 }
 
 const PALETTES = {
-    all: ["#3b82f6", "#60a5fa", "#93c5fd", "#2563eb", "#1d4ed8", "#bfdbfe", "#1e40af"], // Blue
-    income: ["#10b981", "#34d399", "#6ee7b7", "#059669", "#047857", "#a7f3d0", "#064e3b"], // Green
-    expense: ["#ef4444", "#f87171", "#fca5a5", "#dc2626", "#b91c1c", "#fecaca", "#7f1d1d"], // Red
+    all: ["#3b82f6", "#60a5fa", "#93c5fd", "#2563eb", "#1d4ed8", "#bfdbfe", "#1e40af"],
+    income: ["#10b981", "#34d399", "#6ee7b7", "#059669", "#047857", "#a7f3d0", "#064e3b"],
+    expense: ["#ef4444", "#f87171", "#fca5a5", "#dc2626", "#b91c1c", "#fecaca", "#7f1d1d"],
 };
 
 export function CategoryPieChart({ transactions }: CategoryPieChartProps) {

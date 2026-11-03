@@ -1,16 +1,13 @@
 import { TIME_24H_REGEX } from "@/components/time-input";
 
-/** Expediente do psicólogo (espelha `workScheduleSchema` da API). */
 export type WorkShift = { start: string; end: string };
 
 export interface WorkSchedule {
     sessionMinutes: number;
     bufferMinutes: number;
-    /** Índice = dia da semana (0 = domingo … 6 = sábado). */
     days: WorkShift[][];
 }
 
-// Exibição de segunda a domingo; o índice guardado segue Date.getDay().
 export const WEEK_ORDER: { day: number; label: string }[] = [
     { day: 1, label: "Segunda" },
     { day: 2, label: "Terça" },
@@ -30,7 +27,6 @@ const toMinutes = (hhmm: string) => {
 const toHHMM = (total: number) =>
     `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 
-/** Novo turno: 1h depois do fim do último, com 4h de duração (sem passar de 23:59). */
 export function nextShift(shifts: WorkShift[]): WorkShift {
     const last = shifts[shifts.length - 1];
     const lastEnd = last && TIME_24H_REGEX.test(last.end) ? toMinutes(last.end) : 7 * 60;
@@ -50,7 +46,6 @@ export function defaultWorkSchedule(): WorkSchedule {
     };
 }
 
-/** Mensagem do primeiro problema encontrado, ou null se o expediente é válido. */
 export function validateWorkSchedule(schedule: WorkSchedule): string | null {
     if (!Number.isInteger(schedule.sessionMinutes) || schedule.sessionMinutes < 10 || schedule.sessionMinutes > 240) {
         return "A duração da sessão deve ficar entre 10 e 240 minutos.";

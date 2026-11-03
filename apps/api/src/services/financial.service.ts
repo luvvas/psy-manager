@@ -20,8 +20,6 @@ export const financialService = {
                 patientNome: patient.nome,
             })
             .from(financialTransaction)
-            // The psychologistId check on the join keeps a row that points at
-            // someone else's patient from returning that patient's name (#36).
             .leftJoin(
                 patient,
                 and(eq(financialTransaction.patientId, patient.id), eq(patient.psychologistId, psychologistId))

@@ -34,7 +34,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { preloadRoute } from "@/route-modules";
 import { FeedbackDialog } from "./feedback-dialog";
 
-// O perfil (zod + react-hook-form + editor de expediente) só baixa ao abrir o sheet.
 const ProfileForm = lazy(() => import("./profile-form").then((m) => ({ default: m.ProfileForm })));
 
 function ResizableSidebarRail() {

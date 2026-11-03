@@ -90,7 +90,6 @@ export function AuthPage() {
         defaultValues: { email: "" },
     });
 
-    // Garante que o botão para de girar mesmo se a requisição lançar (ex.: sem rede).
     const run = async (action: () => Promise<void>) => {
         setIsLoading(true);
         setError(null);
@@ -128,7 +127,7 @@ export function AuthPage() {
             toast.error(error.message || "Email ou senha incorretos. Por favor, tente novamente.");
         } else {
             toast.success(`Boas-vindas de volta, Dr(a). ${sessionData?.user?.name || ""}!`);
-            queryClient.clear(); // nada de cache de outra conta que usou esta aba
+            queryClient.clear();
             navigate(redirectTo, { replace: true });
         }
     });

@@ -1,21 +1,12 @@
 import * as React from "react";
 import { Input } from "@/components/ui/input";
 
-/**
- * Campo de horário sempre no formato brasileiro (24h, HH:MM).
- *
- * O `<input type="time">` nativo segue o idioma do sistema operacional e
- * pode exibir AM/PM, sem que a página consiga forçar o formato. Por isso
- * usamos um campo de texto com máscara.
- */
-
 function maskTime(raw: string): string {
     const digits = raw.replace(/\D/g, "").slice(0, 4);
     if (digits.length <= 2) return digits;
     return `${digits.slice(0, 2)}:${digits.slice(2)}`;
 }
 
-/** Completa entradas parciais ao sair do campo: "9" → "09:00", "930" → "09:30". */
 function normalizeTime(value: string): string {
     const digits = value.replace(/\D/g, "");
     if (!digits) return "";

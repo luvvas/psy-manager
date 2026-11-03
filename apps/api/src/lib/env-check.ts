@@ -1,12 +1,5 @@
 import { createHash } from "crypto";
 
-// Startup guard for the secrets the API cannot run safely without (issue #40).
-// A wrong ENCRYPTION_KEY used to surface only at the first cipher operation,
-// and decryptField would then quietly hand back ciphertext; now the process
-// refuses to start. Messages name the variable, never its value.
-
-// Placeholders from .env.example and common defaults: fine on a laptop,
-// never in production.
 const KNOWN_DEFAULTS = new Set([
     "postgres",
     "password",
@@ -16,11 +9,8 @@ const KNOWN_DEFAULTS = new Set([
     "your-google-client-secret",
 ]);
 
-// SHA-256 of secrets that were published (e.g. in docs of this public repo).
-// Stored as hashes so the values are not repeated here. Refused in every
-// environment: a leaked secret is never acceptable (audit F2).
 export const COMPROMISED_SECRET_SHA256 = new Set([
-    "515be9f2930a21bdad2a1d7b0e5f4b3bca46e02c790032879dba44496f29405b", // BETTER_AUTH_SECRET do guia docs/progress/00-base-infra.md
+    "515be9f2930a21bdad2a1d7b0e5f4b3bca46e02c790032879dba44496f29405b",
 ]);
 
 function isCompromised(value: string) {

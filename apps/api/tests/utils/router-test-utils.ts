@@ -157,7 +157,6 @@ export const videoSessionService = {
 
 export const createAuthToken = mock(() => "ws-auth-token");
 
-// assertRoomAccess é a única consulta com join que passa pelas rotas mockadas.
 const dbJoinQuery = {
     where: mock(() => ({ limit: mock(async () => state.roomAccessRows) })),
 };
@@ -283,7 +282,6 @@ export function resetRouterTestState() {
     }
 
     state.patientById = { id: "patient-1", nome: "Ana Silva" };
-    // Legacy rows: inline PDF (pre-storage) and an external https file.
     state.documentById = { id: "document-1", content: "data:application/pdf;base64,SU5MSU5F" };
     state.clinicalRecordById = { id: "record-1", fileUrl: "https://files.example.com/record.pdf" };
     state.videoSessionById = {

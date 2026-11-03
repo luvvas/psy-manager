@@ -53,7 +53,6 @@ function ColorPickerField({
             <Label className="text-sm font-medium">{label}</Label>
             <p className="text-xs text-muted-foreground">{description}</p>
             <div className="flex items-center gap-2">
-                {/* Colored swatch — clicking opens the native color picker */}
                 <label
                     className="relative size-9 shrink-0 rounded-md border-2 cursor-pointer overflow-hidden transition-shadow hover:shadow-md focus-within:ring-2 focus-within:ring-ring"
                     style={{
@@ -69,7 +68,6 @@ function ColorPickerField({
                     />
                 </label>
 
-                {/* Hex text input */}
                 <Input
                     value={value}
                     onChange={(e) => {
@@ -98,7 +96,6 @@ function ColorPickerField({
 
 interface ProfileFormProps {
     onSuccess?: () => void;
-    /** Aba aberta ao montar (ex.: "expediente" quando vem da agenda). */
     defaultTab?: "perfil" | "expediente" | "customizacao" | "seguranca";
 }
 
@@ -118,7 +115,6 @@ export function ProfileForm({ onSuccess, defaultTab = "perfil" }: ProfileFormPro
         onSuccess: () => {
             toast.success("Perfil atualizado com sucesso!");
             utils.psychologist.me.invalidate();
-            // Horários livres e avisos da agenda dependem do expediente.
             utils.appointment.freeSlots.invalidate();
             utils.appointment.checkSlot.invalidate();
             onSuccess?.();
@@ -182,9 +178,6 @@ export function ProfileForm({ onSuccess, defaultTab = "perfil" }: ProfileFormPro
         }
     }, [profile, reset]);
 
-    // A troca de cor aplica uma prévia na hora. Ao fechar o sheet sem salvar, volta
-    // ao tema salvo — o efeito do AppLayout não roda de novo, porque o salvo não mudou.
-    // Só restaura se houve prévia (o StrictMode desmonta uma vez em dev, antes de tudo).
     const savedThemeRef = useRef<ThemeConfig | null>(null);
     const previewingRef = useRef(false);
     useEffect(() => {
@@ -213,7 +206,6 @@ export function ProfileForm({ onSuccess, defaultTab = "perfil" }: ProfileFormPro
         }
         setIsSubmitting(true);
         try {
-            // Only persist valid hex values; strip partial/empty entries
             const config: ThemeConfig = {
                 primary: HEX_RE.test(themeConfig.primary ?? "") ? themeConfig.primary : undefined,
                 sidebar: HEX_RE.test(themeConfig.sidebar ?? "") ? themeConfig.sidebar : undefined,
@@ -262,7 +254,6 @@ export function ProfileForm({ onSuccess, defaultTab = "perfil" }: ProfileFormPro
                     </TabsTrigger>
                 </TabsList>
 
-                {/* ── Tab Perfil ──────────────────────────────────────────────── */}
                 <TabsContent value="perfil" className="flex-1 space-y-4 overflow-y-auto px-1 pt-4">
                     <div className="space-y-2">
                         <Label htmlFor="name">Nome Completo</Label>
@@ -287,12 +278,10 @@ export function ProfileForm({ onSuccess, defaultTab = "perfil" }: ProfileFormPro
                     </div>
                 </TabsContent>
 
-                {/* ── Tab Expediente ──────────────────────────────────────────── */}
                 <TabsContent value="expediente" className="flex-1 space-y-4 overflow-y-auto px-1 pt-4">
                     <WorkScheduleEditor value={workSchedule} onChange={setWorkSchedule} />
                 </TabsContent>
 
-                {/* ── Tab Customização ────────────────────────────────────────── */}
                 <TabsContent value="customizacao" className="flex-1 space-y-4 overflow-y-auto px-1 pt-4">
                     <div className="flex flex-col gap-4">
                         <ColorPickerField
@@ -322,7 +311,6 @@ export function ProfileForm({ onSuccess, defaultTab = "perfil" }: ProfileFormPro
                     </div>
                 </TabsContent>
 
-                {/* ── Tab Segurança ───────────────────────────────────────────── */}
                 <TabsContent value="seguranca" className="flex-1 space-y-4 overflow-y-auto px-1 pt-4">
                     <div className="border rounded-lg p-4 space-y-3">
                         <p className="text-sm font-medium">Exportar meus dados</p>

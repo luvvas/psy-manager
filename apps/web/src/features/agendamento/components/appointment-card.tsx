@@ -58,8 +58,6 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
         e.stopPropagation();
         if (!window.confirm("Deseja iniciar a videochamada com este paciente?")) return;
         const result = await createSession.mutateAsync({ appointmentId: appointment.id });
-        // Same tab, token in router state: it must not land in the URL
-        // (browser history, Sentry breadcrumbs), and a new tab would lose it.
         navigate(`/consulta/${result.sessionId}`, {
             state: { wsAuthToken: result.wsAuthToken, patientJoinUrl: result.patientJoinUrl },
         });
@@ -87,8 +85,6 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
                         </span>
                     </div>
                 </TooltipTrigger>
-                {/* Cartão claro (mesmo visual de popover/card) em vez do tooltip
-                    preto padrão, que destoava do calendário. */}
                 <TooltipPrimitive.Portal>
                     <TooltipPrimitive.Content
                         side="right"
@@ -102,13 +98,10 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
         );
     }
 
-    // Semana e Dia: mesmo visual do tooltip do modo Mês (cartão claro, borda
-    // suave, sombra), com o botão de videochamada quando disponível.
     return (
         <div
             className={cn(
                 "group cursor-pointer rounded-lg p-3 transition-shadow",
-                // Sessão de colega da clínica: só leitura, então fica apagada para não competir com as minhas.
                 isOthers
                     ? "border border-dashed bg-muted/60 text-muted-foreground opacity-75 grayscale hover:opacity-100"
                     : "bg-popover text-popover-foreground shadow-md ring-1 ring-foreground/10 hover:shadow-lg"
@@ -117,7 +110,6 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
         >
             <AppointmentDetails appointment={appointment} isOthers={isOthers} clampNotes />
 
-            {/* Video call — available 15 min before start until 15 min after end */}
             {canStartVideo && (
                 <div className="mt-2 pt-2 border-t">
                     {safeMeetingUrl ? (
@@ -155,11 +147,9 @@ export function AppointmentCard({ appointment, compact }: AppointmentCardProps) 
 interface AppointmentDetailsProps {
     appointment: Appointment;
     isOthers: boolean;
-    /** Nos cartões da agenda a observação fica em até 2 linhas; o tooltip mostra inteira. */
     clampNotes?: boolean;
 }
 
-/** Conteúdo do agendamento: tooltip do Mês e cartões de Semana/Dia. */
 function AppointmentDetails({ appointment, isOthers, clampNotes }: AppointmentDetailsProps) {
     return (
         <div className="space-y-1.5">

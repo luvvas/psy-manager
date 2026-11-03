@@ -227,7 +227,6 @@ export function NewClinicForm({
             <TabsContent value="psicologos" className="flex-1 flex flex-col space-y-4 pt-1">
                 {initialData?.id && onLinkPsychologist && onUnlinkPsychologist && (
                     <div className="space-y-4">
-                        {/* Add psychologist input */}
                         <div className="flex gap-2">
                             <Input
                                 type="email"
@@ -252,7 +251,6 @@ export function NewClinicForm({
                             </Button>
                         </div>
 
-                        {/* Psychologists list */}
                         <div className="rounded-lg border bg-muted/20 divide-y max-h-[350px] overflow-y-auto">
                             {(initialData.psychologists || []).map((psy) => (
                                 <div key={psy.id} className="flex items-center justify-between p-3 text-sm">

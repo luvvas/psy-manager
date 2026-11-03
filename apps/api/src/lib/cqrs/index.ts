@@ -3,23 +3,17 @@ import { db } from "../../db";
 import { eventStore } from "../../db/schema";
 import { encrypt, decrypt } from "../encryption";
 
-/**
- * Represents a domain event in the event sourcing system.
- */
 export interface DomainEvent<TPayload = any> {
-    id: string; // Unique ID for this specific event occurrence
-    aggregateId: string; // The ID of the aggregate this event belongs to
-    aggregateType: string; // The type of the aggregate (e.g. 'patient')
-    type: string; // The event type name (e.g. 'PATIENT_CREATED')
-    version: number; // The version of the aggregate after applying this event
-    data: TPayload; // The payload data containing state changes
-    metadata?: Record<string, any>; // Context metadata (e.g., actorId, timestamp, ip)
+    id: string;
+    aggregateId: string;
+    aggregateType: string;
+    type: string;
+    version: number;
+    data: TPayload;
+    metadata?: Record<string, any>;
     createdAt?: Date;
 }
 
-/**
- * Base class for all aggregates in the Event Sourcing architecture.
- */
 export abstract class AggregateRoot<TState> {
     public abstract readonly aggregateType: string;
     
@@ -51,36 +45,20 @@ export abstract class AggregateRoot<TState> {
         return [...this._uncommittedEvents];
     }
 
-    /**
-     * Resets the uncommitted events list after they are successfully stored.
-     */
     public clearUncommittedEvents(): void {
         this._uncommittedEvents = [];
     }
 
-    /**
-     * Abstract method to return the initial empty state of the aggregate.
-     */
     protected abstract getInitialState(): TState;
 
-    /**
-     * Applies an event to reconstruct the aggregate state.
-     * This is used both for replaying history and for raising new events.
-     */
     public apply(event: DomainEvent): void {
         this._id = event.aggregateId;
         this._version = event.version;
         this._state = this.applyEvent(this._state, event);
     }
 
-    /**
-     * Subclasses must implement this to define how each event type modifies the state.
-     */
     protected abstract applyEvent(state: TState, event: DomainEvent): TState;
 
-    /**
-     * Raises a new domain event, applying it to local state and queueing it for persistence.
-     */
     protected raise(type: string, data: any, metadata?: Record<string, any>): void {
         const nextVersion = this._version + 1;
         const event: DomainEvent = {
@@ -101,9 +79,6 @@ export abstract class AggregateRoot<TState> {
         this._uncommittedEvents.push(event);
     }
 
-    /**
-     * Rebuilds the aggregate state by replaying a list of historical events.
-     */
     public loadFromHistory(events: DomainEvent[]): void {
         for (const event of events) {
             this.apply(event);
@@ -111,14 +86,7 @@ export abstract class AggregateRoot<TState> {
     }
 }
 
-/**
- * Event Store implementation using Drizzle ORM and PostgreSQL.
- */
 export const cqrsEventStore = {
-    /**
-     * Appends a list of events for a specific aggregate to the store.
-     * Uses optimistic concurrency control by checking the expected version.
-     */
     async saveEvents(
         aggregateId: string,
         expectedVersion: number,
@@ -126,9 +94,6 @@ export const cqrsEventStore = {
     ): Promise<void> {
         if (events.length === 0) return;
 
-        // Optimistic concurrency check and inserts are inside the same transaction so
-        // the version read and the subsequent inserts are atomic. The unique constraint
-        // on (aggregateId, version) in the DB is the final guard against concurrent writes.
         await db.transaction(async (tx) => {
             const [latestEvent] = await tx
                 .select({ version: eventStore.version })
@@ -159,9 +124,6 @@ export const cqrsEventStore = {
         });
     },
 
-    /**
-     * Loads all historical events for an aggregate, ordered by version.
-     */
     async getEvents(aggregateId: string): Promise<DomainEvent[]> {
         const dbEvents = await db
             .select()
@@ -189,9 +151,6 @@ export const cqrsEventStore = {
     },
 };
 
-/**
- * Lightweight In-Memory Event Bus to dispatch events to read-model projections in real-time.
- */
 type EventSubscriber = (event: DomainEvent) => Promise<void> | void;
 
 type DeadLetter = {
@@ -218,9 +177,6 @@ export class EventBus {
         return EventBus.instance;
     }
 
-    /**
-     * Subscribe to a specific event type, or '*' for all events.
-     */
     public subscribe(eventType: string, subscriber: EventSubscriber): void {
         if (!this.subscribers.has(eventType)) {
             this.subscribers.set(eventType, new Set());
@@ -228,9 +184,6 @@ export class EventBus {
         this.subscribers.get(eventType)!.add(subscriber);
     }
 
-    /**
-     * Unsubscribe from a specific event.
-     */
     public unsubscribe(eventType: string, subscriber: EventSubscriber): void {
         const set = this.subscribers.get(eventType);
         if (set) {
@@ -238,24 +191,14 @@ export class EventBus {
         }
     }
 
-    /**
-     * Returns all subscribers that were removed after repeated failures.
-     * Use this to detect projection outages during health checks or startup.
-     */
     public getDeadLetters(): DeadLetter[] {
         return [...this.deadLetters];
     }
 
-    /**
-     * Returns true if any projection subscriber has been evicted.
-     */
     public hasDeadLetters(): boolean {
         return this.deadLetters.length > 0;
     }
 
-    /**
-     * Publish an event to all interested subscribers.
-     */
     public async publish(event: DomainEvent): Promise<void> {
         const specificSubscribers = this.subscribers.get(event.type) ?? new Set();
         const globalSubscribers = this.subscribers.get("*") ?? new Set();
@@ -298,9 +241,6 @@ export class EventBus {
         await Promise.all(promises);
     }
 
-    /**
-     * Publish multiple events sequentially.
-     */
     public async publishAll(events: DomainEvent[]): Promise<void> {
         for (const event of events) {
             await this.publish(event);

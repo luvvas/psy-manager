@@ -16,10 +16,6 @@ export type PsychologistUpdate = Partial<Pick<Psychologist, "name" | "phone" | "
     workSchedule?: WorkSchedule | null;
 };
 
-/**
- * Psychologist service — business logic for psychologist profiles.
- * Keeps tRPC routers thin (controller layer only).
- */
 export const psychologistService = {
     async getById(id: string) {
         const [result] = await db
@@ -84,7 +80,6 @@ export const psychologistService = {
     },
 
     async deleteAccount(id: string) {
-        // Collect S3 storage keys before deletion so we can remove the physical files.
         const [documentKeys, recordKeys, patientRows, appointmentRows] = await Promise.all([
             db.select({ storageKey: document.storageKey })
                 .from(document)
@@ -100,7 +95,6 @@ export const psychologistService = {
                 .where(eq(appointment.psychologistId, id)),
         ]);
 
-        // Remove event_store rows (no FK by design in the event-sourcing pattern).
         const aggregateIds = [
             ...patientRows.map((r) => r.id),
             ...appointmentRows.map((r) => r.id),
@@ -109,11 +103,8 @@ export const psychologistService = {
             await db.delete(eventStore).where(inArray(eventStore.aggregateId, aggregateIds));
         }
 
-        // Deleting the user cascades all related business tables in the DB.
         await db.delete(user).where(eq(user.id, id));
 
-        // Remove S3/local files after the DB delete — allSettled so a storage
-        // failure does not prevent the account from being considered deleted.
         const storageKeys = [
             ...documentKeys.map((r) => r.storageKey),
             ...recordKeys.map((r) => r.storageKey),

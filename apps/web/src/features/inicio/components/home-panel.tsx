@@ -5,15 +5,12 @@ import { Button } from "@/components/ui/button";
 interface HomePanelProps {
     title: string;
     description: string;
-    /** Link no canto do painel ("Ver agenda", "Ver todos"...). */
     action?: { label: string; to: string };
-    /** Mostrado no lugar de children quando não há itens. */
     empty?: { icon: LucideIcon; title: string; description: string };
     isEmpty?: boolean;
     children?: React.ReactNode;
 }
 
-/** Moldura comum dos blocos da tela inicial: cabeçalho, lista e estado vazio. */
 export function HomePanel({ title, description, action, empty, isEmpty, children }: HomePanelProps) {
     const EmptyIcon = empty?.icon;
 
@@ -47,7 +44,6 @@ export function HomePanel({ title, description, action, empty, isEmpty, children
     );
 }
 
-/** Rodapé "+N mais" quando a lista foi cortada. */
 export function MoreItems({ count, to }: { count: number; to: string }) {
     if (count <= 0) return null;
     return (

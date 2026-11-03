@@ -53,12 +53,9 @@ function compressImage(file: File): Promise<string> {
 }
 
 interface FeedbackFormProps {
-    /** Fecha o diálogo (enviado com sucesso ou cancelado). */
     onClose: () => void;
 }
 
-// Carregado sob demanda pelo FeedbackDialog: zod e react-hook-form ficam fora do
-// bundle inicial. O diálogo desmonta este componente ao fechar, o que já zera o form.
 export default function FeedbackForm({ onClose }: FeedbackFormProps) {
     const location = useLocation();
     const [preview, setPreview] = useState<string | null>(null);
@@ -107,7 +104,6 @@ export default function FeedbackForm({ onClose }: FeedbackFormProps) {
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
-    // Colar screenshot da área de transferência enquanto o form está aberto
     useEffect(() => {
         const handlePaste = (e: ClipboardEvent) => {
             const items = e.clipboardData?.items;
@@ -130,7 +126,6 @@ export default function FeedbackForm({ onClose }: FeedbackFormProps) {
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-1">
-            {/* Category */}
             <div className="space-y-1.5">
                 <div className="grid grid-cols-2 gap-2">
                     {CATEGORIES.map((c) => (
@@ -154,7 +149,6 @@ export default function FeedbackForm({ onClose }: FeedbackFormProps) {
                 )}
             </div>
 
-            {/* Message */}
             <div className="space-y-1.5">
                 <Textarea
                     placeholder="Descreva o que aconteceu ou o que esperava que acontecesse..."
@@ -168,7 +162,6 @@ export default function FeedbackForm({ onClose }: FeedbackFormProps) {
                 )}
             </div>
 
-            {/* Screenshot */}
             <div className="space-y-1.5">
                 {preview ? (
                     <div className="relative">

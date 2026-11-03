@@ -3,10 +3,6 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../db";
 import { appointment, clinicRoom, patient, psychologistClinic } from "../db/schema";
 
-// IDs of related objects come straight from the client. A foreign key only
-// proves the row exists, not that it belongs to the caller, so every write
-// that references a patient or appointment checks ownership first (issue #36).
-
 export async function assertPatientOwnership(patientId: string, psychologistId: string) {
     const [row] = await db
         .select({ id: patient.id })
@@ -29,11 +25,6 @@ export async function assertAppointmentOwnership(appointmentId: string, psycholo
     }
 }
 
-/**
- * A sala precisa estar ativa e pertencer a uma clínica da qual o psicólogo é
- * membro ativo. Sem isso, dava para reservar (ou sondar a ocupação de) salas
- * de clínicas alheias só mandando o ID.
- */
 export async function assertRoomAccess(roomId: string, psychologistId: string) {
     const [row] = await db
         .select({ id: clinicRoom.id, clinicId: clinicRoom.clinicId, name: clinicRoom.name })
@@ -54,7 +45,6 @@ export async function assertRoomAccess(roomId: string, psychologistId: string) {
     return row;
 }
 
-/** O psicólogo é membro ativo da clínica. */
 export async function assertClinicMembership(clinicId: string, psychologistId: string) {
     const [row] = await db
         .select({ id: psychologistClinic.id })

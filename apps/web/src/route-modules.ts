@@ -1,6 +1,3 @@
-// Cada página entra no bundle só quando a rota é visitada (ou pré-carregada).
-// Os caminhos são literais de propósito: o bundler só divide o que enxerga.
-// Usado pelo `lazy` das rotas em router.tsx e pelo preload do menu lateral.
 export const pages = {
     auth: () => import("@/features/auth/page").then((m) => ({ Component: m.AuthPage })),
     resetPassword: () =>
@@ -29,7 +26,6 @@ const preloadByPath: Record<string, () => Promise<unknown>> = {
     "/documentos": pages.documentos,
 };
 
-/** Começa a baixar o chunk da página na intenção (hover/foco); o navegador cacheia o import. */
 export function preloadRoute(path: string) {
     void preloadByPath[path]?.();
 }

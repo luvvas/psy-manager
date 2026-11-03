@@ -47,8 +47,6 @@ export function DailyView({
 
             <Separator />
 
-            {/* overflow-y-auto em vez de ScrollArea, e p-1.5 para a borda (ring) e a
-                sombra dos cartões não serem cortadas nas laterais pelo contêiner. */}
             <div className="flex-1 min-h-0 overflow-y-auto">
                 {dayAppointments.length > 0 ? (
                     <div className="flex flex-col gap-2 p-1.5">

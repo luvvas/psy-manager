@@ -23,11 +23,6 @@ export const transactionRowSchema = z.object({
 
 export type TransactionRow = z.infer<typeof transactionRowSchema>;
 
-/**
- * Linhas do CSV → transações validadas, segundo o mapeamento escolhido. Valor negativo
- * vira despesa. Lança erro se alguma linha for inválida (a mensagem cita a linha do
- * arquivo quando o problema é a data).
- */
 export function mapCsvRowsToTransactions(
     rows: string[][],
     mappings: CsvMappings<TransactionCsvFieldId>
@@ -48,7 +43,6 @@ export function mapCsvRowsToTransactions(
             const rawDate = cell(row, "date");
             const date = parseDate(rawDate);
             if (!date) {
-                // +2: a linha 1 do arquivo é o cabeçalho.
                 throw new Error(`Linha ${index + 2}: data inválida ou vazia ("${rawDate}").`);
             }
             return transactionRowSchema.parse({

@@ -21,16 +21,10 @@ const LOADING_ROWS = 5;
 
 interface DataTableProps<T> {
     data: T[];
-    /**
-     * Primeira carga da query (`isPending`). Mostra linhas de esqueleto em vez do
-     * estado vazio — sem isso a tela dizia "Nenhum paciente cadastrado" enquanto carregava.
-     * Não passe `isFetching`: refetch em segundo plano não deve esconder a tabela.
-     */
     isLoading?: boolean;
     columns: DataTableColumn<T>[];
     searchPlaceholder?: string;
     searchFilter: (item: T, query: string) => boolean;
-    /** Chave da linha; padrão: `item.id`. */
     getRowKey?: (item: T) => string | number;
     emptyState?: {
         title: string;
@@ -49,8 +43,6 @@ export function DataTable<T extends { id: string | number }>({
     emptyState,
 }: DataTableProps<T>) {
     const [searchQuery, setSearchQuery] = useState("");
-    // A digitação atualiza o input na hora; o filtro (que pode passar por centenas de
-    // linhas e renderizar todas as células) acompanha sem travar o teclado.
     const deferredQuery = useDeferredValue(searchQuery);
     const isStale = searchQuery !== deferredQuery;
 
@@ -109,8 +101,6 @@ export function DataTable<T extends { id: string | number }>({
                                       </TableRow>
                                   ))
                                 : filteredData.map((item) => (
-                                      // Chave estável: com índice, filtrar pela busca fazia o React
-                                      // reaproveitar a linha errada.
                                       <TableRow key={getRowKey ? getRowKey(item) : item.id}>
                                           {columns.map((col, colIndex) => (
                                               <TableCell key={colIndex} className={col.className}>

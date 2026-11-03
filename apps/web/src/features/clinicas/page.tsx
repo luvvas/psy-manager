@@ -13,7 +13,6 @@ export function ClinicasPage() {
     const [isSheetOpen, setSheetOpen] = useState(false);
     const [editingClinic, setEditingClinic] = useState<DBClinic | null>(null);
 
-    // Load clinics via tRPC
     const { data: dbClinics, refetch } = trpc.clinic.list.useQuery();
 
     const { data: invites, refetch: refetchInvites } = trpc.clinic.listInvites.useQuery();
@@ -75,13 +74,13 @@ export function ClinicasPage() {
 
     const linkMutation = trpc.clinic.linkPsychologist.useMutation({
         onSuccess: () => {
-            refetch(); // o form lê activeEditingClinic, que vem da lista recarregada
+            refetch();
         },
     });
 
     const unlinkMutation = trpc.clinic.unlinkPsychologist.useMutation({
         onSuccess: () => {
-            refetch(); // o form lê activeEditingClinic, que vem da lista recarregada
+            refetch();
         },
     });
 

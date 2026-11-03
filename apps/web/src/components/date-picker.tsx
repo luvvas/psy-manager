@@ -32,7 +32,6 @@ function maskDate(raw: string): string {
     return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
 }
 
-/** Converte "dd/mm/aaaa" em Date; devolve undefined se incompleta ou inexistente (ex.: 31/02). */
 function parseDate(text: string): Date | undefined {
     if (text.length !== 10) return undefined;
     const parsed = parse(text, DISPLAY_FORMAT, new Date());
@@ -40,16 +39,10 @@ function parseDate(text: string): Date | undefined {
     return parsed;
 }
 
-/**
- * Campo de data no formato brasileiro (dd/mm/aaaa). Aceita digitação direta
- * ou seleção pelo calendário, que tem seletores de mês e ano para navegar
- * rápido para datas distantes (ex.: data de nascimento).
- */
 export function DatePicker({ date, setDate, placeholder, className, id, disabled }: DatePickerProps) {
     const [text, setText] = useState(date ? format(date, DISPLAY_FORMAT) : "");
     const [open, setOpen] = useState(false);
 
-    // Mantém o texto em sincronia quando a data muda por fora (calendário, reset do formulário).
     const [prevDate, setPrevDate] = useState(date);
     if (date?.getTime() !== prevDate?.getTime()) {
         setPrevDate(date);

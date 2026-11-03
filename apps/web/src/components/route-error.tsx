@@ -4,10 +4,6 @@ import { TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
 
-/**
- * errorElement da rota raiz: sem ele, um erro de render ou de carregamento de rota
- * caía na tela padrão do React Router, em inglês ("Unexpected Application Error!").
- */
 export function RouteError() {
     const error = useRouteError();
     const isNotFound = isRouteErrorResponse(error) && error.status === 404;

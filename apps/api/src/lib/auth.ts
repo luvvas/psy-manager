@@ -41,7 +41,6 @@ export const auth = betterAuth({
             },
         },
     },
-    // Dev origins only outside production (audit F6).
     trustedOrigins: [
         ...(process.env.NODE_ENV === "production" ? [] : ["http://localhost:5173", "http://localhost:3000"]),
         process.env.BETTER_AUTH_URL || "",
@@ -50,9 +49,6 @@ export const auth = betterAuth({
         useSecureCookies: process.env.NODE_ENV === "production",
     },
     defaultCookieAttributes: {
-        // "lax" in every environment. In production nginx serves the SPA and proxies
-        // /api, /trpc and /ws on the same domain, so the session cookie is same-site
-        // and "lax" holds — while blocking it on cross-site requests (CSRF mitigation).
         sameSite: "lax",
     },
 });

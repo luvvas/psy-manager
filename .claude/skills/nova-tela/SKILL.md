@@ -20,7 +20,9 @@ Referências vivas (leia a mais parecida com o pedido antes de escrever):
 | Tela de detalhe de um registro (`/x/:id`) | `apps/web/src/features/pacientes/page-detalhes.tsx` |
 | Placeholder "em breve" | `apps/web/src/pages/coming-soon.tsx` |
 
-Modelos prontos para copiar e adaptar estão em `templates/` ao lado deste arquivo.
+Modelos prontos para copiar e adaptar estão em `templates/` ao lado deste arquivo (exemplo
+fictício: feature `convenios`, router `trpc.healthPlan`). O código do projeto não tem
+comentários — não adicione ao copiar.
 
 ## 1. Entender o pedido
 

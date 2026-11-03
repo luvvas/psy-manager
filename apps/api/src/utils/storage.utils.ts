@@ -14,9 +14,6 @@ export function getDriver(): StorageDriver {
         : "local";
 }
 
-// S3-compatible client. In production this points at Cloudflare R2
-// (S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com, S3_REGION=auto);
-// leaving S3_ENDPOINT empty talks to AWS S3.
 export function getS3Client() {
     const accessKeyId = process.env.S3_ACCESS_KEY_ID;
     const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
@@ -25,7 +22,6 @@ export function getS3Client() {
         region: process.env.S3_REGION ?? "auto",
         endpoint: process.env.S3_ENDPOINT || undefined,
         credentials: accessKeyId && secretAccessKey ? { accessKeyId, secretAccessKey } : undefined,
-        // R2 rejects the default CRC32 checksum the SDK adds to presigned PUTs.
         requestChecksumCalculation: "WHEN_REQUIRED",
         responseChecksumValidation: "WHEN_REQUIRED",
     });
@@ -57,10 +53,6 @@ export function buildStorageKey(psychologistId: string, fileName: string) {
     return `documents/${psychologistId}/${randomUUID()}${extension}`;
 }
 
-// Storage keys are minted by buildStorageKey under the owner's prefix, but
-// clients send them back on create/update. A key outside the caller's prefix
-// points at another psychologist's file (issue #38): never sign, store or
-// delete it.
 export function isOwnStorageKey(psychologistId: string, storageKey: string) {
     const prefix = `documents/${psychologistId}/`;
     if (!psychologistId || !storageKey.startsWith(prefix)) return false;

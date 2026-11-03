@@ -14,9 +14,6 @@ type IceServer = { urls: string | string[]; username?: string; credential?: stri
 
 const STUN_ONLY: IceServer[] = [{ urls: "stun:stun.l.google.com:19302" }];
 
-// Cloudflare Realtime TURN issues short-lived credentials per call, so they are
-// safe to hand to the (unauthenticated) patient as well. Falls back to STUN only
-// when TURN is not configured or Cloudflare is unreachable.
 async function getIceServers(): Promise<IceServer[]> {
     if (!CF_TURN_KEY_ID || !CF_TURN_API_TOKEN) return STUN_ONLY;
 

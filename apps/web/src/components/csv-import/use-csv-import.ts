@@ -5,7 +5,6 @@ import { getErrorMessage } from "@/utils/format";
 import type { CsvData, CsvField, CsvMappings } from "./types";
 
 async function readCsv(file: File): Promise<string[][]> {
-    // PapaParse só é baixado quando alguém importa um arquivo (bundle-conditional).
     const { default: Papa } = await import("papaparse");
     return new Promise((resolve, reject) => {
         Papa.parse<string[]>(file, {
@@ -16,16 +15,10 @@ async function readCsv(file: File): Promise<string[][]> {
     });
 }
 
-/**
- * Estado do import de CSV (arquivo lido + mapeamento coluna → campo), compartilhado por
- * pacientes e financeiro. O mapeamento começa com todas as colunas em "skip" no mesmo
- * handler que lê o arquivo — antes era reiniciado num efeito, com um render a mais.
- */
 export function useCsvImport<Id extends string>(fields: readonly CsvField<Id>[]) {
     const [csvData, setCsvData] = useState<CsvData | null>(null);
     const [mappings, setMappings] = useState<CsvMappings<Id>>({});
 
-    /** Lê o arquivo; devolve true se carregou (a tela troca para a aba de importação). */
     const loadFile = async (file: File): Promise<boolean> => {
         try {
             const data = await readCsv(file);

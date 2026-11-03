@@ -22,10 +22,6 @@ interface CsvColumnMapperProps<Id extends string> {
     onFileSelect: (file: File) => void;
 }
 
-/**
- * Área de soltar o .csv e, depois de lido, a prévia com um seletor de campo em cada
- * coluna. Usado pelos imports de pacientes e de transações.
- */
 export function CsvColumnMapper<Id extends string>({
     fields,
     csvData,
@@ -72,7 +68,6 @@ export function CsvColumnMapper<Id extends string>({
     const required = fields.filter((f) => f.required);
     const optional = fields.filter((f) => !f.required);
     const grouped = required.length > 0 && optional.length > 0;
-    // Campo → coluna que já o usa, calculado uma vez (antes: um .some() por campo por coluna).
     const columnByField = new Map<Id, string>();
     for (const [column, fieldId] of Object.entries(mappings)) {
         if (fieldId !== "skip") columnByField.set(fieldId, column);

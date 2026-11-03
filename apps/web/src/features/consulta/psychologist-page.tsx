@@ -50,7 +50,6 @@ export function PsychologistPage() {
         navigate("/agendamento");
     };
 
-    // O token só existe no state da navegação vinda da agenda (F5 ou link direto o perdem).
     if (!wsAuthToken) {
         return <Navigate to="/agendamento" replace />;
     }
@@ -63,7 +62,6 @@ export function PsychologistPage() {
         );
     }
 
-    // Sem isto a sala abria com status "idle" e uma tela escura sem mensagem.
     if (isError || !session) {
         return (
             <div className="flex h-svh flex-col items-center justify-center gap-4 p-6 text-center">

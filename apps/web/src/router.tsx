@@ -8,9 +8,6 @@ import { pages } from "@/route-modules";
 import { CreditCard } from "lucide-react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
-// Só o esqueleto (layout, guards e páginas mínimas) fica no bundle inicial; cada
-// página é um chunk carregado pelo `lazy` da rota (ver route-modules.ts).
-
 const appRoutes = [
     {
         path: "/login",
@@ -123,7 +120,6 @@ const webOnlyRoutes = [
 
 export const router = createBrowserRouter([
     {
-        // Rota raiz sem caminho: dá HydrateFallback e errorElement a todas as rotas.
         HydrateFallback: PageLoader,
         errorElement: <RouteError />,
         children: [...webOnlyRoutes, ...appRoutes],

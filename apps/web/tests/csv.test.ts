@@ -11,7 +11,6 @@ describe("parseDate", () => {
         expect(parseDate("05/03/2026")).toEqual(expected);
         expect(parseDate("5-3-26")).toEqual(expected);
         expect(parseDate(" 05/03/2026 14:30 ")).toEqual(expected);
-        // Antes: a regex sem âncora lia "26-03-05" daqui e devolvia 26/03/2005.
         expect(parseDate("2026-03-05")).toEqual(expected);
         expect(parseDate("2026-03-05T12:00:00Z")).toEqual(expected);
     });

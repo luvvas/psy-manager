@@ -18,7 +18,6 @@ import { useSession } from "@/lib/auth-client";
 import { CalendarDashboard, type ViewMode } from "./components/calendar-dashboard";
 import { getMonday } from "./lib/dates";
 
-
 function formatWeekRange(date: Date): string {
     const monday = getMonday(date);
     const sunday = new Date(monday);
@@ -53,7 +52,6 @@ export function AgendamentoPage() {
 
     const { data: session } = useSession();
 
-    // Filtro "só os meus": lembrado por navegador (conveniência; sem storage, começa desligado).
     const [onlyMine, setOnlyMine] = useState<boolean>(() => {
         try {
             return localStorage.getItem(ONLY_MINE_KEY) === "1";
@@ -66,7 +64,6 @@ export function AgendamentoPage() {
         try {
             localStorage.setItem(ONLY_MINE_KEY, value ? "1" : "0");
         } catch {
-            /* storage indisponível: o filtro vale só nesta visita */
         }
     }, []);
 
@@ -76,7 +73,6 @@ export function AgendamentoPage() {
         return editingAppointment.psychologistId !== session.user.id;
     }, [editingAppointment, session]);
 
-    // Query appointments from the real database
     const { data: dbAppointments, refetch } = trpc.appointment.list.useQuery();
 
     const createMutation = trpc.appointment.create.useMutation({
@@ -124,7 +120,6 @@ export function AgendamentoPage() {
         },
     });
 
-    // Map DB appointments to the format expected by the frontend calendar views
     const mappedAppointments: Appointment[] = useMemo(() => {
         return (dbAppointments || []).map((app) => {
             let status: AppointmentStatus = "pendente";
@@ -178,7 +173,6 @@ export function AgendamentoPage() {
 
     const myId = session?.user?.id;
     const hasOthersAppointments = mappedAppointments.some((a) => a.psychologistId !== myId);
-    // KPIs falam da agenda da psicóloga logada, independente do filtro do calendário.
     const myAppointments = mappedAppointments.filter((a) => a.psychologistId === myId);
     const calendarAppointments = useMemo(
         () => (onlyMine && myId ? mappedAppointments.filter((a) => a.psychologistId === myId) : mappedAppointments),
@@ -243,7 +237,6 @@ export function AgendamentoPage() {
         }
     };
 
-    // Event delegation on click to support opening edit form on clicking any card
     const handleCalendarClick = (e: React.MouseEvent) => {
         const card = (e.target as HTMLElement).closest("[data-appointment-id]");
         if (card) {
@@ -416,7 +409,6 @@ export function AgendamentoPage() {
             />
 
             <div className="flex flex-col flex-1 min-h-0 gap-4 p-4 lg:p-6 overflow-hidden" onClick={handleCalendarClick}>
-                {/* Stats */}
                 <StatsCards appointments={myAppointments} selectedDate={selectedDate} />
 
                 <CalendarDashboard

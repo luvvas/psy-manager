@@ -40,8 +40,6 @@ describe("psychologist API", () => {
         ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     });
 
-    // Issue #37: listar todos os usuários expunha nome, CRP e cidade de toda a
-    // plataforma (e os IDs usados como prefixo no storage).
     test("não expõe mais o diretório de psicólogos", async () => {
         const psychologist = caller().psychologist as unknown as { list: () => Promise<unknown> };
         await expect(psychologist.list()).rejects.toMatchObject({ code: "NOT_FOUND" });

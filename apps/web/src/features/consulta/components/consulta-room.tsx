@@ -69,7 +69,6 @@ export function ConsultaRoom({
         if (localVideoRef.current) localVideoRef.current.srcObject = swapped ? remoteStream : localStream;
     }, [remoteStream, localStream, swapped]);
 
-    // Sync toggle state when stream is replaced
     useEffect(() => {
         if (!localStream) return;
         const audio = localStream.getAudioTracks()[0];
@@ -133,7 +132,6 @@ export function ConsultaRoom({
             ref={containerRef}
             className="relative h-svh w-full bg-zinc-600 flex items-center justify-center overflow-hidden"
         >
-            {/* Remote video — full background */}
             <video
                 ref={remoteVideoRef}
                 autoPlay
@@ -142,7 +140,6 @@ export function ConsultaRoom({
                 className="absolute inset-0 h-full w-full object-cover"
             />
 
-            {/* Overlay shown when not yet active */}
             {showOverlay && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-zinc-950/80 z-10">
                     {status === "connecting" || status === "waiting" ? (
@@ -178,7 +175,6 @@ export function ConsultaRoom({
                 </div>
             )}
 
-            {/* Local video — PiP corner (click to swap) */}
             <div
                 onClick={() => setSwapped((s) => !s)}
                 className="absolute bottom-24 right-4 z-20 w-36 aspect-video rounded-xl overflow-hidden border border-zinc-700 shadow-xl bg-zinc-900 cursor-pointer group"
@@ -195,16 +191,13 @@ export function ConsultaRoom({
                 </div>
             </div>
 
-            {/* Top bar */}
             <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3">
                 <span className="text-xs text-zinc-400 font-medium tracking-wide uppercase">
                     Consulta em andamento
                 </span>
             </div>
 
-            {/* Bottom controls */}
             <div className="absolute bottom-6 left-0 right-0 z-20 flex items-center justify-center gap-3">
-                {/* Mic toggle + device picker */}
                 <div className="flex rounded-full overflow-hidden">
                     <Button
                         variant="secondary"
@@ -255,7 +248,6 @@ export function ConsultaRoom({
                     </DropdownMenu>
                 </div>
 
-                {/* Camera toggle + device picker */}
                 <div className="flex rounded-full overflow-hidden">
                     <Button
                         variant="secondary"
@@ -306,7 +298,6 @@ export function ConsultaRoom({
                     </DropdownMenu>
                 </div>
 
-                {/* Fullscreen toggle */}
                 <Button
                     variant="secondary"
                     size="lg"
@@ -315,7 +306,6 @@ export function ConsultaRoom({
                 >
                     {isFullscreen ? <Minimize2 className="size-5" /> : <Maximize2 className="size-5" />}
                 </Button>
-                {/* End call */}
                 <Button
                     variant="destructive"
                     size="lg"

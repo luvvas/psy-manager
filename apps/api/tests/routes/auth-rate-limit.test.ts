@@ -4,9 +4,6 @@ import { describe, expect, test } from "bun:test";
 import { Hono } from "hono";
 import { registerAuthRateLimiters } from "../../src/lib/rate-limit";
 
-// Issue #39: os limitadores precisam casar as rotas reais do better-auth.
-// A app de teste registra os limitadores do jeito que o index.ts registra e
-// troca o better-auth por um handler que só responde 200.
 function buildApp() {
     const app = new Hono();
     registerAuthRateLimiters(app);

@@ -1,15 +1,10 @@
 export interface ThemeConfig {
-    /** AppHeader background color (hex) */
     primary?: string;
-    /** Sidebar background color (hex) */
     sidebar?: string;
-    /** Buttons and active nav-item color (hex) */
     button?: string;
-    /** Data-table header background color (hex) */
     tableHeader?: string;
 }
 
-/** Relative luminance (WCAG 2.1), used to auto-pick black or white foreground. */
 function luminance(hex: string): number {
     const r = parseInt(hex.slice(1, 3), 16) / 255;
     const g = parseInt(hex.slice(3, 5), 16) / 255;
@@ -36,7 +31,6 @@ export function applyTheme(config: ThemeConfig | null | undefined) {
 
     const vars: string[] = [];
 
-    // ── AppHeader ─────────────────────────────────────────────────────────────
     if (isHex(config.primary)) {
         const fg = contrastHex(config.primary);
         vars.push(
@@ -47,7 +41,6 @@ export function applyTheme(config: ThemeConfig | null | undefined) {
         );
     }
 
-    // ── Sidebar background (sidebar header inherits this naturally) ───────────
     if (isHex(config.sidebar)) {
         const fg = contrastHex(config.sidebar);
         vars.push(
@@ -59,7 +52,6 @@ export function applyTheme(config: ThemeConfig | null | undefined) {
         );
     }
 
-    // ── Buttons & active nav items ────────────────────────────────────────────
     if (isHex(config.button)) {
         const fg = contrastHex(config.button);
         vars.push(
@@ -72,7 +64,6 @@ export function applyTheme(config: ThemeConfig | null | undefined) {
         );
     }
 
-    // ── Data-table header ─────────────────────────────────────────────────────
     if (isHex(config.tableHeader)) {
         const fg = contrastHex(config.tableHeader);
         vars.push(

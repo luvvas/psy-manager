@@ -14,11 +14,9 @@ import { UnsignedRecords, type HomeUnsignedRecord } from "./components/unsigned-
 import type { HomeSession } from "./types";
 
 const MAX_UPCOMING = 8;
-/** Itens por bloco da segunda linha (aniversariantes, pendentes, prontuários). */
 const MAX_PER_PANEL = 5;
 const BIRTHDAY_WINDOW_DAYS = 30;
 
-// A API devolve status em inglês ou português, como na tela de agendamento.
 const STATUS_MAP: Record<string, AppointmentStatus> = {
     confirmed: "confirmado",
     confirmado: "confirmado",
@@ -47,7 +45,6 @@ export function InicioPage() {
     const { data: dbAppointments } = trpc.appointment.list.useQuery();
     const { data: dbPatients } = trpc.patient.list.useQuery();
     const { data: dbTransactions } = trpc.financial.list.useQuery(monthRange);
-    // Pendências não têm período: uma cobrança de meses atrás continua pendente.
     const { data: dbAllTransactions } = trpc.financial.list.useQuery();
     const { data: dbRecords } = trpc.clinicalRecord.list.useQuery();
 
@@ -55,12 +52,9 @@ export function InicioPage() {
     const sessions: HomeSession[] = useMemo(
         () =>
             (dbAppointments ?? [])
-                // appointment.list também traz sessões de colegas que ocupam sala de uma
-                // clínica em comum; o Início mostra só a agenda da psicóloga logada.
                 .filter((app) => app.psychologistId === myId)
                 .map((app) => ({
                     id: app.id,
-                    // Mesma chave de dia das visões da agenda (data gravada em UTC).
                     dayKey: new Date(app.date).toISOString().split("T")[0],
                     startTime: app.startTime,
                     endTime: app.endTime,
@@ -94,7 +88,6 @@ export function InicioPage() {
         const list: HomeBirthday[] = [];
         for (const p of dbPatients ?? []) {
             if (!p.dataNascimento) continue;
-            // Data de nascimento é gravada em UTC (meia-noite); lê dia/mês em UTC.
             const dob = new Date(p.dataNascimento);
             let next = new Date(today.getFullYear(), dob.getUTCMonth(), dob.getUTCDate());
             if (next < today) next = new Date(today.getFullYear() + 1, dob.getUTCMonth(), dob.getUTCDate());
@@ -128,7 +121,6 @@ export function InicioPage() {
                         isOverdue: startOfDay(date) < today,
                     };
                 })
-                // Mais antigas (e vencidas) primeiro.
                 .sort((a, b) => a.date.getTime() - b.date.getTime()),
         [dbAllTransactions, today]
     );

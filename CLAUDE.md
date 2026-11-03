@@ -35,6 +35,9 @@ Skills do projeto em `.claude/skills/`: `nova-tela`, `react-best-practices`,
 - Não leia nem cole segredos de `.env`/`.env.prod`; o formato público está em
   `.env.example` e `.env.prod.example`. O repositório é **público**.
 - Rode `git status --short` antes de editar e não sobrescreva mudanças alheias.
+- **Sem comentários no código** (`//`, `/* */`, JSDoc, `{/* */}` no JSX). O porquê de uma
+  decisão vai na mensagem do commit, no PR ou em `ai/`. Exceções: diretivas funcionais
+  (`/// <reference>`, `@ts-expect-error`, `eslint-disable`).
 - Copie o padrão vizinho (`apps/api/src/routes`, `apps/api/src/services`,
   `apps/web/src/features`) antes de criar abstração nova.
 - Toda procedure protegida filtra pelo `psychologistId` da sessão, exceto onde a regra

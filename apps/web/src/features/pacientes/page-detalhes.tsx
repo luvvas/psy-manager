@@ -16,7 +16,6 @@ export function PatientDetailsPage() {
     const navigate = useNavigate();
     const [isSheetOpen, setSheetOpen] = useState(false);
 
-    // Using useUtils instead of useContext as confirmed across typical v10 usages or standard TRPC patterns in codebase
     const utils = trpc.useUtils();
 
     const { data: patient, isLoading } = trpc.patient.getById.useQuery(
@@ -27,7 +26,6 @@ export function PatientDetailsPage() {
     const createMutation = trpc.clinicalRecord.create.useMutation({
         onSuccess: () => {
             toast.success("Registro criado com sucesso!");
-            // Invalidate specific patient timeline
             utils.clinicalRecord.list.invalidate({ patientId: id });
             setSheetOpen(false);
         },
@@ -43,7 +41,7 @@ export function PatientDetailsPage() {
             ? await (async () => {
                 const target = await prepareUploadMutation.mutateAsync({
                     fileName: file.name,
-                    contentType: "application/pdf", // o formulário só aceita PDF
+                    contentType: "application/pdf",
                     fileSize: file.size,
                 });
                 await uploadFileToTarget(file, target);
@@ -109,7 +107,6 @@ export function PatientDetailsPage() {
                 </div>
             </div>
 
-            {/* Lifted Slide-over Form from timeline for cleaner page structure and visibility */}
             <AppSheet
                 open={isSheetOpen}
                 onOpenChange={setSheetOpen}

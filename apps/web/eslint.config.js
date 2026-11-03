@@ -18,11 +18,11 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      'no-empty': ['error', { allowEmptyCatch: true }],
+    },
   },
   {
-    // Componentes gerados pelo shadcn exportam variants/hooks junto (ex.: buttonVariants)
-    // e o carousel sincroniza estado num efeito. Não editamos esses arquivos para
-    // agradar o lint; as demais regras continuam valendo neles.
     files: ['src/components/ui/**/*.{ts,tsx}'],
     rules: {
       'react-refresh/only-export-components': 'off',

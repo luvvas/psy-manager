@@ -1,4 +1,3 @@
-/** Segunda-feira 00:00 (horário local) da semana de `date`. */
 export function getMonday(date: Date): Date {
     const d = new Date(date);
     const day = d.getDay();

@@ -5,11 +5,8 @@ export interface HomeBirthday {
     id: string;
     nome: string;
     telefone: string | null;
-    /** Dias até o aniversário (0 = hoje). */
     daysUntil: number;
-    /** Dia/mês do aniversário, ex. "07/11". */
     dayMonth: string;
-    /** Idade que a pessoa completa. */
     turningAge: number;
 }
 

@@ -117,12 +117,11 @@ export function FinanceiroPage() {
         try {
             payload = mapCsvRowsToTransactions(csv.csvData.rows, csv.mappings);
         } catch (err) {
-            // Linha inválida no arquivo: o toast diz qual (antes o import falhava em silêncio).
             logger.error("Erro ao importar transações", err);
             toast.error(`Erro ao importar: ${getErrorMessage(err, "verifique o arquivo.")}`);
             return;
         }
-        createManyMutation.mutate(payload); // erro de API: toast no onError
+        createManyMutation.mutate(payload);
     };
 
     const handleImportComplete = () => {

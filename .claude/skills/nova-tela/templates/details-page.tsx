@@ -1,4 +1,3 @@
-// MODELO — tela de detalhe (/<slug>/:id). Copie para page-detalhes.tsx e registre a rota.
 import { useNavigate, useParams } from "react-router-dom";
 import { AppHeader } from "@/components/layout/app-header";
 import { Button } from "@/components/ui/button";
@@ -53,9 +52,8 @@ export function ConvenioDetailsPage() {
                 }
             />
 
-            {/* min-h-0: sem ele o filho flex não encolhe e a rolagem interna não funciona. */}
             <div className="flex flex-col flex-1 min-h-0 gap-4 p-4 lg:p-6 overflow-hidden">
-                <div className="flex-1 min-h-0 overflow-auto">{/* conteúdo */}</div>
+                <div className="flex-1 min-h-0 overflow-auto" />
             </div>
         </div>
     );

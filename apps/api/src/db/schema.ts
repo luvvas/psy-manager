@@ -19,7 +19,6 @@ export const user = pgTable("user", {
     crp: text("crp"),
     city: text("city"),
     themeConfig: jsonb("theme_config").$type<{ primary?: string; sidebar?: string; button?: string; tableHeader?: string }>(),
-    // Expediente: turnos por dia da semana + duração da sessão. Nulo = não configurado.
     workSchedule: jsonb("work_schedule").$type<WorkSchedule>(),
     consentedAt: text("consented_at"),
     consentVersion: text("consent_version"),
@@ -30,7 +29,6 @@ export const user = pgTable("user", {
 export const patient = pgTable("patient", {
     id: text("id").primaryKey(),
     nome: text("nome").notNull(),
-    // Só o nome é obrigatório: o psicólogo nem sempre tem os demais dados no primeiro cadastro.
     email: text("email"),
     telefone: text("telefone"),
     dataNascimento: text("data_nascimento"),
@@ -40,34 +38,30 @@ export const patient = pgTable("patient", {
         .notNull()
         .references(() => user.id, { onDelete: "cascade" }),
     valorSessao: numeric("valor_sessao", { precision: 10, scale: 2 }),
-    modeloCobranca: text("modelo_cobranca"), // sessao_avulsa, pacote_mensal, pacote_fechado, etc.
+    modeloCobranca: text("modelo_cobranca"),
     
-    // Expansão de Dados Pessoais & Identificação
     nomeSocial: text("nome_social"),
     rg: text("rg"),
     profissao: text("profissao"),
     
-    // Expansão de Endereço e Emergência
     endereco: text("endereco"),
     cep: text("cep"),
     uf: text("uf"),
     contatoEmergencia: text("contato_emergencia"),
     
-    // Dados do Responsável Legal
     respLegalNome: text("resp_legal_nome"),
     respLegalParentesco: text("resp_legal_parentesco"),
     respLegalCpf: text("resp_legal_cpf"),
     respLegalTelefone: text("resp_legal_telefone"),
     respLegalEmail: text("resp_legal_email"),
     
-    // Serviço Contratado & Origem
-    servicoContratadoTipo: text("servico_contratado_tipo"), // presencial, online
+    servicoContratadoTipo: text("servico_contratado_tipo"),
     dataInicioAcompanhamento: timestamp("data_inicio_acompanhamento"),
-    formaPagamento: text("forma_pagamento"), // pix, cartao, outro
+    formaPagamento: text("forma_pagamento"),
     formaPagamentoDetalhe: text("forma_pagamento_detalhe"),
-    responsavelFinanceiroTipo: text("responsavel_financeiro_tipo"), // paciente, responsavel, outro
+    responsavelFinanceiroTipo: text("responsavel_financeiro_tipo"),
     responsavelFinanceiroDetalhe: text("responsavel_financeiro_detalhe"),
-    origemContato: text("origem_contato"), // indicacao, redes, encaminhamento, outro
+    origemContato: text("origem_contato"),
     origemContatoDetalhe: text("origem_contato_detalhe"),
 
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -114,7 +108,6 @@ export const verification = pgTable("verification", {
     updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Valores aceitos: a coluna é text, então o tipo vem daqui e a API valida com z.enum.
 export const APPOINTMENT_SESSION_TYPES = ["online", "in_person"] as const;
 export type AppointmentSessionType = (typeof APPOINTMENT_SESSION_TYPES)[number];
 export const APPOINTMENT_TYPES = ["individual", "casal", "infantil", "avaliacao"] as const;
@@ -131,17 +124,13 @@ export const appointment = pgTable("appointment", {
     date: timestamp("date").notNull(),
     startTime: text("start_time").notNull(),
     endTime: text("end_time").notNull(),
-    status: text("status").notNull().default("pending"), // pending, confirmed, cancelled, completed
+    status: text("status").notNull().default("pending"),
     sessionType: text("session_type").$type<AppointmentSessionType>().notNull().default("online"),
     type: text("type").$type<AppointmentType>().notNull().default("individual"),
     isRecurring: boolean("is_recurring").notNull().default(false),
     notes: text("notes"),
     meetingUrl: text("meeting_url"),
     googleEventId: text("google_event_id"),
-    // Sala da clínica ocupada pela sessão — presencial ou online atendida da sala.
-    // Nulo = sem sala (remoto ou consultório fora do sistema).
-    // A sala é o recurso disputado: duas psicólogas da mesma clínica podem atender no
-    // mesmo horário, desde que em salas diferentes.
     clinicId: text("clinic_id").references(() => clinic.id, { onDelete: "set null" }),
     roomId: text("room_id").references(() => clinicRoom.id, { onDelete: "set null" }),
     reminderEnabled: boolean("reminder_enabled").notNull().default(false),
@@ -172,7 +161,6 @@ export const clinicRoom = pgTable("clinic_room", {
         .notNull()
         .references(() => clinic.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
-    // Sala removida fica arquivada: sessões antigas continuam apontando para ela.
     active: boolean("active").notNull().default(true),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -186,8 +174,6 @@ export const psychologistClinic = pgTable("psychologist_clinic", {
     psychologistId: text("psychologist_id")
         .notNull()
         .references(() => user.id, { onDelete: "cascade" }),
-    // "pending" = convite do dono da clínica ainda não aceito pelo psicólogo.
-    // Só vínculos "active" dão acesso à visão compartilhada (agenda, membros).
     status: text("status").notNull().default("active"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -204,7 +190,6 @@ export const eventStore = pgTable("event_store", {
     createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Coluna text: o tipo vem daqui e a API valida com z.enum.
 export const TRANSACTION_TYPES = ["income", "expense"] as const;
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
 export const TRANSACTION_STATUSES = ["paid", "pending"] as const;
@@ -219,7 +204,7 @@ export const financialTransaction = pgTable("financial_transaction", {
     description: text("description").notNull(),
     amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
     date: timestamp("date").notNull(),
-    category: text("category"), // e.g., Aluguel, Sessão, Software, etc.
+    category: text("category"),
     patientId: text("patient_id")
         .references(() => patient.id, { onDelete: "set null" }),
     status: text("status").$type<TransactionStatus>().notNull().default("paid"),
@@ -233,15 +218,15 @@ export const document = pgTable("document", {
         .notNull()
         .references(() => user.id, { onDelete: "cascade" }),
     patientId: text("patient_id")
-        .references(() => patient.id, { onDelete: "cascade" }), // Opcional, pode ser um template genérico se nulo
+        .references(() => patient.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
-    content: text("content"), // Armazena o HTML ou JSON string do editor de texto
-    storageKey: text("storage_key"), // Chave do objeto no storage (S3/local)
+    content: text("content"),
+    storageKey: text("storage_key"),
     fileName: text("file_name"),
     mimeType: text("mime_type"),
     fileSize: integer("file_size"),
-    type: text("type").notNull().default("outro"), // evolucao, contrato, atestado, laudo, outro
-    category: text("category"), // Para categorização extra
+    type: text("type").notNull().default("outro"),
+    category: text("category"),
     isTemplate: boolean("is_template").notNull().default(false),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -255,7 +240,7 @@ export const videoSession = pgTable("video_session", {
         .notNull()
         .references(() => user.id, { onDelete: "cascade" }),
     patientToken: text("patient_token").notNull().unique(),
-    status: text("status").notNull().default("pending"), // pending, active, ended
+    status: text("status").notNull().default("pending"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     expiresAt: timestamp("expires_at").notNull(),
     endedAt: timestamp("ended_at"),
@@ -268,7 +253,7 @@ export const feedback = pgTable("feedback", {
         .references(() => user.id, { onDelete: "cascade" }),
     message: text("message").notNull(),
     page: text("page").notNull(),
-    category: text("category").notNull(), // confuso | nao_funciona | sugestao | outro
+    category: text("category").notNull(),
     screenshotBase64: text("screenshot_base64"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -282,19 +267,19 @@ export const clinicalRecord = pgTable("clinical_record", {
         .notNull()
         .references(() => patient.id, { onDelete: "cascade" }),
     appointmentId: text("appointment_id")
-        .references(() => appointment.id, { onDelete: "set null" }), // Vincula à sessão
+        .references(() => appointment.id, { onDelete: "set null" }),
     title: text("title").notNull(),
-    category: text("category").notNull().default("evolucao"), // evolucao, anamnese, documento_externo, teste_psicologico, outro
-    textContent: text("text_content"), // Se for digitado no sistema
-    fileUrl: text("file_url"), // Arquivo anexo/PDF (armazenando Base64 temporariamente)
-    storageKey: text("storage_key"), // Chave do objeto no storage (S3/local)
+    category: text("category").notNull().default("evolucao"),
+    textContent: text("text_content"),
+    fileUrl: text("file_url"),
+    storageKey: text("storage_key"),
     fileName: text("file_name"),
     mimeType: text("mime_type"),
     fileSize: integer("file_size"),
-    dateOfService: timestamp("date_of_service").notNull().defaultNow(), // Quando o atendimento ocorreu
-    status: text("status").notNull().default("draft"), // draft ou finalized
-    lockedAt: timestamp("locked_at"), // Quando foi assinado
-    parentRecordId: text("parent_record_id"), // Retificações (aponta para o registro com erro)
+    dateOfService: timestamp("date_of_service").notNull().defaultNow(),
+    status: text("status").notNull().default("draft"),
+    lockedAt: timestamp("locked_at"),
+    parentRecordId: text("parent_record_id"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

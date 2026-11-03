@@ -21,7 +21,6 @@ import { storageService } from "./services/storage.service";
 import { handleSignaling } from "./ws/signaling";
 import { eventBus } from "./lib/cqrs";
 
-// Initialize CQRS Projections/Subscribers
 patientProjections.init();
 appointmentProjections.init();
 
@@ -101,7 +100,6 @@ console.log(`🎥 WS signaling: ws://localhost:${port}/ws/signaling/:sessionId`)
 
 const server = serve({ fetch: app.fetch, port });
 
-// WebSocket signaling server — handles /ws/signaling/:sessionId upgrades
 const wss = new WebSocketServer({ noServer: true });
 
 server.on("upgrade", (request, socket, head) => {

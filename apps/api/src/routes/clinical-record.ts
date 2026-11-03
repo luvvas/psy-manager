@@ -7,7 +7,6 @@ import { isOwnStorageKey } from "../utils/storage.utils";
 import { isSafeDocumentUrl, optionalHttpUrl } from "../utils/url.utils";
 import { assertAppointmentOwnership } from "../lib/ownership";
 
-// See isOwnStorageKey (issue #38).
 function assertStorageKeyOwnership(psychologistId: string, storageKey: string | null | undefined) {
     if (storageKey && !isOwnStorageKey(psychologistId, storageKey)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Arquivo não encontrado." });

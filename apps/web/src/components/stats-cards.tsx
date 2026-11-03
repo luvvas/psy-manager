@@ -5,7 +5,7 @@ export interface StatItem {
     label: string;
     value: string | number;
     icon: LucideIcon;
-    color: string; // The Tailwind classes, e.g., "text-emerald-600 bg-emerald-500/10"
+    color: string;
 }
 
 export interface StatsCardsProps {

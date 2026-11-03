@@ -2,8 +2,6 @@ import { cqrsEventStore, eventBus } from "../../lib/cqrs";
 import { AppointmentAggregate } from "./appointment.aggregate";
 import { TRPCError } from "@trpc/server";
 
-// "Doesn't exist" and "belongs to someone else" get the same answer, so the
-// response does not reveal which IDs exist in other accounts (audit F7).
 const notFound = () => new TRPCError({ code: "NOT_FOUND", message: "Agendamento não encontrado." });
 
 export interface ScheduleAppointmentCommand {

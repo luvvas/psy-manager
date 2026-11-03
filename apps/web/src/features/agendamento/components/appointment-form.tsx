@@ -34,19 +34,16 @@ const toMinutes = (hhmm: string) => {
 const toHHMM = (total: number) =>
     `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 
-/** Fim da sessão a partir do início e da duração, sem passar de 23:59. */
 function endFor(startTime: string, minutes: number): string {
     return toHHMM(Math.min(toMinutes(startTime) + minutes, 23 * 60 + 59));
 }
 
-/** Horário atual em HH:MM e o fim padrão da sessão (+50 min, sem passar de 23:59). */
 function defaultTimeRange(): { startTime: string; endTime: string } {
     const now = new Date();
     const startTime = toHHMM(now.getHours() * 60 + now.getMinutes());
     return { startTime, endTime: endFor(startTime, DEFAULT_SESSION_MINUTES) };
 }
 
-/** Meia-noite local do dia, para a chave da consulta não mudar a cada minuto. */
 function startOfDay(date: Date): Date {
     return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
@@ -64,7 +61,6 @@ function isVideoCallAvailable(date: Date, startTime: string, endTime: string): b
     return now >= windowStart && now <= windowEnd;
 }
 
-// Valores-sentinela dos selects (o Select do Radix não aceita valor vazio).
 const NO_CLINIC = "none";
 const ANY_ROOM = "any";
 
@@ -98,15 +94,12 @@ const appointmentSchema = z.object({
 });
 
 export type AppointmentFormValues = z.infer<typeof appointmentSchema> & {
-    /** A psicóloga confirmou o conflito de horário ou a sessão fora do expediente. */
     allowScheduleConflicts?: boolean;
 };
 
-/** Dados para abrir o formulário: um agendamento existente, ou só a data clicada no calendário. */
 export type AppointmentFormInitialData = Omit<Partial<AppointmentFormValues>, "clinicId" | "roomId"> & {
     id?: string;
     psychologistId?: string;
-    /** null = sem clínica/sala (o form troca pelo valor "nenhuma"). */
     clinicId?: string | null;
     roomId?: string | null;
     reminderSentAt?: Date | string | null;
@@ -141,20 +134,16 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
     const safeMeetingUrl = safeUrl(initialData?.meetingUrl);
 
     async function handleStartVideo() {
-        if (!initialData?.id) return; // o botão só aparece em agendamento já salvo
+        if (!initialData?.id) return;
         if (!window.confirm("Deseja iniciar a videochamada com este paciente?")) return;
         const result = await createSession.mutateAsync({ appointmentId: initialData.id });
-        // Same tab, token in router state: it must not land in the URL
-        // (browser history, Sentry breadcrumbs), and a new tab would lose it.
         navigate(`/consulta/${result.sessionId}`, {
             state: { wsAuthToken: result.wsAuthToken, patientJoinUrl: result.patientJoinUrl },
         });
     }
 
-    // Load actual patients for select dropdown
     const { data: patients } = trpc.patient.list.useQuery();
 
-    // Calculado uma vez por abertura do formulário.
     const [defaultTimes] = useState(defaultTimeRange);
 
     const {
@@ -170,7 +159,6 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
         defaultValues: {
             patientId: initialData?.patientId || "",
             date: initialData?.date ? new Date(initialData.date) : new Date(),
-            // Novo agendamento começa no horário atual; edição mantém o salvo.
             startTime: initialData?.startTime || defaultTimes.startTime,
             endTime: initialData?.endTime || defaultTimes.endTime,
             status: initialData?.status || "pending",
@@ -198,16 +186,12 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
     const isNew = !initialData?.id;
     const day = watchedDate ? startOfDay(watchedDate) : null;
 
-    // ── Local da sessão presencial: clínica e sala ──
     const { data: clinics } = trpc.clinic.list.useQuery(undefined, { enabled: !readOnly });
     const clinicsWithRooms = (clinics ?? []).filter((c) => c.rooms.length > 0);
     const selectedClinic = clinicsWithRooms.find((c) => c.id === clinicId) ?? null;
-    // A sala vale para qualquer canal: online também pode ser atendida da sala.
     const inClinic = !!selectedClinic;
     const selectedRoomId = inClinic && roomId !== ANY_ROOM ? roomId : null;
 
-    // Presencial de quem atende numa clínica só já começa com ela escolhida.
-    // Online começa sem sala (o normal é atender de casa); escolher é opcional.
     const clinicTouched = useRef(!isNew);
     useEffect(() => {
         if (clinicTouched.current || clinicsWithRooms.length !== 1) return;
@@ -221,16 +205,12 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
         roomId: selectedRoomId,
     };
 
-    // ── Agendamento rápido: horários livres do dia (expediente + sala) ──
     const { data: free } = trpc.appointment.freeSlots.useQuery(
         { date: day!, excludeId: initialData?.id, ...roomScope },
         { enabled: !!day && !readOnly }
     );
     const sessionMinutes = free?.sessionMinutes ?? null;
 
-    // Novo agendamento: só ao abrir o formulário o horário inicial (a hora atual)
-    // vira o primeiro horário livre do dia. Depois disso o horário nunca muda
-    // sozinho — trocar dia/local/sala só gera aviso quando ele não está livre.
     const timesTouched = useRef(!isNew);
     const firstFreeApplied = useRef(false);
     useEffect(() => {
@@ -249,7 +229,6 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
         timesTouched.current = true;
         setValue("startTime", slot.start, { shouldValidate: true });
         setValue("endTime", slot.end, { shouldValidate: true });
-        // "Qualquer sala livre": fica com a primeira sala livre naquele horário.
         if (inClinic && !selectedRoomId && slot.rooms[0]) setValue("roomId", slot.rooms[0].id);
     }
 
@@ -257,7 +236,6 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
         timesTouched.current = true;
         onChange(next);
         if (!TIME_24H_REGEX.test(next)) return;
-        // Mantém a duração: a do expediente, ou a que a sessão já tinha.
         const prevStart = getValues("startTime");
         const prevEnd = getValues("endTime");
         const duration =
@@ -268,7 +246,6 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
         setValue("endTime", endFor(next, duration), { shouldValidate: true });
     }
 
-    // ── Avisos: agenda própria (confirmável) e sala (impede salvar) ──
     const slotValid =
         !!day && TIME_24H_REGEX.test(startTime) && TIME_24H_REGEX.test(endTime) && startTime < endTime;
     const checking = slotValid && !readOnly && status !== "cancelled";
@@ -284,7 +261,6 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
     const [confirmed, setConfirmed] = useState(false);
     const [confirmError, setConfirmError] = useState(false);
     const [roomError, setRoomError] = useState(false);
-    // Mudou horário ou sala: a confirmação anterior não vale para o novo.
     useEffect(() => {
         setConfirmed(false);
         setConfirmError(false);
@@ -317,7 +293,6 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
     return (
         <form onSubmit={handleSubmit(onSubmitForm)} className="flex flex-col h-full space-y-4">
             <div className="flex-1 space-y-4">
-                {/* Patient Selection */}
                 <div className="grid gap-2">
                     <Label htmlFor="patientId">Paciente</Label>
                     <Controller
@@ -352,7 +327,6 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
                     )}
                 </div>
 
-                {/* Tipo e canal: vêm antes da data porque o local muda os horários livres */}
                 <div className="grid grid-cols-2 gap-3">
                     <div className="grid gap-2">
                         <Label htmlFor="type">Tipo de sessão</Label>
@@ -403,7 +377,6 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
                     </div>
                 </div>
 
-                {/* Local: onde a psicóloga atende, presencial ou online */}
                 {clinicsWithRooms.length > 0 && (
                     <div className="grid grid-cols-2 gap-3">
                         <div className="grid min-w-0 gap-2">
@@ -469,7 +442,6 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
                     </div>
                 )}
 
-                {/* Date and Time */}
                 <div className="grid grid-cols-1 gap-3">
                     <div className="grid gap-2">
                         <Label htmlFor="date">Data</Label>
@@ -726,7 +698,6 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
                     />
                 </div>
 
-                {/* Recurring */}
                 <div className="flex items-center justify-between rounded-lg border p-3">
                     <div className="space-y-0.5">
                         <Label htmlFor="isRecurring" className="text-sm font-medium">
@@ -750,7 +721,6 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
                     />
                 </div>
 
-                {/* Notes */}
                 <div className="grid gap-2">
                     <Label htmlFor="notes">Observações</Label>
                     <Textarea
@@ -763,7 +733,6 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
                     />
                 </div>
 
-                {/* External meeting URL — only for online sessions */}
                 {sessionType === "online" && (
                     <div className="grid gap-2">
                         <Label htmlFor="meetingUrl">Link da videochamada (opcional)</Label>

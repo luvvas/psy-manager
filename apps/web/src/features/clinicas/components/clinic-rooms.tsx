@@ -15,10 +15,6 @@ interface ClinicRoomsProps {
     rooms: Room[];
 }
 
-/**
- * Salas da clínica (só o dono abre este formulário). Na agenda, a sala é o
- * recurso disputado: duas psicólogas não podem usar a mesma no mesmo horário.
- */
 export function ClinicRooms({ clinicId, rooms }: ClinicRoomsProps) {
     const utils = trpc.useUtils();
     const [newName, setNewName] = useState("");

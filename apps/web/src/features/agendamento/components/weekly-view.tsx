@@ -80,9 +80,6 @@ export function WeeklyView({ appointments, selectedDate, onDayClick }: WeeklyVie
     }, [appointments, weekDays]);
 
     return (
-        /* Plain overflow container instead of ScrollArea: Radix wraps the children in a
-           display:table div with no height, so the grid (and the day dividers)
-           could never stretch to the full height available. */
         <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-7 min-h-full">
                 {weekDays.map((day, i) => {
@@ -91,10 +88,6 @@ export function WeeklyView({ appointments, selectedDate, onDayClick }: WeeklyVie
                     const isToday = isSameDay(day, today);
                     const isWeekend = i >= 5;
 
-                    /* Day dividers are real borders, not a 1px grid gap over bg-border:
-                       with fractional column widths the browser rounded every other
-                       gap away. The last column of each layout drops its right border
-                       so it doesn't double up with the container's. */
                     const dividerClasses = [
                         "border-b lg:border-b-0 sm:border-r",
                         i % 2 === 1 && "sm:max-lg:border-r-0",
@@ -116,7 +109,6 @@ export function WeeklyView({ appointments, selectedDate, onDayClick }: WeeklyVie
                                 }
                             }}
                         >
-                            {/* Day header */}
                             <div
                                 className={`sticky top-0 z-10 flex items-center gap-2 border-b px-3 py-2 backdrop-blur-sm ${isToday
                                     ? "bg-primary/5 border-b-primary/30"
@@ -152,7 +144,6 @@ export function WeeklyView({ appointments, selectedDate, onDayClick }: WeeklyVie
                                 )}
                             </div>
 
-                            {/* Appointments Container - fill height so borders go to bottom */}
                             <div className="flex-1 flex flex-col gap-2 p-2 min-h-[120px]">
                                 {dayAppointments.length > 0 ? (
                                     dayAppointments.map((apt) => (

@@ -31,9 +31,7 @@ describe("work schedule", () => {
     });
 
     test("calcula o dia local em America/Sao_Paulo, não em UTC", () => {
-        // 23:30 de segunda em São Paulo = 02:30 UTC de terça
         expect(localDay(new Date("2026-11-03T02:30:00.000Z"))).toEqual({ key: "2026-11-02", weekday: MON });
-        // meia-noite local enviada pelo navegador
         expect(localDay(new Date("2026-11-02T03:00:00.000Z"))).toEqual({ key: "2026-11-02", weekday: MON });
     });
 
@@ -48,16 +46,16 @@ describe("work schedule", () => {
 
     test("verifica se a sessão cabe inteira num turno", () => {
         expect(isWithinSchedule(schedule(), MON, "08:00", "08:50")).toBe(true);
-        expect(isWithinSchedule(schedule(), MON, "11:30", "12:20")).toBe(false); // invade o almoço
+        expect(isWithinSchedule(schedule(), MON, "11:30", "12:20")).toBe(false);
         expect(isWithinSchedule(schedule(), MON, "19:00", "19:50")).toBe(false);
-        expect(isWithinSchedule(schedule(), 0, "09:00", "09:50")).toBe(false); // domingo sem turno
+        expect(isWithinSchedule(schedule(), 0, "09:00", "09:50")).toBe(false);
     });
 
     test("lista horários livres por turno, contornando sessões marcadas", () => {
         const slots = freeSlots(schedule(), MON, [{ id: "x", startTime: "09:15", endTime: "10:00" }]);
         expect(slots.slice(0, 3)).toEqual([
             { start: "08:00", end: "08:50" },
-            { start: "10:10", end: "11:00" }, // pula para depois da sessão + intervalo
+            { start: "10:10", end: "11:00" },
             { start: "11:10", end: "12:00" },
         ]);
         expect(slots[3]).toEqual({ start: "14:00", end: "14:50" });

@@ -10,9 +10,6 @@ interface Options {
     iceServers: RTCIceServer[];
 }
 
-// VITE_WS_URL can point the signaling socket at a different host than the API.
-// In production the SPA and the API share one origin (nginx proxies /ws), so
-// both are left empty and the socket goes to the page's own origin.
 const WS_BASE =
     (import.meta.env.VITE_WS_URL as string | undefined) ||
     (import.meta.env.VITE_API_URL as string | undefined) ||
@@ -32,8 +29,6 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
     const pcRef = useRef<RTCPeerConnection | null>(null);
     const localStreamRef = useRef<MediaStream | null>(null);
     const statusRef = useRef<CallStatus>("idle");
-    // ICE candidates that arrive before setRemoteDescription is called are queued here
-    // and flushed once the remote description is set.
     const iceCandidateQueue = useRef<RTCIceCandidateInit[]>([]);
     const remoteDescriptionSet = useRef(false);
 
@@ -65,11 +60,8 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
     }, [stopLocalTracks]);
 
     const startCall = useCallback(async () => {
-        // Bloqueia só enquanto há chamada em curso: depois de "ended"/"error" dá para
-        // entrar de novo (ex.: paciente que saiu e voltou do lobby).
         const current = statusRef.current;
         if (current === "connecting" || current === "waiting" || current === "active") return;
-        // "peer_left" encerra sem fechar conexão e socket; não deixar restos da anterior.
         pcRef.current?.close();
         pcRef.current = null;
         wsRef.current?.close();
@@ -106,8 +98,6 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
 
         pc.onconnectionstatechange = () => {
             if (pc.connectionState === "connected") updateStatus("active");
-            // "disconnected" is transient — the browser retries for ~5s before moving to "failed".
-            // Only "failed" and "closed" are truly terminal.
             if (["failed", "closed"].includes(pc.connectionState)) {
                 stopLocalTracks();
                 setRemoteStream(null);
@@ -176,7 +166,6 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
             try {
                 await handleSignal(e);
             } catch (err) {
-                // Sem isto a promise rejeitava em silêncio e a tela ficava em "aguardando".
                 logger.error("Erro na sinalização da chamada", err);
                 updateStatus("error");
                 setErrorMessage("Falha ao conectar a chamada. Tente entrar novamente.");
@@ -200,7 +189,6 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
         };
     }, [sessionId, role, joinToken, iceServers, sendWs, stopLocalTracks]);
 
-    // Cleanup on unmount
     useEffect(() => {
         return () => {
             localStreamRef.current?.getTracks().forEach((t) => t.stop());

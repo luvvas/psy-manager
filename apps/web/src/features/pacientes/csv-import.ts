@@ -37,7 +37,6 @@ export type PatientCsvFieldId = (typeof PATIENT_CSV_FIELDS)[number]["id"];
 
 type PatientImportRow = RouterInputs["patient"]["createMany"][number];
 
-/** Linhas do CSV → payload de `patient.createMany`. Célula vazia vira null. */
 export function mapCsvRowsToPatients(
     rows: string[][],
     mappings: CsvMappings<PatientCsvFieldId>

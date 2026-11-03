@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/select";
 
 const patientSchema = z.object({
-    // Só o nome é obrigatório; os demais são validados apenas se preenchidos.
     nome: z.string().min(3, "O nome deve ter pelo menos 3 caracteres"),
     email: z.string().email("Formato de e-mail inválido").or(z.literal("")).optional().nullable(),
     telefone: z
@@ -35,25 +34,21 @@ const patientSchema = z.object({
         .nullable()
         .refine((v) => !v || v.replace(/\D/g, "").length === 11, "CPF inválido"),
 
-    // Extensão Identidade
     nomeSocial: z.string().optional().nullable(),
     rg: z.string().optional().nullable(),
     profissao: z.string().optional().nullable(),
 
-    // Extensão Localização
     endereco: z.string().optional().nullable(),
     cep: z.string().optional().nullable(),
     uf: z.string().optional().nullable(),
     contatoEmergencia: z.string().optional().nullable(),
 
-    // Extensão Responsável Legal
     respLegalNome: z.string().optional().nullable(),
     respLegalParentesco: z.string().optional().nullable(),
     respLegalCpf: z.string().optional().nullable(),
     respLegalTelefone: z.string().optional().nullable(),
     respLegalEmail: z.string().optional().nullable(),
 
-    // Extensão Contrato / Financeiro
     valorSessao: z.string().or(z.number()).optional().nullable(),
     modeloCobranca: z.string().optional().nullable(),
     servicoContratadoTipo: z.string().optional().nullable(),
@@ -71,7 +66,6 @@ export type PatientFormValues = z.infer<typeof patientSchema>;
 interface NewPatientFormProps {
     onSave: (patient: PatientFormValues) => Promise<void>;
     onCancel: () => void;
-    /** Registro completo do paciente: campo ausente aqui é gravado vazio ao salvar. */
     initialData?: Partial<PatientFormValues>;
 }
 
@@ -163,7 +157,6 @@ export function NewPatientForm({ onSave, onCancel, initialData }: NewPatientForm
                     </TabsTrigger>
                 </TabsList>
 
-                {/* TAB 1: Identidade */}
                 <TabsContent value="identidade" className="flex-1 space-y-4 overflow-y-auto px-1 pt-4">
                     <div className="space-y-1.5">
                         <Label htmlFor="nome">Nome Completo *</Label>
@@ -215,7 +208,6 @@ export function NewPatientForm({ onSave, onCancel, initialData }: NewPatientForm
                     </div>
                 </TabsContent>
 
-                {/* TAB 2: Local & Contato */}
                 <TabsContent value="local" className="flex-1 space-y-4 overflow-y-auto px-1 pt-4">
                     <div className="grid grid-cols-1 gap-3">
                         <div className="space-y-1.5">
@@ -268,7 +260,6 @@ export function NewPatientForm({ onSave, onCancel, initialData }: NewPatientForm
                     </div>
                 </TabsContent>
 
-                {/* TAB 3: Responsável Legal */}
                 <TabsContent value="responsavel" className="flex-1 space-y-4 overflow-y-auto px-1 pt-4">
                     <div className="space-y-1.5">
                         <Label htmlFor="respLegalNome">Nome Completo do Responsável</Label>
@@ -302,7 +293,6 @@ export function NewPatientForm({ onSave, onCancel, initialData }: NewPatientForm
                     </div>
                 </TabsContent>
 
-                {/* TAB 4: Contrato & Financeiro */}
                 <TabsContent value="contrato" className="flex-1 space-y-4 overflow-y-auto px-1 pt-1">
                     <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">

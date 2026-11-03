@@ -22,7 +22,6 @@ interface CalendarViewProps {
     onGoToToday: () => void;
     appointments: Appointment[];
     onDayClick: (date: Date) => void;
-    /** Mostra o filtro só quando há sessões de colegas da clínica na agenda. */
     showOwnershipFilter?: boolean;
     onlyMine?: boolean;
     onOnlyMineChange?: (onlyMine: boolean) => void;
@@ -43,11 +42,8 @@ export function CalendarDashboard({
     onOnlyMineChange,
 }: CalendarViewProps) {
     return (
-        /* The dashboard fills whatever height the parent gives it, in every view mode. */
         <div className="flex flex-col gap-4 flex-1 min-h-0">
-            {/* Toolbar */}
             <div className="flex flex-wrap items-center justify-between gap-3">
-                {/* Navigation */}
                 <div className="flex items-center gap-2">
                     <Button
                         variant="outline"
@@ -111,7 +107,6 @@ export function CalendarDashboard({
                     </div>
                 )}
 
-                {/* View toggle */}
                 <Tabs value={view} onValueChange={(v) => onViewChange(v as ViewMode)}>
                     <TabsList>
                         <TabsTrigger value="mes" className="gap-1.5" id="tab-month-view">
@@ -131,7 +126,6 @@ export function CalendarDashboard({
                 </div>
             </div>
 
-            {/* Content */}
             <div className="rounded-lg border bg-card flex flex-col overflow-hidden flex-1 min-h-0">
                 {view === "mes" && (
                     <MonthlyView
@@ -148,7 +142,6 @@ export function CalendarDashboard({
                     />
                 )}
                 {view === "dia" && (
-                    /* Wrapper must be flex-col + flex-1 so DailyView's ScrollArea can fill height */
                     <div className="flex flex-col flex-1 min-h-0 p-4">
                         <DailyView
                             appointments={appointments}

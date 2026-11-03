@@ -18,7 +18,6 @@ export function DocumentosPage() {
     const [activeTab, setActiveTab] = useState("todos");
     const utils = trpc.useUtils();
 
-    // Fetches only generic documents without direct patient links as per documentService filtering rules implicitly
     const { data: dbDocs } = trpc.document.list.useQuery({});
 
     const { data: downloadData } = trpc.document.getDownloadUrl.useQuery(
@@ -83,7 +82,7 @@ export function DocumentosPage() {
             ? await (async () => {
                 const target = await prepareUploadMutation.mutateAsync({
                     fileName: file.name,
-                    contentType: "application/pdf", // o formulário só aceita PDF
+                    contentType: "application/pdf",
                     fileSize: file.size,
                 });
                 await uploadFileToTarget(file, target);

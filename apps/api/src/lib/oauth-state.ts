@@ -1,13 +1,5 @@
 import { randomBytes } from "crypto";
 
-// OAuth "state" for the Google Calendar connection (audit F3). The old state
-// was the user id, and the callback never checked it, so a victim could be
-// tricked into linking the attacker's Google account. Now each authorization
-// URL gets a random, single-use state bound to the user who requested it.
-//
-// In memory, like the WebSocket rooms: a restart only forces the user to click
-// "connect" again. Move to a shared store before running multiple instances.
-
 const TTL_MS = 10 * 60 * 1000;
 const states = new Map<string, { userId: string; expiresAt: number }>();
 
@@ -25,7 +17,6 @@ export function issueOAuthState(userId: string): string {
     return state;
 }
 
-/** True only once, for the same user, before expiry. */
 export function consumeOAuthState(state: string, userId: string): boolean {
     const entry = states.get(state);
     if (!entry) return false;

@@ -24,7 +24,6 @@ const documentSchema = z.object({
 
 type FormValues = z.infer<typeof documentSchema>;
 
-/** O que o formulário entrega: metadados + o PDF escolhido (ausente na edição sem troca). */
 export type ClinicalRecordFormValues = FormValues & { file?: File };
 
 interface DocumentFormProps {

@@ -5,25 +5,14 @@ import { eventBus } from "../../lib/cqrs";
 import type { DomainEvent } from "../../lib/cqrs";
 import { encrypt, encryptField } from "../../lib/encryption";
 
-/**
- * Patient Projections (updates the Read Model optimized for fast querying)
- */
 export const patientProjections = {
-    /**
-     * Initializes projection event subscriptions.
-     * Call this during API bootstrap/startup.
-     */
     init() {
-        // Subscribe to events to update the SQL projection in real-time
         eventBus.subscribe("PATIENT_CREATED", this.handlePatientCreated);
         eventBus.subscribe("PATIENT_UPDATED", this.handlePatientUpdated);
         eventBus.subscribe("PATIENT_DELETED", this.handlePatientDeleted);
         console.log("📈 Patient Projections subscribed to EventBus");
     },
 
-    /**
-     * Handles PATIENT_CREATED event: Inserts a new record into the read-model table.
-     */
     async handlePatientCreated(event: DomainEvent): Promise<void> {
         const { 
             id, nome, email, telefone, dataNascimento, cidade, cpf, psychologistId, valorSessao, modeloCobranca,
@@ -71,9 +60,6 @@ export const patientProjections = {
         console.log(`📈 Read Model Projected: Patient Created -> (${id})`);
     },
 
-    /**
-     * Handles PATIENT_UPDATED event: Updates an existing record in the read-model table.
-     */
     async handlePatientUpdated(event: DomainEvent): Promise<void> {
         const { 
             nome, email, telefone, dataNascimento, cidade, cpf, valorSessao, modeloCobranca,
@@ -122,10 +108,6 @@ export const patientProjections = {
         console.log(`📈 Read Model Projected: Patient Updated -> (${id})`);
     },
 
-    /**
-     * Handles PATIENT_DELETED event: Deletes (or marks as deleted) the record in the read-model table.
-     * In this project, we delete the row from the projection since the event store has the full history anyway.
-     */
     async handlePatientDeleted(event: DomainEvent): Promise<void> {
         const id = event.aggregateId;
 

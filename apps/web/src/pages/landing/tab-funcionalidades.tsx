@@ -79,8 +79,6 @@ export function TabFuncionalidades() {
     const [current, setCurrent] = useState(0);
     const [lightbox, setLightbox] = useState<string | null>(null);
 
-    // O carrossel começa no slide 0 (= estado inicial); só acompanha as trocas. O listener
-    // sai no cleanup — antes ficava registrado para sempre.
     useEffect(() => {
         if (!api) return;
         const onSelect = () => setCurrent(api.selectedScrollSnap());
@@ -107,7 +105,6 @@ export function TabFuncionalidades() {
                 </p>
             </div>
 
-            {/* Dots */}
             <div className="flex justify-center gap-2 mb-8">
                 {featureSlides.map((_, i) => (
                     <button
@@ -137,9 +134,7 @@ export function TabFuncionalidades() {
                             return (
                                 <CarouselItem key={slide.title}>
                                     <div className="flex flex-col gap-6">
-                                        {/* Screenshot frame */}
                                         <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
-                                            {/* Browser chrome */}
                                             <div className="flex items-center gap-1.5 px-4 py-3 border-b bg-muted/50">
                                                 <span className="size-3 rounded-full bg-muted-foreground/20" />
                                                 <span className="size-3 rounded-full bg-muted-foreground/20" />
@@ -149,7 +144,6 @@ export function TabFuncionalidades() {
                                                 </div>
                                             </div>
 
-                                            {/* Screenshot area */}
                                             {slide.image ? (
                                                 <button
                                                     type="button"
@@ -178,7 +172,6 @@ export function TabFuncionalidades() {
                                             )}
                                         </div>
 
-                                        {/* Slide info */}
                                         <div className="text-center space-y-2 pb-2">
                                             <div className="inline-flex items-center gap-2 text-xs text-muted-foreground bg-muted rounded-full px-3 py-1">
                                                 <Icon className="size-3.5" />
@@ -203,7 +196,6 @@ export function TabFuncionalidades() {
         </div>
 
         {lightbox && (
-                // biome-ignore lint/a11y/useKeyWithClickEvents: Escape key handled via window listener
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
                     onClick={() => setLightbox(null)}
