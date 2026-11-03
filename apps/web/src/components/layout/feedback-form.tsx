@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod/v3";
 import { ImagePlus, Loader2, X } from "lucide-react";
@@ -66,13 +66,13 @@ export default function FeedbackForm({ onClose }: FeedbackFormProps) {
         register,
         handleSubmit,
         setValue,
-        watch,
+        control,
         formState: { errors, isSubmitting },
     } = useForm<FeedbackFormValues>({
         resolver: zodResolver(feedbackSchema),
     });
 
-    const selectedCategory = watch("category");
+    const selectedCategory = useWatch({ control, name: "category" });
 
     const submit = trpc.feedback.submit.useMutation({
         onSuccess: () => {
@@ -104,20 +104,22 @@ export default function FeedbackForm({ onClose }: FeedbackFormProps) {
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
-    useEffect(() => {
-        const handlePaste = (e: ClipboardEvent) => {
-            const items = e.clipboardData?.items;
-            if (!items) return;
-            for (const item of items) {
-                if (item.type.startsWith("image/")) {
-                    const file = item.getAsFile();
-                    if (file) handleImageFile(file);
-                    break;
-                }
+    const handlePaste = useEffectEvent((e: ClipboardEvent) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        for (const item of items) {
+            if (item.type.startsWith("image/")) {
+                const file = item.getAsFile();
+                if (file) handleImageFile(file);
+                break;
             }
-        };
-        window.addEventListener("paste", handlePaste);
-        return () => window.removeEventListener("paste", handlePaste);
+        }
+    });
+
+    useEffect(() => {
+        const onPaste = (e: ClipboardEvent) => handlePaste(e);
+        window.addEventListener("paste", onPaste);
+        return () => window.removeEventListener("paste", onPaste);
     }, []);
 
     const onSubmit = async (data: FeedbackFormValues) => {
@@ -170,12 +172,13 @@ export default function FeedbackForm({ onClose }: FeedbackFormProps) {
                     <div className="relative">
                         <img
                             src={preview}
-                            alt="Screenshot"
+                            alt="Captura de tela anexada"
                             className="w-full rounded-lg border object-cover max-h-40"
                         />
                         <button
                             type="button"
                             onClick={removeImage}
+                            aria-label="Remover imagem"
                             className="absolute top-1.5 right-1.5 flex size-6 items-center justify-center rounded-full bg-background/80 border shadow-sm hover:bg-background"
                         >
                             <X className="size-3" />
