@@ -64,14 +64,12 @@ export function LandingPage() {
                     </div>
 
                     <div className="flex items-center gap-3 py-4 shrink-0">
-                        <Link to="/login">
-                            <Button variant="ghost" size="sm">
-                                Entrar
-                            </Button>
-                        </Link>
-                        <Link to="/login?tab=register">
-                            <Button size="sm">Criar conta</Button>
-                        </Link>
+                        <Button asChild variant="ghost" size="sm">
+                            <Link to="/login">Entrar</Link>
+                        </Button>
+                        <Button asChild size="sm">
+                            <Link to="/login?tab=register">Criar conta</Link>
+                        </Button>
                     </div>
                 </div>
             </header>
