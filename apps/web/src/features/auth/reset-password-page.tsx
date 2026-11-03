@@ -1,21 +1,23 @@
 import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { Brain, Loader2 } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod/v3";
 import { toast } from "sonner";
 
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { resetPassword } from "@/lib/auth-client";
 import { logger } from "@/lib/logger";
+import { AuthErrorBanner, AuthShell } from "./components/auth-shell";
+import { NETWORK_ERROR_MESSAGE, passwordSchema } from "./constants";
 
 const schema = z
     .object({
-        newPassword: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
+        newPassword: passwordSchema,
         confirmPassword: z.string().min(1, "Confirme sua senha"),
     })
     .refine((d) => d.newPassword === d.confirmPassword, {
@@ -25,11 +27,16 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>;
 
-export function ResetPasswordPage() {
-    const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
-    const token = searchParams.get("token") ?? "";
-    const [done, setDone] = useState(false);
+function LoginLinkButton({ variant }: { variant?: "default" | "outline" }) {
+    return (
+        <Button asChild variant={variant} className="w-full">
+            <Link to="/login">Ir para o login</Link>
+        </Button>
+    );
+}
+
+function ResetPasswordForm({ token, onDone }: { token: string; onDone: () => void }) {
+    const [error, setError] = useState<string | null>(null);
 
     const {
         register,
@@ -41,89 +48,84 @@ export function ResetPasswordPage() {
     });
 
     const onSubmit = async (data: FormValues) => {
-        if (!token) {
-            toast.error("Link inválido ou expirado. Solicite um novo link de redefinição.");
-            return;
-        }
-
-        let error;
+        setError(null);
         try {
-            ({ error } = await resetPassword({ newPassword: data.newPassword, token }));
+            const { error } = await resetPassword({ newPassword: data.newPassword, token });
+            if (error) {
+                setError(error.message || "Link inválido ou expirado. Solicite um novo link.");
+                return;
+            }
+            toast.success("Senha redefinida com sucesso!");
+            onDone();
         } catch (err) {
             logger.error("Erro ao redefinir senha", err);
-            toast.error("Não foi possível conectar. Verifique sua internet e tente novamente.");
-            return;
-        }
-
-        if (error) {
-            toast.error(error.message || "Link inválido ou expirado. Solicite um novo link.");
-        } else {
-            setDone(true);
-            toast.success("Senha redefinida com sucesso!");
+            setError(NETWORK_ERROR_MESSAGE);
         }
     };
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
-            <div className="mb-8 flex items-center gap-2">
-                <div className="flex aspect-square size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
-                    <Brain className="size-6" />
-                </div>
-                <h1 className="text-2xl font-bold tracking-tight">psy-manager</h1>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <AuthErrorBanner message={error} />
+            <div className="space-y-2">
+                <Label htmlFor="new-password">Nova senha</Label>
+                <Input
+                    id="new-password"
+                    type="password"
+                    disabled={isSubmitting}
+                    {...register("newPassword")}
+                />
+                {errors.newPassword && <p className="text-xs text-destructive">{errors.newPassword.message}</p>}
             </div>
+            <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirmar nova senha</Label>
+                <Input
+                    id="confirm-password"
+                    type="password"
+                    disabled={isSubmitting}
+                    {...register("confirmPassword")}
+                />
+                {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>}
+            </div>
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
+                Redefinir senha
+            </Button>
+        </form>
+    );
+}
 
-            <Card className="w-full max-w-md shadow-xl border-t-4 border-t-primary">
+export function ResetPasswordPage() {
+    const [searchParams] = useSearchParams();
+    const token = searchParams.get("token") ?? "";
+    const [done, setDone] = useState(false);
+
+    if (!token) {
+        return (
+            <AuthShell>
                 <CardHeader className="pb-4">
-                    <h2 className="text-lg font-semibold">Redefinir senha</h2>
-                    {done ? (
-                        <p className="text-sm text-muted-foreground">
-                            Sua senha foi redefinida com sucesso.
-                        </p>
-                    ) : (
-                        <p className="text-sm text-muted-foreground">
-                            Escolha uma nova senha para sua conta.
-                        </p>
-                    )}
+                    <h2 className="text-lg font-semibold">Link inválido</h2>
+                    <p className="text-sm text-muted-foreground">
+                        Este link de redefinição é inválido ou expirou. Solicite um novo link na tela de login.
+                    </p>
                 </CardHeader>
                 <CardContent>
-                    {done ? (
-                        <Button className="w-full" onClick={() => navigate("/login")}>
-                            Ir para o login
-                        </Button>
-                    ) : (
-                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="new-password">Nova senha</Label>
-                                <Input
-                                    id="new-password"
-                                    type="password"
-                                    disabled={isSubmitting}
-                                    {...register("newPassword")}
-                                />
-                                {errors.newPassword && (
-                                    <p className="text-xs text-destructive">{errors.newPassword.message}</p>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="confirm-password">Confirmar nova senha</Label>
-                                <Input
-                                    id="confirm-password"
-                                    type="password"
-                                    disabled={isSubmitting}
-                                    {...register("confirmPassword")}
-                                />
-                                {errors.confirmPassword && (
-                                    <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
-                                )}
-                            </div>
-                            <Button type="submit" className="w-full" disabled={isSubmitting}>
-                                {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-                                Redefinir senha
-                            </Button>
-                        </form>
-                    )}
+                    <LoginLinkButton variant="outline" />
                 </CardContent>
-            </Card>
-        </div>
+            </AuthShell>
+        );
+    }
+
+    return (
+        <AuthShell>
+            <CardHeader className="pb-4">
+                <h2 className="text-lg font-semibold">Redefinir senha</h2>
+                <p className="text-sm text-muted-foreground">
+                    {done ? "Sua senha foi redefinida com sucesso." : "Escolha uma nova senha para sua conta."}
+                </p>
+            </CardHeader>
+            <CardContent>
+                {done ? <LoginLinkButton /> : <ResetPasswordForm token={token} onDone={() => setDone(true)} />}
+            </CardContent>
+        </AuthShell>
     );
 }
