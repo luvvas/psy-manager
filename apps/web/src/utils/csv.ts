@@ -1,5 +1,5 @@
-import { z } from "zod";
-import type { FieldId } from "@/features/financeiro/components/csv-importer";
+// Conversores de células de CSV. O mapeamento linha → registro fica em cada feature
+// (features/financeiro/csv-import.ts, features/pacientes/csv-import.ts).
 
 export const parseCurrency = (val: string): number => {
     if (!val) return 0;
@@ -52,50 +52,3 @@ export const parseStatus = (val: string): "paid" | "pending" => {
     if (v.includes("pag") || v.includes("rec") || v.includes("con") || v.includes("pai") || v.includes("done")) return "paid";
     return "pending";
 };
-
-export const transactionRowSchema = z.object({
-    date: z.date(),
-    description: z.string().min(1),
-    category: z.string(),
-    amount: z.number().nonnegative(),
-    type: z.enum(["income", "expense"]),
-    status: z.enum(["paid", "pending"]),
-});
-
-export type TransactionRow = z.infer<typeof transactionRowSchema>;
-
-/**
- * Maps raw CSV rows to validated transaction objects using the user's column mappings.
- * Throws if any row fails schema validation (message names the CSV line for dates).
- */
-export function mapCsvRowsToTransactions(
-    rows: any[][],
-    mappings: Record<string, FieldId | "skip">
-): TransactionRow[] {
-    const reverseMap: Record<string, number> = {};
-    Object.entries(mappings).forEach(([colIdx, fieldId]) => {
-        if (fieldId !== "skip") reverseMap[fieldId] = parseInt(colIdx, 10);
-    });
-
-    return rows
-        .filter((row) => row.some((cell) => cell !== null && cell !== ""))
-        .map((row, index) => {
-            const rawAmount = String(row[reverseMap["amount"]] ?? "");
-            const amount = parseCurrency(rawAmount);
-            const rawDate = String(row[reverseMap["date"]] ?? "");
-            const date = parseDate(rawDate);
-            if (!date) {
-                // +2: a linha 1 do arquivo é o cabeçalho.
-                throw new Error(`Linha ${index + 2}: data inválida ou vazia ("${rawDate}").`);
-            }
-            const parsed = {
-                date,
-                description: String(row[reverseMap["description"]] ?? "") || "Sem descrição",
-                category: String(row[reverseMap["category"]] ?? ""),
-                amount: Math.abs(amount),
-                type: (amount >= 0 ? "income" : "expense") as "income" | "expense",
-                status: parseStatus(String(row[reverseMap["status"]] ?? "paid")),
-            };
-            return transactionRowSchema.parse(parsed);
-        });
-}

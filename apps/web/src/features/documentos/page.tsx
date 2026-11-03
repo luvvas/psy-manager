@@ -8,7 +8,7 @@ import { safeUrl } from "@/utils/safe-url";
 import { ArrowLeft, Download, Files, FileText, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { GenericDocumentForm } from "./components/generic-document-form";
+import { GenericDocumentForm, type GenericDocumentFormValues } from "./components/generic-document-form";
 import { GenericDocumentsTable, type DBGenericDocument } from "./components/generic-documents-table";
 
 export function DocumentosPage() {
@@ -19,14 +19,11 @@ export function DocumentosPage() {
     const utils = trpc.useUtils();
 
     // Fetches only generic documents without direct patient links as per documentService filtering rules implicitly
-    const { data: dbDocs } = trpc.document.list.useQuery(
-        {},
-        { retry: false }
-    );
+    const { data: dbDocs } = trpc.document.list.useQuery({});
 
     const { data: downloadData } = trpc.document.getDownloadUrl.useQuery(
         { id: viewingDoc?.id || "" },
-        { enabled: !!viewingDoc, retry: false }
+        { enabled: !!viewingDoc }
     );
 
     const prepareUploadMutation = trpc.document.prepareUpload.useMutation();
@@ -80,13 +77,13 @@ export function DocumentosPage() {
     const documentos = useMemo(() => allDocuments.filter((d) => !d.isTemplate), [allDocuments]);
     const modelos = useMemo(() => allDocuments.filter((d) => d.isTemplate), [allDocuments]);
 
-    const handleSave = async (data: any) => {
+    const handleSave = async (data: GenericDocumentFormValues) => {
         const { file, ...metadata } = data;
         const uploadMetadata = file
             ? await (async () => {
                 const target = await prepareUploadMutation.mutateAsync({
                     fileName: file.name,
-                    contentType: file.type,
+                    contentType: "application/pdf", // o formulário só aceita PDF
                     fileSize: file.size,
                 });
                 await uploadFileToTarget(file, target);

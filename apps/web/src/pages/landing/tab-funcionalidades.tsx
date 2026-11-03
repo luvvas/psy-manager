@@ -79,10 +79,15 @@ export function TabFuncionalidades() {
     const [current, setCurrent] = useState(0);
     const [lightbox, setLightbox] = useState<string | null>(null);
 
+    // O carrossel começa no slide 0 (= estado inicial); só acompanha as trocas. O listener
+    // sai no cleanup — antes ficava registrado para sempre.
     useEffect(() => {
         if (!api) return;
-        setCurrent(api.selectedScrollSnap());
-        api.on("select", () => setCurrent(api.selectedScrollSnap()));
+        const onSelect = () => setCurrent(api.selectedScrollSnap());
+        api.on("select", onSelect).on("reInit", onSelect);
+        return () => {
+            api.off("select", onSelect).off("reInit", onSelect);
+        };
     }, [api]);
 
     useEffect(() => {

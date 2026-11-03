@@ -14,7 +14,7 @@ export function JoinPage() {
 
     const { data, isLoading, error } = trpc.videoSession.validateToken.useQuery(
         { token: token! },
-        { enabled: !!token, retry: false }
+        { enabled: !!token }
     );
 
     const iceServers = data?.iceServers ?? DEFAULT_ICE;

@@ -146,7 +146,7 @@ export function AuthPage() {
             city: data.city,
             consentedAt,
             consentVersion,
-        } as any);
+        });
 
         if (error) {
             setError(error.message || "Erro ao criar conta");

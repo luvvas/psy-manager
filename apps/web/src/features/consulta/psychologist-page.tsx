@@ -19,7 +19,7 @@ export function PsychologistPage() {
 
     const { data: session, isLoading, isError } = trpc.videoSession.get.useQuery(
         { id: sessionId! },
-        { enabled: !!sessionId, retry: false }
+        { enabled: !!sessionId }
     );
 
     const endMutation = trpc.videoSession.end.useMutation();

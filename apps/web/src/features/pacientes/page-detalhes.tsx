@@ -2,7 +2,7 @@ import { AppHeader } from "@/components/layout/app-header";
 import { AppSheet } from "@/components/layout/app-sheet";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DocumentForm } from "@/features/documentos/components/document-form";
+import { DocumentForm, type ClinicalRecordFormValues } from "@/features/documentos/components/document-form";
 import { PatientTimeline } from "@/features/pacientes/components/patient-timeline";
 import { trpc } from "@/lib/trpc";
 import { uploadFileToTarget } from "@/utils/upload";
@@ -21,7 +21,7 @@ export function PatientDetailsPage() {
 
     const { data: patient, isLoading } = trpc.patient.getById.useQuery(
         { id: id! },
-        { enabled: !!id, retry: false }
+        { enabled: !!id }
     );
 
     const createMutation = trpc.clinicalRecord.create.useMutation({
@@ -37,13 +37,13 @@ export function PatientDetailsPage() {
     });
     const prepareUploadMutation = trpc.clinicalRecord.prepareUpload.useMutation();
 
-    const handleSave = async (data: any) => {
+    const handleSave = async (data: ClinicalRecordFormValues) => {
         const { file, ...metadata } = data;
         const uploadMetadata = file
             ? await (async () => {
                 const target = await prepareUploadMutation.mutateAsync({
                     fileName: file.name,
-                    contentType: file.type,
+                    contentType: "application/pdf", // o formulário só aceita PDF
                     fileSize: file.size,
                 });
                 await uploadFileToTarget(file, target);

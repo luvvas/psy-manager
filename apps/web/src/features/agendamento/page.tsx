@@ -7,7 +7,7 @@ import {
     CalendarDays
 } from "lucide-react";
 import { StatsCards } from "./components/stats-cards";
-import { NewAppointmentForm } from "./components/appointment-form";
+import { NewAppointmentForm, type AppointmentFormValues } from "./components/appointment-form";
 import { AppSheet } from "@/components/layout/app-sheet";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -77,9 +77,7 @@ export function AgendamentoPage() {
     }, [editingAppointment, session]);
 
     // Query appointments from the real database
-    const { data: dbAppointments, refetch } = trpc.appointment.list.useQuery(undefined, {
-        retry: false,
-    });
+    const { data: dbAppointments, refetch } = trpc.appointment.list.useQuery();
 
     const createMutation = trpc.appointment.create.useMutation({
         onSuccess: () => {
@@ -111,12 +109,8 @@ export function AgendamentoPage() {
         },
     });
 
-    const { data: isConnectedGoogle } = trpc.appointment.isConnectedGoogle.useQuery(undefined, {
-        retry: false,
-    });
-    const { data: googleAuthUrlData } = trpc.appointment.getGoogleAuthUrl.useQuery(undefined, {
-        retry: false,
-    });
+    const { data: isConnectedGoogle } = trpc.appointment.isConnectedGoogle.useQuery();
+    const { data: googleAuthUrlData } = trpc.appointment.getGoogleAuthUrl.useQuery();
     const [isSyncing, setIsSyncing] = useState(false);
     const syncGoogleMutation = trpc.appointment.syncGoogle.useMutation({
         onSuccess: (data) => {
@@ -167,11 +161,11 @@ export function AgendamentoPage() {
                 startTime: app.startTime,
                 endTime: app.endTime,
                 status,
-                type: app.type as any,
+                type: app.type,
                 notes: app.notes || undefined,
                 meetingUrl: app.meetingUrl || undefined,
                 isRecurring: app.isRecurring,
-                sessionType: app.sessionType as any,
+                sessionType: app.sessionType,
                 clinicId: app.clinicId ?? null,
                 roomId: app.roomId ?? null,
                 roomName: app.roomName ?? null,
@@ -191,7 +185,7 @@ export function AgendamentoPage() {
         [mappedAppointments, onlyMine, myId]
     );
 
-    const handleSaveAppointment = async (formData: any) => {
+    const handleSaveAppointment = async (formData: AppointmentFormValues) => {
         try {
             if (editingAppointment) {
                 await updateMutation.mutateAsync({

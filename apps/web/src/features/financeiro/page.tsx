@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { DollarSign, Plus, UploadCloud, ArrowRight, Loader2 } from "lucide-react";
 import { AppHeader } from "@/components/layout/app-header";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,10 @@ import { IncomeChart } from "./components/income-chart";
 import { CategoryPieChart } from "./components/category-pie-chart";
 import { DateRangePicker } from "./components/date-range-picker";
 import { TransactionForm } from "./components/transaction-form";
-import { CsvImporter, REQUIRED_FIELDS, type FieldId } from "./components/csv-importer";
 import { TransactionsTable } from "./components/transactions-table";
-import { mapCsvRowsToTransactions } from "@/utils/csv";
+import { mapCsvRowsToTransactions, TRANSACTION_CSV_FIELDS } from "./csv-import";
+import { CsvColumnMapper } from "@/components/csv-import/csv-column-mapper";
+import { useCsvImport } from "@/components/csv-import/use-csv-import";
 import { AppSheet } from "@/components/layout/app-sheet";
 import { trpc } from "@/lib/trpc";
 import { logger } from "@/lib/logger";
@@ -18,7 +19,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { startOfMonth, endOfMonth } from "date-fns";
 import type { DateRange } from "react-day-picker";
-import Papa from "papaparse";
+import { formatCurrency, getErrorMessage } from "@/utils/format";
+import type { Transaction, TransactionInput, TransactionTypeFilter } from "./types";
 
 export function FinanceiroPage() {
     const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -26,13 +28,11 @@ export function FinanceiroPage() {
         to: endOfMonth(new Date()),
     });
     const [isSheetOpen, setIsSheetOpen] = useState(false);
-    const [selectedTx, setSelectedTx] = useState<any | null>(null);
+    const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
     const [activeTab, setActiveTab] = useState("resumo");
-    const [sidebarTypeFilter, setSidebarTypeFilter] = useState<"all" | "income" | "expense">("all");
+    const [sidebarTypeFilter, setSidebarTypeFilter] = useState<TransactionTypeFilter>("all");
 
-    const [csvData, setCsvData] = useState<{ headers: string[]; rows: any[][] } | null>(null);
-    const [mappings, setMappings] = useState<Record<string, FieldId | "skip">>({});
-    const [isImporting, setIsImporting] = useState(false);
+    const csv = useCsvImport(TRANSACTION_CSV_FIELDS);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const { data: txList, refetch } = trpc.financial.list.useQuery({
@@ -71,26 +71,12 @@ export function FinanceiroPage() {
             handleImportComplete();
         },
         onError: (err) => {
-            toast.error(`Erro na importação: ${err.message}`);
+            toast.error(`Erro ao importar: ${err.message}`);
         },
-        onSettled: () => {
-            setIsImporting(false);
-        }
     });
+    const isImporting = createManyMutation.isPending;
 
-    useEffect(() => {
-        if (csvData) {
-            const initialMappings: Record<string, FieldId | "skip"> = {};
-            csvData.headers.forEach((_, idx) => {
-                initialMappings[idx] = "skip";
-            });
-            setMappings(initialMappings);
-        } else {
-            setMappings({});
-        }
-    }, [csvData]);
-
-    const openSheet = (tx?: any) => {
+    const openSheet = (tx?: Transaction) => {
         setSelectedTx(tx || null);
         setIsSheetOpen(true);
     };
@@ -100,7 +86,7 @@ export function FinanceiroPage() {
         setSelectedTx(null);
     };
 
-    const handleSave = async (data: any) => {
+    const handleSave = async (data: TransactionInput) => {
         if (selectedTx) {
             await updateMutation.mutateAsync({ id: selectedTx.id, ...data });
         } else {
@@ -114,61 +100,33 @@ export function FinanceiroPage() {
         }
     };
 
-    const processFile = (file: File) => {
-        Papa.parse(file, {
-            complete: (results) => {
-                const data = results.data as any[][];
-                if (data.length > 0) {
-                    const headers = data[0].map(h => String(h).trim());
-                    const rows = data.slice(1).filter(row => row.length > 1 || row[0] !== "");
-                    setCsvData({ headers, rows });
-                    setActiveTab("importacao");
-                    toast.success(`Arquivo "${file.name}" carregado!`);
-                } else {
-                    toast.error("Arquivo está vazio.");
-                }
-            },
-            error: (error) => {
-                toast.error(`Erro ao ler CSV: ${error.message}`);
-            },
-            skipEmptyLines: true,
-        });
+    const handleLoadFile = async (file: File) => {
+        if (await csv.loadFile(file)) setActiveTab("importacao");
     };
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
-        processFile(file);
+        void handleLoadFile(file);
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
-    const handleMappingChange = (columnIndex: string, value: FieldId | "skip") => {
-        setMappings((prev) => ({ ...prev, [columnIndex]: value }));
-    };
-
-    const mappedFieldsValues = Object.values(mappings);
-    const requiredFieldCount = REQUIRED_FIELDS.length;
-    const mappedCount = REQUIRED_FIELDS.filter(f => mappedFieldsValues.includes(f.id)).length;
-    const isMappingComplete = mappedCount === requiredFieldCount;
-
-    const handleConfirmImport = async () => {
-        if (!csvData || !isMappingComplete) return;
-
-        setIsImporting(true);
-
+    const handleConfirmImport = () => {
+        if (!csv.csvData || !csv.isMappingComplete) return;
+        let payload;
         try {
-            const payload = mapCsvRowsToTransactions(csvData.rows, mappings);
-            await createManyMutation.mutateAsync(payload);
+            payload = mapCsvRowsToTransactions(csv.csvData.rows, csv.mappings);
         } catch (err) {
-            // Antes o erro só ia para o logger e o import falhava em silêncio.
+            // Linha inválida no arquivo: o toast diz qual (antes o import falhava em silêncio).
             logger.error("Erro ao importar transações", err);
-            toast.error(`Erro ao importar: ${err instanceof Error ? err.message : "verifique o arquivo."}`);
-            setIsImporting(false);
+            toast.error(`Erro ao importar: ${getErrorMessage(err, "verifique o arquivo.")}`);
+            return;
         }
+        createManyMutation.mutate(payload); // erro de API: toast no onError
     };
 
     const handleImportComplete = () => {
-        setCsvData(null);
+        csv.reset();
         refetch();
         setActiveTab("resumo");
     };
@@ -176,10 +134,6 @@ export function FinanceiroPage() {
     const allTransactions = txList || [];
     const incomes = allTransactions.filter(t => t.type === "income");
     const expenses = allTransactions.filter(t => t.type === "expense");
-
-    const formatValue = (val: string | number) => {
-        return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(val));
-    };
 
     return (
         <>
@@ -236,18 +190,18 @@ export function FinanceiroPage() {
                             <TabsTrigger value="despesas">Despesas</TabsTrigger>
                             <TabsTrigger value="importacao" className="relative">
                                 Importação
-                                {csvData && (
+                                {csv.csvData && (
                                     <span className="absolute top-1 right-1 size-2 bg-primary rounded-full animate-pulse" />
                                 )}
                             </TabsTrigger>
                         </TabsList>
 
-                        {activeTab === "importacao" && csvData && (
+                        {activeTab === "importacao" && csv.csvData && (
                             <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4">
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setCsvData(null)}
+                                    onClick={csv.reset}
                                     disabled={isImporting}
                                 >
                                     Cancelar
@@ -255,13 +209,13 @@ export function FinanceiroPage() {
                                 <Button
                                     size="sm"
                                     className="gap-1.5 shadow-sm min-w-[120px]"
-                                    disabled={!isMappingComplete || isImporting}
+                                    disabled={!csv.isMappingComplete || isImporting}
                                     onClick={handleConfirmImport}
                                 >
                                     {isImporting ? (
                                         <Loader2 className="size-3.5 animate-spin" />
                                     ) : (
-                                        <>Importar {mappedCount}/{requiredFieldCount}</>
+                                        <>Importar {csv.mappedRequiredCount}/{csv.requiredCount}</>
                                     )}
                                     {!isImporting && <ArrowRight className="size-3.5" />}
                                 </Button>
@@ -284,7 +238,7 @@ export function FinanceiroPage() {
                                 <h3 className="font-semibold text-sm text-muted-foreground">Últimas Movimentações</h3>
                                 <Select
                                     value={sidebarTypeFilter}
-                                    onValueChange={(v: any) => setSidebarTypeFilter(v)}
+                                    onValueChange={(v) => setSidebarTypeFilter(v as TransactionTypeFilter)}
                                 >
                                     <SelectTrigger className="h-8 w-[130px] text-xs">
                                         <SelectValue />
@@ -310,7 +264,7 @@ export function FinanceiroPage() {
                                                 </div>
                                             </div>
                                             <span className={`font-semibold tracking-tight ${tx.type === "income" ? "text-emerald-600" : "text-rose-600"}`}>
-                                                {tx.type === "income" ? "+" : "-"} {formatValue(tx.amount)}
+                                                {tx.type === "income" ? "+" : "-"} {formatCurrency(tx.amount)}
                                             </span>
                                         </div>
                                     ))}
@@ -341,11 +295,12 @@ export function FinanceiroPage() {
                     </TabsContent>
 
                     <TabsContent value="importacao" className="flex-1 flex flex-col space-y-4 outline-none">
-                        <CsvImporter
-                            csvData={csvData}
-                            mappings={mappings}
-                            onMappingChange={handleMappingChange}
-                            onFileSelect={processFile}
+                        <CsvColumnMapper
+                            fields={TRANSACTION_CSV_FIELDS}
+                            csvData={csv.csvData}
+                            mappings={csv.mappings}
+                            onMappingChange={csv.setMapping}
+                            onFileSelect={handleLoadFile}
                         />
                     </TabsContent>
                 </Tabs>

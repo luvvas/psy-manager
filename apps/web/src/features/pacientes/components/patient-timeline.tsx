@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { trpc } from "@/lib/trpc";
+import { trpc, type RouterOutputs } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { FileText, Lock, FileCheck, ClipboardCopy, Download, Eye, ArrowLeft, Paperclip, FileSpreadsheet } from "lucide-react";
+import { FileText, Lock, FileCheck, ClipboardCopy, Download, Eye, ArrowLeft, Paperclip, FileSpreadsheet, type LucideIcon } from "lucide-react";
+
+type ClinicalRecord = RouterOutputs["clinicalRecord"]["list"][number];
 import { toast } from "sonner";
 import { safeUrl } from "@/utils/safe-url";
 import { format } from "date-fns";
@@ -12,7 +14,7 @@ interface PatientTimelineProps {
     patientId: string;
 }
 
-const CATEGORY_ICONS: Record<string, any> = {
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
     evolucao: ClipboardCopy,
     contrato: FileCheck,
     atestado: FileText,
@@ -23,17 +25,14 @@ const CATEGORY_ICONS: Record<string, any> = {
 };
 
 export function PatientTimeline({ patientId }: PatientTimelineProps) {
-    const [viewingDoc, setViewingDoc] = useState<any | null>(null);
+    const [viewingDoc, setViewingDoc] = useState<ClinicalRecord | null>(null);
 
     const utils = trpc.useUtils();
 
-    const { data: records, isLoading } = trpc.clinicalRecord.list.useQuery(
-        { patientId },
-        { retry: false }
-    );
+    const { data: records, isLoading } = trpc.clinicalRecord.list.useQuery({ patientId });
     const { data: downloadData } = trpc.clinicalRecord.getDownloadUrl.useQuery(
         { id: viewingDoc?.id || "" },
-        { enabled: !!viewingDoc, retry: false }
+        { enabled: !!viewingDoc }
     );
 
     const finalizeMutation = trpc.clinicalRecord.finalize.useMutation({

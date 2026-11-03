@@ -325,7 +325,7 @@ export function NewPatientForm({ onSave, onCancel, initialData }: NewPatientForm
                             <Controller
                                 name="dataInicioAcompanhamento"
                                 control={control}
-                                render={({ field }) => <DatePicker id="dataInicioAcompanhamento" date={field.value as any} setDate={field.onChange} />}
+                                render={({ field }) => <DatePicker id="dataInicioAcompanhamento" date={field.value ?? undefined} setDate={field.onChange} />}
                             />
                         </div>
                     </div>

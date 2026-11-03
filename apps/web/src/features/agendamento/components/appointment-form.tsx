@@ -102,10 +102,20 @@ export type AppointmentFormValues = z.infer<typeof appointmentSchema> & {
     allowScheduleConflicts?: boolean;
 };
 
+/** Dados para abrir o formulário: um agendamento existente, ou só a data clicada no calendário. */
+export type AppointmentFormInitialData = Omit<Partial<AppointmentFormValues>, "clinicId" | "roomId"> & {
+    id?: string;
+    psychologistId?: string;
+    /** null = sem clínica/sala (o form troca pelo valor "nenhuma"). */
+    clinicId?: string | null;
+    roomId?: string | null;
+    reminderSentAt?: Date | string | null;
+};
+
 interface NewAppointmentFormProps {
     onSave: (data: AppointmentFormValues) => Promise<void>;
     onCancel: () => void;
-    initialData?: any;
+    initialData?: AppointmentFormInitialData;
     onDelete?: () => Promise<void>;
     readOnly?: boolean;
 }
@@ -131,6 +141,7 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
     const safeMeetingUrl = safeUrl(initialData?.meetingUrl);
 
     async function handleStartVideo() {
+        if (!initialData?.id) return; // o botão só aparece em agendamento já salvo
         if (!window.confirm("Deseja iniciar a videochamada com este paciente?")) return;
         const result = await createSession.mutateAsync({ appointmentId: initialData.id });
         // Same tab, token in router state: it must not land in the URL
@@ -141,9 +152,7 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
     }
 
     // Load actual patients for select dropdown
-    const { data: patients } = trpc.patient.list.useQuery(undefined, {
-        retry: false,
-    });
+    const { data: patients } = trpc.patient.list.useQuery();
 
     // Calculado uma vez por abertura do formulário.
     const [defaultTimes] = useState(defaultTimeRange);
@@ -190,7 +199,7 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
     const day = watchedDate ? startOfDay(watchedDate) : null;
 
     // ── Local da sessão presencial: clínica e sala ──
-    const { data: clinics } = trpc.clinic.list.useQuery(undefined, { enabled: !readOnly, retry: false });
+    const { data: clinics } = trpc.clinic.list.useQuery(undefined, { enabled: !readOnly });
     const clinicsWithRooms = (clinics ?? []).filter((c) => c.rooms.length > 0);
     const selectedClinic = clinicsWithRooms.find((c) => c.id === clinicId) ?? null;
     // A sala vale para qualquer canal: online também pode ser atendida da sala.
@@ -215,7 +224,7 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
     // ── Agendamento rápido: horários livres do dia (expediente + sala) ──
     const { data: free } = trpc.appointment.freeSlots.useQuery(
         { date: day!, excludeId: initialData?.id, ...roomScope },
-        { enabled: !!day && !readOnly, retry: false }
+        { enabled: !!day && !readOnly }
     );
     const sessionMinutes = free?.sessionMinutes ?? null;
 
@@ -265,7 +274,7 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
     const checking = slotValid && !readOnly && status !== "cancelled";
     const { data: slotCheck } = trpc.appointment.checkSlot.useQuery(
         { date: day!, startTime, endTime, excludeId: initialData?.id, ...roomScope },
-        { enabled: checking, retry: false, placeholderData: (prev) => prev }
+        { enabled: checking, placeholderData: (prev) => prev }
     );
     const activeCheck = checking && slotCheck && !slotCheck.unchanged ? slotCheck : null;
     const hasWarning =
@@ -469,7 +478,7 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
                             control={control}
                             render={({ field }) => (
                                 <DatePicker
-                                    date={field.value as any}
+                                    date={field.value}
                                     setDate={field.onChange}
                                     id="date"
                                     disabled={isSubmitting || readOnly}

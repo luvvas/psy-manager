@@ -2,20 +2,18 @@ import { Pencil, Trash2, CheckCircle2, Clock, FileDown, DollarSign } from "lucid
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
+import { formatCurrency } from "@/utils/format";
+import type { Transaction } from "../types";
 
 interface TransactionsTableProps {
-    data: any[];
+    data: Transaction[];
     type: "income" | "expense" | "all";
-    onEdit: (transaction: any) => void;
+    onEdit: (transaction: Transaction) => void;
     onDelete: (id: string) => void;
 }
 
 export function TransactionsTable({ data, type, onEdit, onDelete }: TransactionsTableProps) {
-    const formatValue = (val: string | number) => {
-        return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(val));
-    };
-
-    const columns: DataTableColumn<any>[] = [
+    const columns: DataTableColumn<Transaction>[] = [
         {
             header: "Data",
             className: "w-[12%]",
@@ -62,7 +60,7 @@ export function TransactionsTable({ data, type, onEdit, onDelete }: Transactions
             className: "w-[18%]",
             render: (row) => (
                 <span className={`font-semibold ${row.type === "income" ? "text-emerald-600" : "text-rose-600"}`}>
-                    {row.type === "income" ? "+" : "-"} {formatValue(row.amount)}
+                    {row.type === "income" ? "+" : "-"} {formatCurrency(row.amount)}
                 </span>
             ),
         },

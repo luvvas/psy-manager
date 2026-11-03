@@ -10,13 +10,15 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatCurrency } from "@/utils/format";
+import type { Transaction, TransactionTypeFilter } from "../types";
 
 interface IncomeChartProps {
-    transactions: any[];
+    transactions: Transaction[];
 }
 
 export function IncomeChart({ transactions }: IncomeChartProps) {
-    const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
+    const [typeFilter, setTypeFilter] = useState<TransactionTypeFilter>("all");
 
     const chartData = useMemo(() => {
         const daily: Record<string, { date: string; dateRaw: Date; income: number; expense: number }> = {};
@@ -42,21 +44,13 @@ export function IncomeChart({ transactions }: IncomeChartProps) {
         return Object.values(daily).sort((a, b) => a.dateRaw.getTime() - b.dateRaw.getTime());
     }, [transactions]);
 
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-            maximumFractionDigits: 0,
-        }).format(value);
-    };
-
     return (
         <Card className="flex-1">
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-sm font-medium">Movimentação Financeira</CardTitle>
                 <Select
                     value={typeFilter}
-                    onValueChange={(v: any) => setTypeFilter(v)}
+                    onValueChange={(v) => setTypeFilter(v as TransactionTypeFilter)}
                 >
                     <SelectTrigger className="h-8 w-[130px] text-xs">
                         <SelectValue placeholder="Filtrar" />
@@ -110,7 +104,7 @@ export function IncomeChart({ transactions }: IncomeChartProps) {
                                     color: "var(--popover-foreground)",
                                 }}
                                 itemStyle={{ padding: 0 }}
-                                formatter={(value: any) => [formatCurrency(Number(value || 0))]}
+                                formatter={(value) => [formatCurrency(Number(value || 0), { whole: true })]}
                                 labelStyle={{ fontWeight: "bold", marginBottom: "4px" }}
                             />
                             {(typeFilter === "all" || typeFilter === "income") && (

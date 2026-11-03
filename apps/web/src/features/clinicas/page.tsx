@@ -14,13 +14,9 @@ export function ClinicasPage() {
     const [editingClinic, setEditingClinic] = useState<DBClinic | null>(null);
 
     // Load clinics via tRPC
-    const { data: dbClinics, refetch } = trpc.clinic.list.useQuery(undefined, {
-        retry: false,
-    });
+    const { data: dbClinics, refetch } = trpc.clinic.list.useQuery();
 
-    const { data: invites, refetch: refetchInvites } = trpc.clinic.listInvites.useQuery(undefined, {
-        retry: false,
-    });
+    const { data: invites, refetch: refetchInvites } = trpc.clinic.listInvites.useQuery();
 
     const acceptInviteMutation = trpc.clinic.acceptInvite.useMutation({
         onSuccess: () => {

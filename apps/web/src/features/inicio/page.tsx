@@ -44,12 +44,12 @@ export function InicioPage() {
     const todayKey = format(now, "yyyy-MM-dd");
     const monthRange = useMemo(() => ({ startDate: startOfMonth(now), endDate: endOfMonth(now) }), [now]);
 
-    const { data: dbAppointments } = trpc.appointment.list.useQuery(undefined, { retry: false });
-    const { data: dbPatients } = trpc.patient.list.useQuery(undefined, { retry: false });
-    const { data: dbTransactions } = trpc.financial.list.useQuery(monthRange, { retry: false });
+    const { data: dbAppointments } = trpc.appointment.list.useQuery();
+    const { data: dbPatients } = trpc.patient.list.useQuery();
+    const { data: dbTransactions } = trpc.financial.list.useQuery(monthRange);
     // Pendências não têm período: uma cobrança de meses atrás continua pendente.
-    const { data: dbAllTransactions } = trpc.financial.list.useQuery(undefined, { retry: false });
-    const { data: dbRecords } = trpc.clinicalRecord.list.useQuery(undefined, { retry: false });
+    const { data: dbAllTransactions } = trpc.financial.list.useQuery();
+    const { data: dbRecords } = trpc.clinicalRecord.list.useQuery();
 
     const myId = session?.user?.id;
     const sessions: HomeSession[] = useMemo(

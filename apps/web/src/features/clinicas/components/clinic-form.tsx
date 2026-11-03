@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Trash2, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { formatCNPJ, formatPhone } from "@/utils/format";
+import { formatCNPJ, formatPhone, getErrorMessage } from "@/utils/format";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ClinicRooms } from "./clinic-rooms";
 
@@ -92,8 +92,8 @@ export function NewClinicForm({
             await onLinkPsychologist(newPsyEmail);
             setNewPsyEmail("");
             toast.success("Convite enviado. Se o e-mail tiver conta, o psicólogo verá o convite e entra na clínica ao aceitar.");
-        } catch (error: any) {
-            toast.error(error.message || "Erro ao adicionar psicólogo");
+        } catch (error) {
+            toast.error(`Erro ao convidar: ${getErrorMessage(error, "tente novamente.")}`);
         } finally {
             setIsLinking(false);
         }
@@ -270,8 +270,8 @@ export function NewClinicForm({
                                                 try {
                                                     await onUnlinkPsychologist(psy.id);
                                                     toast.success("Psicólogo removido com sucesso!");
-                                                } catch (error: any) {
-                                                    toast.error(error.message || "Erro ao desvincular");
+                                                } catch (error) {
+                                                    toast.error(`Erro ao desvincular: ${getErrorMessage(error, "tente novamente.")}`);
                                                 }
                                             }
                                         }}

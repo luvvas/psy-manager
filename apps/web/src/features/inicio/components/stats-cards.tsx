@@ -1,5 +1,6 @@
 import { CalendarDays, CalendarRange, TrendingUp, Users } from "lucide-react";
 import { StatsCards as GenericStatsCards } from "@/components/stats-cards";
+import { formatCurrency } from "@/utils/format";
 
 interface StatsCardsProps {
     sessionsToday: number;
@@ -7,9 +8,6 @@ interface StatsCardsProps {
     patientCount: number;
     monthIncome: number;
 }
-
-const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
 export function StatsCards({ sessionsToday, sessionsWeek, patientCount, monthIncome }: StatsCardsProps) {
     const stats = [

@@ -1,5 +1,6 @@
 import { TrendingUp, TrendingDown, Wallet, Calendar } from "lucide-react";
 import { StatsCards as GenericStatsCards } from "@/components/stats-cards";
+import { formatCurrency } from "@/utils/format";
 
 export interface FinancialTransaction {
     id: string;
@@ -12,13 +13,6 @@ export interface FinancialTransaction {
 interface StatsCardsProps {
     transactions: FinancialTransaction[];
 }
-
-const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-    }).format(value);
-};
 
 export function StatsCards({ transactions }: StatsCardsProps) {
     const income = transactions

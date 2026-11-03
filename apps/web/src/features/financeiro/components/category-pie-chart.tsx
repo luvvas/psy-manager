@@ -10,9 +10,11 @@ import {
     ChartTooltip,
     ChartTooltipContent,
 } from "@/components/ui/chart";
+import { formatCurrency } from "@/utils/format";
+import type { Transaction, TransactionTypeFilter } from "../types";
 
 interface CategoryPieChartProps {
-    transactions: any[];
+    transactions: Transaction[];
 }
 
 const PALETTES = {
@@ -22,7 +24,7 @@ const PALETTES = {
 };
 
 export function CategoryPieChart({ transactions }: CategoryPieChartProps) {
-    const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
+    const [typeFilter, setTypeFilter] = useState<TransactionTypeFilter>("all");
 
     const { chartData, chartConfig } = useMemo(() => {
         const summary: Record<string, number> = {};
@@ -54,14 +56,6 @@ export function CategoryPieChart({ transactions }: CategoryPieChartProps) {
         return { chartData: data, chartConfig: config };
     }, [transactions, typeFilter]);
 
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-            maximumFractionDigits: 0,
-        }).format(value);
-    };
-
     return (
         <Card className="flex flex-col h-full">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
@@ -71,7 +65,7 @@ export function CategoryPieChart({ transactions }: CategoryPieChartProps) {
                 </div>
                 <Select
                     value={typeFilter}
-                    onValueChange={(v: any) => setTypeFilter(v)}
+                    onValueChange={(v) => setTypeFilter(v as TransactionTypeFilter)}
                 >
                     <SelectTrigger className="h-8 w-[130px] text-xs">
                         <SelectValue placeholder="Filtrar" />
@@ -99,10 +93,10 @@ export function CategoryPieChart({ transactions }: CategoryPieChartProps) {
                                 content={
                                     <ChartTooltipContent
                                         hideLabel
-                                        formatter={(value: any, name: any) => (
+                                        formatter={(value, name) => (
                                             <>
                                                 <span className="text-muted-foreground">{String(name)}:</span>
-                                                <span className="font-mono font-medium text-foreground ml-auto">{formatCurrency(Number(value))}</span>
+                                                <span className="font-mono font-medium text-foreground ml-auto">{formatCurrency(Number(value), { whole: true })}</span>
                                             </>
                                         )}
                                     />

@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ArrowDownLeft, ArrowUpRight, Wallet } from "lucide-react";
 import { HomePanel, MoreItems } from "./home-panel";
+import { formatCurrency } from "@/utils/format";
 
 export interface HomePendingPayment {
     id: string;
@@ -18,9 +19,6 @@ interface PendingPaymentsProps {
     hiddenCount: number;
     totalToReceive: number;
 }
-
-const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
 export function PendingPayments({ payments, hiddenCount, totalToReceive }: PendingPaymentsProps) {
     return (

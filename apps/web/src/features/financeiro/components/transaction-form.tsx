@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { logger } from "@/lib/logger";
 import { trpc } from "@/lib/trpc";
 import { DatePicker } from "@/components/date-picker";
+import type { Transaction, TransactionInput } from "../types";
 
 const transactionSchema = z.object({
     type: z.enum(["income", "expense"]),
@@ -25,8 +26,8 @@ type FormValues = z.infer<typeof transactionSchema>;
 
 interface TransactionFormProps {
     type?: "income" | "expense";
-    initialData?: any;
-    onSave: (data: any) => Promise<void>;
+    initialData?: Transaction | null;
+    onSave: (data: TransactionInput) => Promise<void>;
     onCancel: () => void;
 }
 
@@ -66,7 +67,7 @@ export function TransactionForm({ type, initialData, onSave, onCancel }: Transac
                 patientId: data.patientId === "none" || data.patientId === "" ? null : data.patientId,
             });
         } catch (error) {
-            logger.error("Erro", error);
+            logger.error("Erro ao salvar transação", error);
         } finally {
             setIsSubmitting(false);
         }
