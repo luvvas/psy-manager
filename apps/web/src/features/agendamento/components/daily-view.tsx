@@ -62,7 +62,7 @@ export function DailyView({
                             Nenhuma sessão agendada para este dia.
                         </p>
                         <p className="text-xs text-muted-foreground/70 mt-1">
-                            Clique em "Nova Sessão" para adicionar.
+                            Clique em "Novo Agendamento" para adicionar.
                         </p>
                     </div>
                 )}
