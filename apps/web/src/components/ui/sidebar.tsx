@@ -76,14 +76,20 @@ function SidebarProvider({
     try {
       const saved = localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY)
       if (saved) return `${saved}px`
-    } catch {}
+    } catch {
+      // storage indisponível (modo privado): usa a largura padrão
+    }
     return SIDEBAR_WIDTH
   })
 
   const setWidth = React.useCallback((px: number) => {
     const clamped = Math.min(Math.max(px, SIDEBAR_WIDTH_MIN), SIDEBAR_WIDTH_MAX)
     setSidebarWidthState(`${clamped}px`)
-    try { localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(clamped)) } catch {}
+    try {
+      localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(clamped))
+    } catch {
+      // storage indisponível: a largura vale só nesta aba
+    }
   }, [])
 
   // This is the internal state of the sidebar.
@@ -214,8 +220,8 @@ function Sidebar({
           side={side}
         >
           <SheetHeader className="sr-only">
-            <SheetTitle>Sidebar</SheetTitle>
-            <SheetDescription>Displays the mobile sidebar.</SheetDescription>
+            <SheetTitle>Menu</SheetTitle>
+            <SheetDescription>Menu de navegação do app.</SheetDescription>
           </SheetHeader>
           <div className="flex h-full w-full flex-col">{children}</div>
         </SheetContent>
@@ -290,7 +296,7 @@ function SidebarTrigger({
       {...props}
     >
       <PanelLeftIcon />
-      <span className="sr-only">Toggle Sidebar</span>
+      <span className="sr-only">Abrir ou fechar o menu</span>
     </Button>
   )
 }
@@ -302,10 +308,10 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
     <button
       data-sidebar="rail"
       data-slot="sidebar-rail"
-      aria-label="Toggle Sidebar"
+      aria-label="Abrir ou fechar o menu"
       tabIndex={-1}
       onClick={toggleSidebar}
-      title="Toggle Sidebar"
+      title="Abrir ou fechar o menu"
       className={cn(
         "absolute inset-y-0 z-20 hidden w-4 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:start-1/2 after:w-[2px] hover:after:bg-sidebar-border sm:flex ltr:-translate-x-1/2 rtl:-translate-x-1/2",
         "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",

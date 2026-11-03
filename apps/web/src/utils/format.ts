@@ -44,3 +44,21 @@ export function formatRG(value: string) {
     if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
     return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}-${digits.slice(8)}`;
 }
+
+// Formatadores criados uma vez: Intl.NumberFormat é caro de instanciar, e era recriado
+// a cada chamada (às vezes por célula de tabela) em 7 cópias pelo app.
+const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const BRL_WHOLE = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+
+/** R$ 1.234,56 — aceita número ou string numérica (valores `numeric` vêm como string da API). */
+export function formatCurrency(value: number | string | null | undefined, options?: { whole?: boolean }) {
+    const n = Number(value);
+    return (options?.whole ? BRL_WHOLE : BRL).format(Number.isFinite(n) ? n : 0);
+}
+
+/** Mensagem legível de um erro desconhecido (catch), para toast. */
+export function getErrorMessage(error: unknown, fallback = "Erro inesperado. Tente novamente."): string {
+    if (error instanceof Error && error.message) return error.message;
+    if (typeof error === "string" && error) return error;
+    return fallback;
+}
