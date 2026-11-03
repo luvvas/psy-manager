@@ -13,7 +13,6 @@ import {
     SidebarMenuItem,
     SidebarSeparator,
     SidebarTrigger,
-    useSidebar,
 } from "@/components/ui/sidebar";
 import { useSession } from "@/lib/auth-client";
 import { signOutAndReset } from "@/lib/session";
@@ -29,81 +28,13 @@ import {
     Users,
     Loader2,
 } from "lucide-react";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { preloadRoute } from "@/route-modules";
 import { FeedbackDialog } from "./feedback-dialog";
+import { SidebarResizeRail } from "./sidebar-resize-rail";
 
 const ProfileForm = lazy(() => import("./profile-form").then((m) => ({ default: m.ProfileForm })));
-
-function ResizableSidebarRail() {
-    const { state, toggleSidebar, setWidth } = useSidebar();
-    const railRef = useRef<HTMLButtonElement>(null);
-
-    useEffect(() => {
-        const rail = railRef.current;
-        if (!rail) return;
-
-        let startX = 0;
-        let startWidth = 0;
-        let dragged = false;
-
-        const getSidebarGapWidth = (): number => {
-            const gap = rail
-                .closest<HTMLElement>('[data-slot="sidebar"]')
-                ?.querySelector<HTMLElement>('[data-slot="sidebar-gap"]');
-            return gap?.getBoundingClientRect().width ?? 256;
-        };
-
-        const onPointerDown = (e: PointerEvent) => {
-            if (state === "collapsed") { toggleSidebar(); return; }
-            e.preventDefault();
-            startX = e.clientX;
-            startWidth = getSidebarGapWidth();
-            dragged = false;
-            rail.setPointerCapture(e.pointerId);
-        };
-
-        const onPointerMove = (e: PointerEvent) => {
-            if (!rail.hasPointerCapture(e.pointerId)) return;
-            const delta = e.clientX - startX;
-            if (Math.abs(delta) > 3) dragged = true;
-            if (!dragged) return;
-            setWidth(startWidth + delta);
-        };
-
-        const onPointerUp = (e: PointerEvent) => {
-            if (!rail.hasPointerCapture(e.pointerId)) return;
-            rail.releasePointerCapture(e.pointerId);
-            if (!dragged) toggleSidebar();
-        };
-
-        rail.addEventListener("pointerdown", onPointerDown);
-        rail.addEventListener("pointermove", onPointerMove);
-        rail.addEventListener("pointerup", onPointerUp);
-
-        return () => {
-            rail.removeEventListener("pointerdown", onPointerDown);
-            rail.removeEventListener("pointermove", onPointerMove);
-            rail.removeEventListener("pointerup", onPointerUp);
-        };
-    }, [state, toggleSidebar, setWidth]);
-
-    return (
-        <button
-            ref={railRef}
-            data-sidebar="rail"
-            aria-label="Redimensionar sidebar"
-            tabIndex={-1}
-            className={[
-                "absolute inset-y-0 z-20 hidden w-4 sm:flex",
-                "group-data-[side=left]:-right-4 ltr:-translate-x-1/2",
-                "after:absolute after:inset-y-0 after:inset-s-1/2 after:w-0.5 hover:after:bg-sidebar-border",
-                state === "collapsed" ? "cursor-e-resize" : "cursor-col-resize",
-            ].join(" ")}
-        />
-    );
-}
 
 const NAV_ITEMS = [
     {
@@ -259,6 +190,7 @@ export function AppSidebar() {
                                     type="button"
                                     onClick={handleLogout}
                                     title="Sair"
+                                    aria-label="Sair"
                                     className="flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                                 >
                                     <LogOut className="size-4" />
@@ -268,7 +200,7 @@ export function AppSidebar() {
                     </SidebarMenu>
                 </SidebarFooter>
 
-                <ResizableSidebarRail />
+                <SidebarResizeRail />
             </Sidebar>
 
             <AppSheet

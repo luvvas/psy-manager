@@ -30,7 +30,8 @@ const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
-const SIDEBAR_WIDTH_STORAGE_KEY = "sidebar-width-px"
+const SIDEBAR_WIDTH_STORAGE_KEY = "psy:sidebar-width:v1"
+const SIDEBAR_WIDTH_LEGACY_STORAGE_KEY = "sidebar-width-px"
 const SIDEBAR_WIDTH_MIN = 180
 const SIDEBAR_WIDTH_MAX = 400
 
@@ -43,6 +44,31 @@ type SidebarContextProps = {
   isMobile: boolean
   toggleSidebar: () => void
   setWidth: (px: number) => void
+  previewWidth: (px: number) => number
+}
+
+function clampSidebarWidth(px: number) {
+  return Math.round(Math.min(Math.max(px, SIDEBAR_WIDTH_MIN), SIDEBAR_WIDTH_MAX))
+}
+
+function readStoredSidebarWidth() {
+  try {
+    const saved = localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY)
+    if (saved !== null) {
+      const px = Number(saved)
+      return Number.isFinite(px) ? `${clampSidebarWidth(px)}px` : SIDEBAR_WIDTH
+    }
+    const legacy = localStorage.getItem(SIDEBAR_WIDTH_LEGACY_STORAGE_KEY)
+    if (legacy === null) return SIDEBAR_WIDTH
+    localStorage.removeItem(SIDEBAR_WIDTH_LEGACY_STORAGE_KEY)
+    const px = Number(legacy)
+    if (!Number.isFinite(px)) return SIDEBAR_WIDTH
+    const clamped = clampSidebarWidth(px)
+    localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(clamped))
+    return `${clamped}px`
+  } catch {
+    return SIDEBAR_WIDTH
+  }
 }
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null)
@@ -72,21 +98,23 @@ function SidebarProvider({
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
 
-  const [sidebarWidth, setSidebarWidthState] = React.useState<string>(() => {
-    try {
-      const saved = localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY)
-      if (saved) return `${saved}px`
-    } catch {
-    }
-    return SIDEBAR_WIDTH
-  })
+  const wrapperRef = React.useRef<HTMLDivElement>(null)
+  const [sidebarWidth, setSidebarWidthState] = React.useState<string>(readStoredSidebarWidth)
+
+  const previewWidth = React.useCallback((px: number) => {
+    const clamped = clampSidebarWidth(px)
+    wrapperRef.current?.style.setProperty("--sidebar-width", `${clamped}px`)
+    return clamped
+  }, [])
 
   const setWidth = React.useCallback((px: number) => {
-    const clamped = Math.min(Math.max(px, SIDEBAR_WIDTH_MIN), SIDEBAR_WIDTH_MAX)
+    const clamped = clampSidebarWidth(px)
+    wrapperRef.current?.style.setProperty("--sidebar-width", `${clamped}px`)
     setSidebarWidthState(`${clamped}px`)
     try {
       localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(clamped))
     } catch {
+      return
     }
   }, [])
 
@@ -137,13 +165,15 @@ function SidebarProvider({
       setOpenMobile,
       toggleSidebar,
       setWidth,
+      previewWidth,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, setWidth]
+    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, setWidth, previewWidth]
   )
 
   return (
     <SidebarContext.Provider value={contextValue}>
       <div
+        ref={wrapperRef}
         data-slot="sidebar-wrapper"
         style={
           {
