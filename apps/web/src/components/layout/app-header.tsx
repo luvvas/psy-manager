@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 interface AppHeaderProps {
     title: string;
@@ -22,6 +23,8 @@ export function AppHeader({ title, description, icon: Icon, actions }: AppHeader
                 backgroundColor: "var(--app-header-bg, var(--background))",
             }}
         >
+            {/* No celular a sidebar vira um sheet fechado: sem este gatilho não há como abrir o menu. */}
+            <SidebarTrigger className="-ml-1 md:hidden" style={{ color: "var(--app-header-fg, inherit)" }} />
             <div className="flex flex-1 items-center justify-between">
                 {/* Left: icon + title — color applied here, not on the header element */}
                 <div

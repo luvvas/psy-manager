@@ -1,5 +1,6 @@
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageLoader } from "@/components/page-loader";
+import { RouteError } from "@/components/route-error";
 import { AuthGuard, PublicOnlyGuard } from "@/features/auth/auth-guard";
 import { ComingSoonPage } from "@/pages/coming-soon";
 import { NotFoundPage } from "@/pages/not-found";
@@ -122,8 +123,9 @@ const webOnlyRoutes = [
 
 export const router = createBrowserRouter([
     {
-        // Rota raiz sem caminho: só existe para o HydrateFallback cobrir todas as rotas.
+        // Rota raiz sem caminho: dá HydrateFallback e errorElement a todas as rotas.
         HydrateFallback: PageLoader,
+        errorElement: <RouteError />,
         children: [...webOnlyRoutes, ...appRoutes],
     },
 ]);
