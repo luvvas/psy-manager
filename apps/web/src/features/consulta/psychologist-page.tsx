@@ -6,8 +6,6 @@ import { ConsultaRoom } from "./components/consulta-room";
 import { Loader2, VideoOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const DEFAULT_ICE: RTCIceServer[] = [{ urls: "stun:stun.l.google.com:19302" }];
-
 export function PsychologistPage() {
     const { sessionId } = useParams<{ sessionId: string }>();
     const location = useLocation();
@@ -24,13 +22,11 @@ export function PsychologistPage() {
 
     const endMutation = trpc.videoSession.end.useMutation();
 
-    const iceServers = session?.iceServers ?? DEFAULT_ICE;
-
-    const { localStream, remoteStream, status, errorMessage, startCall, endCall } = useWebRtcCall({
+    const { localStream, remoteStream, status, errorMessage, startCall, endCall, switchDevice } = useWebRtcCall({
         sessionId: sessionId!,
         role: "psychologist",
         joinToken: wsAuthToken,
-        iceServers,
+        iceServers: session?.iceServers,
     });
 
     const startedRef = useRef(false);
@@ -88,6 +84,8 @@ export function PsychologistPage() {
             status={status}
             errorMessage={errorMessage}
             patientJoinUrl={patientJoinUrl}
+            onSwitchAudioDevice={(deviceId) => switchDevice("audioinput", deviceId)}
+            onSwitchVideoDevice={(deviceId) => switchDevice("videoinput", deviceId)}
             onEndCall={handleEndCall}
         />
     );

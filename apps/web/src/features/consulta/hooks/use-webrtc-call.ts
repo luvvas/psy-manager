@@ -3,12 +3,16 @@ import { logger } from "@/lib/logger";
 
 export type CallStatus = "idle" | "connecting" | "waiting" | "active" | "ended" | "error";
 
+export type MediaInputKind = "audioinput" | "videoinput";
+
 interface Options {
     sessionId: string;
     role: "psychologist" | "patient";
     joinToken: string;
-    iceServers: RTCIceServer[];
+    iceServers?: RTCIceServer[] | null;
 }
+
+const DEFAULT_ICE: RTCIceServer[] = [{ urls: "stun:stun.l.google.com:19302" }];
 
 const WS_BASE =
     (import.meta.env.VITE_WS_URL as string | undefined) ||
@@ -19,7 +23,8 @@ function getWsUrl(sessionId: string): string {
     return `${WS_BASE.replace(/^http/, "ws")}/ws/signaling/${sessionId}`;
 }
 
-export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Options) {
+export function useWebRtcCall({ sessionId, role, joinToken, iceServers: iceServersOption }: Options) {
+    const iceServers = iceServersOption ?? DEFAULT_ICE;
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const [status, setStatus] = useState<CallStatus>("idle");
@@ -189,6 +194,47 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
         };
     }, [sessionId, role, joinToken, iceServers, sendWs, stopLocalTracks]);
 
+    const switchDevice = useCallback(async (kind: MediaInputKind, deviceId: string) => {
+        const stream = localStreamRef.current;
+        if (!stream) return;
+
+        const isAudio = kind === "audioinput";
+        const oldTrack = isAudio ? stream.getAudioTracks()[0] : stream.getVideoTracks()[0];
+        if (oldTrack?.getSettings().deviceId === deviceId) return;
+
+        const constraint = { deviceId: { exact: deviceId } };
+        const newStream = await navigator.mediaDevices.getUserMedia(
+            isAudio ? { audio: constraint } : { video: constraint }
+        );
+        const newTrack = isAudio ? newStream.getAudioTracks()[0] : newStream.getVideoTracks()[0];
+        if (!newTrack) return;
+
+        if (localStreamRef.current !== stream) {
+            newTrack.stop();
+            return;
+        }
+
+        newTrack.enabled = oldTrack?.enabled ?? true;
+
+        const sender = pcRef.current?.getSenders().find((s) => s.track?.kind === newTrack.kind);
+        if (sender) {
+            try {
+                await sender.replaceTrack(newTrack);
+            } catch (err) {
+                newTrack.stop();
+                throw err;
+            }
+        }
+
+        const nextStream = new MediaStream([
+            ...stream.getTracks().filter((t) => t !== oldTrack),
+            newTrack,
+        ]);
+        oldTrack?.stop();
+        localStreamRef.current = nextStream;
+        setLocalStream(nextStream);
+    }, []);
+
     useEffect(() => {
         return () => {
             localStreamRef.current?.getTracks().forEach((t) => t.stop());
@@ -197,5 +243,5 @@ export function useWebRtcCall({ sessionId, role, joinToken, iceServers }: Option
         };
     }, []);
 
-    return { localStream, remoteStream, status, errorMessage, startCall, endCall };
+    return { localStream, remoteStream, status, errorMessage, startCall, endCall, switchDevice };
 }

@@ -6,8 +6,6 @@ import { ConsultaRoom } from "./components/consulta-room";
 import { Button } from "@/components/ui/button";
 import { Loader2, Video, AlertCircle } from "lucide-react";
 
-const DEFAULT_ICE: RTCIceServer[] = [{ urls: "stun:stun.l.google.com:19302" }];
-
 export function JoinPage() {
     const { token } = useParams<{ token: string }>();
     const [joined, setJoined] = useState(false);
@@ -17,13 +15,11 @@ export function JoinPage() {
         { enabled: !!token }
     );
 
-    const iceServers = data?.iceServers ?? DEFAULT_ICE;
-
-    const { localStream, remoteStream, status, errorMessage, startCall, endCall } = useWebRtcCall({
+    const { localStream, remoteStream, status, errorMessage, startCall, endCall, switchDevice } = useWebRtcCall({
         sessionId: data?.sessionId ?? "",
         role: "patient",
         joinToken: token!,
-        iceServers,
+        iceServers: data?.iceServers,
     });
 
     const handleJoin = () => {
@@ -65,6 +61,8 @@ export function JoinPage() {
                 remoteStream={remoteStream}
                 status={status}
                 errorMessage={errorMessage}
+                onSwitchAudioDevice={(deviceId) => switchDevice("audioinput", deviceId)}
+                onSwitchVideoDevice={(deviceId) => switchDevice("videoinput", deviceId)}
                 onEndCall={handleLeave}
             />
         );

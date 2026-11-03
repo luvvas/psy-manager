@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
     ArrowLeftRight,
+    Check,
     ChevronUp,
     Copy,
     Loader2,
@@ -21,8 +22,9 @@ import {
     Video,
     VideoOff,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 import type { CallStatus } from "../hooks/use-webrtc-call";
 
 interface ConsultaRoomProps {
@@ -32,8 +34,8 @@ interface ConsultaRoomProps {
     errorMessage?: string;
     patientJoinUrl?: string;
     onEndCall: () => void;
-    onSwitchAudioDevice?: (deviceId: string) => void;
-    onSwitchVideoDevice?: (deviceId: string) => void;
+    onSwitchAudioDevice?: (deviceId: string) => Promise<void>;
+    onSwitchVideoDevice?: (deviceId: string) => Promise<void>;
 }
 
 const STATUS_LABELS: Partial<Record<CallStatus, string>> = {
@@ -57,8 +59,7 @@ export function ConsultaRoom({
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const [micEnabled, setMicEnabled] = useState(true);
-    const [cameraEnabled, setCameraEnabled] = useState(true);
+    const [, forceRender] = useReducer((n: number) => n + 1, 0);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [swapped, setSwapped] = useState(false);
     const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
@@ -70,50 +71,74 @@ export function ConsultaRoom({
     }, [remoteStream, localStream, swapped]);
 
     useEffect(() => {
-        if (!localStream) return;
-        const audio = localStream.getAudioTracks()[0];
-        if (audio) setMicEnabled(audio.enabled);
-        const video = localStream.getVideoTracks()[0];
-        if (video) setCameraEnabled(video.enabled);
-    }, [localStream]);
-
-    useEffect(() => {
         const handleChange = () => setIsFullscreen(!!document.fullscreenElement);
         document.addEventListener("fullscreenchange", handleChange);
         return () => document.removeEventListener("fullscreenchange", handleChange);
     }, []);
 
     useEffect(() => {
-        navigator.mediaDevices.enumerateDevices().then((devices) => {
-            setAudioDevices(devices.filter((d) => d.kind === "audioinput"));
-            setVideoDevices(devices.filter((d) => d.kind === "videoinput"));
-        });
-    }, []);
+        const mediaDevices = navigator.mediaDevices;
+        if (!mediaDevices) return;
+        let cancelled = false;
+
+        const loadDevices = () => {
+            mediaDevices
+                .enumerateDevices()
+                .then((devices) => {
+                    if (cancelled) return;
+                    setAudioDevices(devices.filter((d) => d.kind === "audioinput"));
+                    setVideoDevices(devices.filter((d) => d.kind === "videoinput"));
+                })
+                .catch((error) => logger.error("Erro ao listar dispositivos de mídia", error));
+        };
+
+        loadDevices();
+        mediaDevices.addEventListener("devicechange", loadDevices);
+        return () => {
+            cancelled = true;
+            mediaDevices.removeEventListener("devicechange", loadDevices);
+        };
+    }, [localStream]);
+
+    const audioTrack = localStream?.getAudioTracks()[0];
+    const videoTrack = localStream?.getVideoTracks()[0];
+    const micEnabled = audioTrack?.enabled ?? true;
+    const cameraEnabled = videoTrack?.enabled ?? true;
+    const activeAudioDeviceId = audioTrack?.getSettings().deviceId;
+    const activeVideoDeviceId = videoTrack?.getSettings().deviceId;
 
     const copyLink = useCallback(() => {
         if (!patientJoinUrl) return;
-        navigator.clipboard.writeText(patientJoinUrl).then(() => {
-            toast.success("Link copiado para a área de transferência");
-        });
+        navigator.clipboard
+            .writeText(patientJoinUrl)
+            .then(() => toast.success("Link copiado para a área de transferência"))
+            .catch(() => toast.error("Não foi possível copiar o link"));
     }, [patientJoinUrl]);
 
     const toggleMic = useCallback(() => {
-        if (!localStream) return;
-        const track = localStream.getAudioTracks()[0];
-        if (track) {
-            track.enabled = !track.enabled;
-            setMicEnabled(track.enabled);
-        }
+        const track = localStream?.getAudioTracks()[0];
+        if (!track) return;
+        track.enabled = !track.enabled;
+        forceRender();
     }, [localStream]);
 
     const toggleCamera = useCallback(() => {
-        if (!localStream) return;
-        const track = localStream.getVideoTracks()[0];
-        if (track) {
-            track.enabled = !track.enabled;
-            setCameraEnabled(track.enabled);
-        }
+        const track = localStream?.getVideoTracks()[0];
+        if (!track) return;
+        track.enabled = !track.enabled;
+        forceRender();
     }, [localStream]);
+
+    const switchDevice = useCallback(
+        (switcher: ((deviceId: string) => Promise<void>) | undefined, deviceId: string) => {
+            if (!switcher) return;
+            switcher(deviceId).catch((error) => {
+                logger.error("Erro ao trocar dispositivo de mídia", error);
+                toast.error("Não foi possível trocar o dispositivo");
+            });
+        },
+        []
+    );
 
     const toggleFullscreen = useCallback(() => {
         if (!containerRef.current) return;
@@ -237,9 +262,12 @@ export function ConsultaRoom({
                                 audioDevices.map((device) => (
                                     <DropdownMenuItem
                                         key={device.deviceId}
-                                        onClick={() => onSwitchAudioDevice?.(device.deviceId)}
-                                        className="hover:bg-zinc-800 cursor-pointer"
+                                        onClick={() => switchDevice(onSwitchAudioDevice, device.deviceId)}
+                                        className="hover:bg-zinc-800 cursor-pointer gap-2"
                                     >
+                                        <Check
+                                            className={`size-3.5 ${device.deviceId === activeAudioDeviceId ? "opacity-100" : "opacity-0"}`}
+                                        />
                                         {device.label || `Microfone ${device.deviceId.slice(0, 8)}`}
                                     </DropdownMenuItem>
                                 ))
@@ -287,9 +315,12 @@ export function ConsultaRoom({
                                 videoDevices.map((device) => (
                                     <DropdownMenuItem
                                         key={device.deviceId}
-                                        onClick={() => onSwitchVideoDevice?.(device.deviceId)}
-                                        className="hover:bg-zinc-800 cursor-pointer"
+                                        onClick={() => switchDevice(onSwitchVideoDevice, device.deviceId)}
+                                        className="hover:bg-zinc-800 cursor-pointer gap-2"
                                     >
+                                        <Check
+                                            className={`size-3.5 ${device.deviceId === activeVideoDeviceId ? "opacity-100" : "opacity-0"}`}
+                                        />
                                         {device.label || `Câmera ${device.deviceId.slice(0, 8)}`}
                                     </DropdownMenuItem>
                                 ))
