@@ -74,6 +74,13 @@ export function PacientesPage() {
         updatedAt: new Date(p.updatedAt || p.createdAt),
     }));
 
+    const editingRecord = editingPatient ? dbPatients?.find((p) => p.id === editingPatient.id) : undefined;
+    const editingPatientRecord = editingRecord && {
+        ...editingRecord,
+        // A coluna é texto cifrado; a API devolve a data já decriptada.
+        dataNascimento: editingRecord.dataNascimento ? new Date(editingRecord.dataNascimento) : null,
+    };
+
     const handleSavePatient = async (newPatient: any) => {
         try {
             if (editingPatient) {
@@ -233,20 +240,9 @@ export function PacientesPage() {
                         setSheetOpen(false);
                         setEditingPatient(null);
                     }}
-                    initialData={
-                        editingPatient
-                            ? {
-                                nome: editingPatient.nome,
-                                email: editingPatient.email,
-                                telefone: editingPatient.telefone,
-                                dataNascimento: editingPatient.dataNascimento,
-                                cidade: editingPatient.cidade,
-                                cpf: editingPatient.cpf,
-                                valorSessao: editingPatient.valorSessao ?? undefined,
-                                modeloCobranca: editingPatient.modeloCobranca ?? undefined,
-                            }
-                            : undefined
-                    }
+                    // Registro completo da API, não a versão resumida da tabela: o form envia
+                    // todos os campos no update, e o que não viesse aqui seria apagado.
+                    initialData={editingPatientRecord}
                 />
             </AppSheet>
         </>
