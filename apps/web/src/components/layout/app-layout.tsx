@@ -7,10 +7,13 @@ import { applyTheme, type ThemeConfig } from "@/lib/theme";
 
 export function AppLayout() {
     const { data: profile } = trpc.psychologist.me.useQuery();
+    const loaded = profile !== undefined;
+    const themeConfig = profile?.themeConfig as ThemeConfig | null | undefined;
 
     useEffect(() => {
-        applyTheme(profile?.themeConfig as ThemeConfig | null);
-    }, [profile?.themeConfig]);
+        if (!loaded) return;
+        applyTheme(themeConfig);
+    }, [loaded, themeConfig]);
 
     return (
         <SidebarProvider>

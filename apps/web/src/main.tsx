@@ -3,6 +3,9 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import { App } from "./app";
+import { applyTheme, loadCachedTheme } from "./lib/theme";
+
+applyTheme(loadCachedTheme());
 
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,
