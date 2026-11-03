@@ -101,8 +101,8 @@ export function PatientDetailsPage() {
                 }
             />
 
-            <div className="flex-1 p-4 lg:p-6 overflow-hidden flex flex-col">
-                <div className="flex-1 h-full overflow-hidden">
+            <div className="flex flex-col flex-1 min-h-0 gap-4 p-4 lg:p-6 overflow-hidden">
+                <div className="flex-1 min-h-0 overflow-hidden">
                     <PatientTimeline patientId={patient.id} />
                 </div>
             </div>

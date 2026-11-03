@@ -9,22 +9,24 @@ interface TransactionsTableProps {
     data: Transaction[];
     type: "income" | "expense" | "all";
     onEdit: (transaction: Transaction) => void;
-    onDelete: (id: string) => void;
+    onDelete: (id: string, description: string) => void;
 }
+
+const TX_DATE = new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" });
 
 export function TransactionsTable({ data, type, onEdit, onDelete }: TransactionsTableProps) {
     const columns: DataTableColumn<Transaction>[] = [
         {
             header: "Data",
             className: "w-[12%]",
-            render: (row) => new Date(row.date).toLocaleDateString("pt-BR", { timeZone: "UTC" }),
+            render: (row) => TX_DATE.format(row.date),
         },
         {
             header: "Descrição",
-            className: "w-[30%]",
+            className: "w-[28%]",
             render: (row) => (
                 <div>
-                    <div className="font-medium">{row.description}</div>
+                    <div className="font-medium text-foreground">{row.description}</div>
                     {row.patientNome && <div className="text-xs text-muted-foreground">Paciente: {row.patientNome}</div>}
                 </div>
             ),
@@ -32,7 +34,7 @@ export function TransactionsTable({ data, type, onEdit, onDelete }: Transactions
         {
             header: "Categoria",
             className: "w-[12%]",
-            render: (row) => row.category ? <Badge variant="secondary" className="font-normal">{row.category}</Badge> : "-",
+            render: (row) => row.category ? <Badge variant="secondary" className="font-normal">{row.category}</Badge> : "—",
         },
         {
             header: "Situação",
@@ -66,14 +68,32 @@ export function TransactionsTable({ data, type, onEdit, onDelete }: Transactions
         },
         {
             header: "",
-            className: "w-[10%] text-right",
+            className: "w-[12%] text-right",
             render: (row) => (
-                <div className="flex items-center justify-end gap-1">
-                    <Button variant="ghost" size="icon" className="size-8" onClick={() => onEdit(row)}>
-                        <Pencil className="size-4 text-muted-foreground hover:text-primary" />
+                <div className="flex justify-end items-center gap-1">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8"
+                        title="Editar"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit(row);
+                        }}
+                    >
+                        <Pencil className="size-3.5 text-muted-foreground hover:text-foreground transition-colors" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="size-8" onClick={() => onDelete(row.id)}>
-                        <Trash2 className="size-4 text-muted-foreground hover:text-destructive" />
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title="Deletar"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(row.id, row.description);
+                        }}
+                    >
+                        <Trash2 className="size-3.5 transition-colors" />
                     </Button>
                 </div>
             )

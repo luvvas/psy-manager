@@ -60,9 +60,10 @@ export function FinanceiroPage() {
 
     const deleteMutation = trpc.financial.delete.useMutation({
         onSuccess: () => {
-            toast.success("Removido com sucesso");
+            toast.success("Transação excluída com sucesso!");
             refetch();
         },
+        onError: (err) => toast.error(`Erro ao excluir: ${err.message}`),
     });
 
     const createManyMutation = trpc.financial.createMany.useMutation({
@@ -94,9 +95,9 @@ export function FinanceiroPage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (confirm("Deseja realmente remover esta transação?")) {
-            await deleteMutation.mutateAsync({ id });
+    const handleDelete = (id: string, description: string) => {
+        if (window.confirm(`Deseja realmente excluir "${description}"?`)) {
+            deleteMutation.mutate({ id });
         }
     };
 

@@ -191,46 +191,19 @@ export function DocumentosPage() {
                 description="Biblioteca central para armazenar seus PDFs, contratos genéricos e modelos de papelaria."
                 icon={Files}
                 actions={
-                    <>
+                    <div className="flex items-center gap-2">
                         <Button
                             size="sm"
                             onClick={() => {
                                 setEditingDoc(null);
                                 setSheetOpen(true);
                             }}
-                            className="gap-1.5 font-medium shadow-sm"
+                            className="gap-1.5"
                         >
                             <Plus className="size-4" />
                             Novo Documento
                         </Button>
-
-                        <AppSheet
-                            open={isSheetOpen}
-                            onOpenChange={(open) => {
-                                setSheetOpen(open);
-                                if (!open) setEditingDoc(null);
-                            }}
-                            title={editingDoc ? "Editar Arquivo" : "Adicionar à Biblioteca"}
-                        >
-                            <GenericDocumentForm
-                                key={editingDoc ? editingDoc.id : "new"}
-                                onSave={handleSave}
-                                onCancel={() => {
-                                    setSheetOpen(false);
-                                    setEditingDoc(null);
-                                }}
-                                initialData={
-                                    editingDoc
-                                        ? {
-                                            title: editingDoc.title,
-                                            type: editingDoc.type,
-                                            isTemplate: editingDoc.isTemplate,
-                                        }
-                                        : undefined
-                                }
-                            />
-                        </AppSheet>
-                    </>
+                    </div>
                 }
             />
 
@@ -275,6 +248,33 @@ export function DocumentosPage() {
                     </TabsContent>
                 </Tabs>
             </div>
+
+            <AppSheet
+                open={isSheetOpen}
+                onOpenChange={(open) => {
+                    setSheetOpen(open);
+                    if (!open) setEditingDoc(null);
+                }}
+                title={editingDoc ? "Editar Documento" : "Novo Documento"}
+            >
+                <GenericDocumentForm
+                    key={editingDoc ? editingDoc.id : "new"}
+                    onSave={handleSave}
+                    onCancel={() => {
+                        setSheetOpen(false);
+                        setEditingDoc(null);
+                    }}
+                    initialData={
+                        editingDoc
+                            ? {
+                                title: editingDoc.title,
+                                type: editingDoc.type,
+                                isTemplate: editingDoc.isTemplate,
+                            }
+                            : undefined
+                    }
+                />
+            </AppSheet>
         </>
     );
 }

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Users, Plus, UploadCloud, ArrowRight, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NewPatientForm, type PatientFormValues } from "./components/patient-form";
-import { PatientsTable, type DBPatient } from "./components/patients-table";
+import { PatientsTable, type Patient } from "./components/patients-table";
 import { mapCsvRowsToPatients, PATIENT_CSV_FIELDS } from "./csv-import";
 import { CsvColumnMapper } from "@/components/csv-import/csv-column-mapper";
 import { useCsvImport } from "@/components/csv-import/use-csv-import";
@@ -17,13 +17,13 @@ import { logger } from "@/lib/logger";
 
 export function PacientesPage() {
     const [isSheetOpen, setSheetOpen] = useState(false);
-    const [editingPatient, setEditingPatient] = useState<DBPatient | null>(null);
+    const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
     const [activeTab, setActiveTab] = useState("lista");
     const csv = useCsvImport(PATIENT_CSV_FIELDS);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const navigate = useNavigate();
 
-    const { data: dbPatients, refetch } = trpc.patient.list.useQuery();
+    const { data: dbPatients, isPending, refetch } = trpc.patient.list.useQuery();
 
     const createPatientMutation = trpc.patient.create.useMutation({
         onSuccess: () => {
@@ -59,26 +59,6 @@ export function PacientesPage() {
         onError: (err) => toast.error(`Erro ao importar: ${err.message}`),
     });
     const isImporting = createManyMutation.isPending;
-
-    const allPatients: DBPatient[] = (dbPatients || []).map((p) => ({
-        id: p.id,
-        nome: p.nome,
-        email: p.email,
-        telefone: p.telefone,
-        dataNascimento: p.dataNascimento ? new Date(p.dataNascimento) : null,
-        cidade: p.cidade,
-        cpf: p.cpf,
-        valorSessao: p.valorSessao ?? null,
-        modeloCobranca: p.modeloCobranca ?? null,
-        createdAt: new Date(p.createdAt),
-        updatedAt: new Date(p.updatedAt || p.createdAt),
-    }));
-
-    const editingRecord = editingPatient ? dbPatients?.find((p) => p.id === editingPatient.id) : undefined;
-    const editingPatientRecord = editingRecord && {
-        ...editingRecord,
-        dataNascimento: editingRecord.dataNascimento ? new Date(editingRecord.dataNascimento) : null,
-    };
 
     const handleSavePatient = async (newPatient: PatientFormValues) => {
         try {
@@ -202,7 +182,8 @@ export function PacientesPage() {
 
                     <TabsContent value="lista" className="outline-none">
                         <PatientsTable
-                            patients={allPatients}
+                            patients={dbPatients ?? []}
+                            isLoading={isPending}
                             onEdit={(patient) => {
                                 setEditingPatient(patient);
                                 setSheetOpen(true);
@@ -239,7 +220,7 @@ export function PacientesPage() {
                         setSheetOpen(false);
                         setEditingPatient(null);
                     }}
-                    initialData={editingPatientRecord}
+                    initialData={editingPatient ?? undefined}
                 />
             </AppSheet>
         </>

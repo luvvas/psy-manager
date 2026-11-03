@@ -1,33 +1,30 @@
 import { Mail, Phone, CreditCard, Calendar, MapPin, Pencil, Trash2, Users, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
+import type { RouterOutputs } from "@/lib/trpc";
 
-export interface DBPatient {
-    id: string;
-    nome: string;
-    email: string | null;
-    telefone: string | null;
-    dataNascimento: Date | null;
-    cidade: string | null;
-    cpf: string | null;
-    valorSessao: string | number | null;
-    modeloCobranca: string | null;
-    createdAt: Date;
-    updatedAt: Date;
-}
+export type Patient = RouterOutputs["patient"]["list"][number];
+
+const BIRTH_DATE = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "UTC",
+});
 
 interface PatientsTableProps {
-    patients: DBPatient[];
-    onEdit: (patient: DBPatient) => void;
+    patients: Patient[];
+    isLoading?: boolean;
+    onEdit: (patient: Patient) => void;
     onDelete: (id: string, name: string) => void;
-    onViewProfile: (patient: DBPatient) => void;
+    onViewProfile: (patient: Patient) => void;
 }
 
-export function PatientsTable({ patients, onEdit, onDelete, onViewProfile }: PatientsTableProps) {
-    const columns: DataTableColumn<DBPatient>[] = [
+export function PatientsTable({ patients, isLoading, onEdit, onDelete, onViewProfile }: PatientsTableProps) {
+    const columns: DataTableColumn<Patient>[] = [
         {
             header: "Nome",
-            className: "w-[28%]",
+            className: "w-[25%]",
             render: (patient) => (
                 <div className="flex items-center gap-3">
                     <span className="font-medium text-foreground block">
@@ -43,7 +40,7 @@ export function PatientsTable({ patients, onEdit, onDelete, onViewProfile }: Pat
         },
         {
             header: "Contato",
-            className: "w-[28%]",
+            className: "w-[25%]",
             render: (patient) => (
                 <div className="flex flex-col gap-0.5">
                     {patient.email && (
@@ -66,7 +63,7 @@ export function PatientsTable({ patients, onEdit, onDelete, onViewProfile }: Pat
         },
         {
             header: "CPF",
-            className: "w-[15%]",
+            className: "w-[14%]",
             render: (patient) => (
                 <span className="font-mono text-xs flex items-center gap-1.5 text-muted-foreground">
                     <CreditCard className="size-3.5" />
@@ -80,14 +77,7 @@ export function PatientsTable({ patients, onEdit, onDelete, onViewProfile }: Pat
             render: (patient) => (
                 <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Calendar className="size-3.5" />
-                    {patient.dataNascimento
-                        ? patient.dataNascimento.toLocaleDateString("pt-BR", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                              timeZone: "UTC"
-                          })
-                        : "—"}
+                    {patient.dataNascimento ? BIRTH_DATE.format(patient.dataNascimento) : "—"}
                 </span>
             ),
         },
@@ -150,6 +140,7 @@ export function PatientsTable({ patients, onEdit, onDelete, onViewProfile }: Pat
     return (
         <DataTable
             data={patients}
+            isLoading={isLoading}
             columns={columns}
             searchPlaceholder="Buscar por nome, CPF ou e-mail..."
             searchFilter={(patient, query) => {
