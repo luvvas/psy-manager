@@ -84,6 +84,12 @@ scoped by `psychologistId`; clinic-shared appointments strip patient PII.
   Cloudflare (Tunnel, Access, R2, TURN) with images in GHCR. The WhatsApp reminder
   feature (EventBridge + Lambda) was removed. `docs/progress/00–14` describe the
   AWS era and are historical.
+- **Web bundle (Nov 2026):** routes are lazy (`apps/web/src/route-modules.ts`),
+  and the sidebar's profile and feedback forms load on open. Entry chunk went from
+  1,678 KB to 711 KB (226 KB gzip); `financeiro` (Recharts) is its own ~388 KB
+  chunk. Source maps are `hidden`, uploaded to Sentry and deleted from `dist/`
+  (`filesToDeleteAfterUpload`), so none ship in the nginx image. `main.tsx` reloads
+  once on `vite:preloadError` (chunk deleted by a deploy).
 - `appointment.reminderEnabled`/`reminderMinutesBefore`/`reminderSentAt` columns
   are kept (and still accepted by the API) so reminders can come back without a
   migration; the UI no longer exposes them.
