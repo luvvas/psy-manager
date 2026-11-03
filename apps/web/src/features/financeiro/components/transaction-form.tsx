@@ -1,11 +1,10 @@
-import { useForm, Controller } from "react-hook-form";
+import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod/v3";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { logger } from "@/lib/logger";
 import { trpc } from "@/lib/trpc";
@@ -25,27 +24,24 @@ const transactionSchema = z.object({
 type FormValues = z.infer<typeof transactionSchema>;
 
 interface TransactionFormProps {
-    type?: "income" | "expense";
+    defaultType?: Transaction["type"];
     initialData?: Transaction | null;
     onSave: (data: TransactionInput) => Promise<void>;
     onCancel: () => void;
 }
 
-export function TransactionForm({ type, initialData, onSave, onCancel }: TransactionFormProps) {
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
+export function TransactionForm({ defaultType, initialData, onSave, onCancel }: TransactionFormProps) {
     const { data: patients } = trpc.patient.list.useQuery();
 
     const {
         register,
         handleSubmit,
         control,
-        watch,
-        formState: { errors },
+        formState: { errors, isSubmitting },
     } = useForm<FormValues>({
         resolver: zodResolver(transactionSchema),
         defaultValues: {
-            type: initialData?.type || type || "income",
+            type: initialData?.type || defaultType || "income",
             description: initialData?.description || "",
             amount: initialData?.amount ? String(initialData.amount) : "",
             date: initialData?.date ? new Date(initialData.date) : new Date(),
@@ -55,10 +51,9 @@ export function TransactionForm({ type, initialData, onSave, onCancel }: Transac
         },
     });
 
-    const currentType = watch("type");
+    const currentType = useWatch({ control, name: "type" });
 
     const onSubmit = async (data: FormValues) => {
-        setIsSubmitting(true);
         try {
             await onSave({
                 ...data,
@@ -67,8 +62,6 @@ export function TransactionForm({ type, initialData, onSave, onCancel }: Transac
             });
         } catch (error) {
             logger.error("Erro ao salvar transação", error);
-        } finally {
-            setIsSubmitting(false);
         }
     };
 

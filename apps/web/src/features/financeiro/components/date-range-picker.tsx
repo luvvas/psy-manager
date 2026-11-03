@@ -28,7 +28,7 @@ export function DateRangePicker({
             <Popover>
                 <PopoverTrigger asChild>
                     <Button
-                        id="date"
+                        id="financeiro-periodo"
                         variant={"outline"}
                         size="sm"
                         className={cn(

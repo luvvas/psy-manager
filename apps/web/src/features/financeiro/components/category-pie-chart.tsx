@@ -1,32 +1,58 @@
 import { useMemo, useState } from "react";
-import {
-    PieChart,
-    Pie
-} from "recharts";
+import { PieChart, Pie } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
     ChartContainer,
     ChartTooltip,
     ChartTooltipContent,
+    type ChartConfig,
 } from "@/components/ui/chart";
 import { formatCurrency } from "@/utils/format";
+import { TransactionTypeSelect } from "./transaction-type-select";
 import type { Transaction, TransactionTypeFilter } from "../types";
 
 interface CategoryPieChartProps {
     transactions: Transaction[];
 }
 
-const PALETTES = {
-    all: ["#3b82f6", "#60a5fa", "#93c5fd", "#2563eb", "#1d4ed8", "#bfdbfe", "#1e40af"],
-    income: ["#10b981", "#34d399", "#6ee7b7", "#059669", "#047857", "#a7f3d0", "#064e3b"],
-    expense: ["#ef4444", "#f87171", "#fca5a5", "#dc2626", "#b91c1c", "#fecaca", "#7f1d1d"],
+const PALETTES: Record<TransactionTypeFilter, string[]> = {
+    all: [
+        "var(--color-sky-500)",
+        "var(--color-sky-400)",
+        "var(--color-sky-300)",
+        "var(--color-sky-600)",
+        "var(--color-sky-700)",
+        "var(--color-sky-200)",
+        "var(--color-sky-900)",
+    ],
+    income: [
+        "var(--color-emerald-500)",
+        "var(--color-emerald-400)",
+        "var(--color-emerald-300)",
+        "var(--color-emerald-600)",
+        "var(--color-emerald-700)",
+        "var(--color-emerald-200)",
+        "var(--color-emerald-900)",
+    ],
+    expense: [
+        "var(--color-rose-500)",
+        "var(--color-rose-400)",
+        "var(--color-rose-300)",
+        "var(--color-rose-600)",
+        "var(--color-rose-700)",
+        "var(--color-rose-200)",
+        "var(--color-rose-900)",
+    ],
 };
+
+const chartConfig = {
+    amount: { label: "Valor" },
+} satisfies ChartConfig;
 
 export function CategoryPieChart({ transactions }: CategoryPieChartProps) {
     const [typeFilter, setTypeFilter] = useState<TransactionTypeFilter>("all");
 
-    const { chartData, chartConfig } = useMemo(() => {
+    const chartData = useMemo(() => {
         const summary: Record<string, number> = {};
 
         transactions.forEach((tx) => {
@@ -39,21 +65,13 @@ export function CategoryPieChart({ transactions }: CategoryPieChartProps) {
 
         const activePalette = PALETTES[typeFilter];
 
-        const data = Object.entries(summary)
-            .map(([name, value], index) => ({
-                category: name,
-                amount: value,
+        return Object.entries(summary)
+            .sort(([, a], [, b]) => b - a)
+            .map(([category, amount], index) => ({
+                category,
+                amount,
                 fill: activePalette[index % activePalette.length],
-            }))
-            .sort((a, b) => b.amount - a.amount);
-
-        const config = {
-            amount: {
-                label: "Valor",
-            }
-        } as const;
-
-        return { chartData: data, chartConfig: config };
+            }));
     }, [transactions, typeFilter]);
 
     return (
@@ -63,19 +81,7 @@ export function CategoryPieChart({ transactions }: CategoryPieChartProps) {
                     <CardTitle className="text-sm font-medium">Distribuição</CardTitle>
                     <CardDescription className="text-xs">Por categoria</CardDescription>
                 </div>
-                <Select
-                    value={typeFilter}
-                    onValueChange={(v) => setTypeFilter(v as TransactionTypeFilter)}
-                >
-                    <SelectTrigger className="h-8 w-[130px] text-xs">
-                        <SelectValue placeholder="Filtrar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all" className="text-xs">Tudo</SelectItem>
-                        <SelectItem value="income" className="text-xs">Receitas</SelectItem>
-                        <SelectItem value="expense" className="text-xs">Despesas</SelectItem>
-                    </SelectContent>
-                </Select>
+                <TransactionTypeSelect value={typeFilter} onChange={setTypeFilter} />
             </CardHeader>
             <CardContent className="flex-1 pb-4">
                 {chartData.length === 0 ? (
