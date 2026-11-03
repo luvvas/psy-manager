@@ -160,7 +160,9 @@ export function FinanceiroPage() {
             const payload = mapCsvRowsToTransactions(csvData.rows, mappings);
             await createManyMutation.mutateAsync(payload);
         } catch (err) {
-            logger.error("Erro", err);
+            // Antes o erro só ia para o logger e o import falhava em silêncio.
+            logger.error("Erro ao importar transações", err);
+            toast.error(`Erro ao importar: ${err instanceof Error ? err.message : "verifique o arquivo."}`);
             setIsImporting(false);
         }
     };
