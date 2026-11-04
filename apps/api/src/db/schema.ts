@@ -6,6 +6,8 @@ import {
     integer,
     jsonb,
     numeric,
+    uniqueIndex,
+    index,
 } from "drizzle-orm/pg-core";
 import type { WorkSchedule } from "../lib/work-schedule";
 
@@ -20,6 +22,14 @@ export const user = pgTable("user", {
     city: text("city"),
     themeConfig: jsonb("theme_config").$type<{ primary?: string; sidebar?: string; button?: string; tableHeader?: string }>(),
     workSchedule: jsonb("work_schedule").$type<WorkSchedule>(),
+    pixKey: text("pix_key"),
+    cpf: text("cpf"),
+    addressZip: text("address_zip"),
+    addressStreet: text("address_street"),
+    addressNumber: text("address_number"),
+    addressComplement: text("address_complement"),
+    addressDistrict: text("address_district"),
+    state: text("state"),
     consentedAt: text("consented_at"),
     consentVersion: text("consent_version"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -283,3 +293,80 @@ export const clinicalRecord = pgTable("clinical_record", {
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+export const featureFlag = pgTable("feature_flag", {
+    key: text("key").primaryKey(),
+    enabled: boolean("enabled").notNull().default(false),
+    rolloutPercent: integer("rollout_percent").notNull().default(0),
+    description: text("description"),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const featureFlagOverride = pgTable(
+    "feature_flag_override",
+    {
+        id: text("id").primaryKey(),
+        flagKey: text("flag_key")
+            .notNull()
+            .references(() => featureFlag.key, { onDelete: "cascade" }),
+        psychologistId: text("psychologist_id")
+            .notNull()
+            .references(() => user.id, { onDelete: "cascade" }),
+        enabled: boolean("enabled").notNull(),
+        createdAt: timestamp("created_at").notNull().defaultNow(),
+    },
+    (t) => [uniqueIndex("feature_flag_override_flag_psychologist_unique").on(t.flagKey, t.psychologistId)]
+);
+
+export const PAYMENT_METHODS = ["pix", "cartao", "transferencia", "dinheiro", "outro"] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+export const payment = pgTable(
+    "payment",
+    {
+        id: text("id").primaryKey(),
+        psychologistId: text("psychologist_id")
+            .notNull()
+            .references(() => user.id, { onDelete: "cascade" }),
+        patientId: text("patient_id")
+            .notNull()
+            .references(() => patient.id, { onDelete: "cascade" }),
+        amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+        paidAt: timestamp("paid_at").notNull(),
+        method: text("method").$type<PaymentMethod>().notNull(),
+        financialTransactionId: text("financial_transaction_id")
+            .references(() => financialTransaction.id, { onDelete: "set null" }),
+        createdAt: timestamp("created_at").notNull().defaultNow(),
+    },
+    (t) => [index("idx_payment_psychologist_patient").on(t.psychologistId, t.patientId)]
+);
+
+export const CHARGE_STATUSES = ["open", "paid", "waived"] as const;
+export type ChargeStatus = (typeof CHARGE_STATUSES)[number];
+
+export const charge = pgTable(
+    "charge",
+    {
+        id: text("id").primaryKey(),
+        psychologistId: text("psychologist_id")
+            .notNull()
+            .references(() => user.id, { onDelete: "cascade" }),
+        patientId: text("patient_id")
+            .notNull()
+            .references(() => patient.id, { onDelete: "cascade" }),
+        appointmentId: text("appointment_id")
+            .references(() => appointment.id, { onDelete: "set null" }),
+        sessionDate: timestamp("session_date").notNull(),
+        amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+        dueDate: timestamp("due_date").notNull(),
+        status: text("status").$type<ChargeStatus>().notNull().default("open"),
+        paidAt: timestamp("paid_at"),
+        paymentId: text("payment_id").references(() => payment.id, { onDelete: "set null" }),
+        createdAt: timestamp("created_at").notNull().defaultNow(),
+        updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    },
+    (t) => [
+        uniqueIndex("charge_appointment_unique").on(t.appointmentId),
+        index("idx_charge_psychologist_status").on(t.psychologistId, t.status),
+    ]
+);

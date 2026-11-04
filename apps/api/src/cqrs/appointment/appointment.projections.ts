@@ -4,6 +4,7 @@ import { appointment } from "../../db/schema";
 import { eventBus } from "../../lib/cqrs";
 import type { DomainEvent } from "../../lib/cqrs";
 import { encryptField } from "../../lib/encryption";
+import { billingService } from "../../services/billing.service";
 
 export const appointmentProjections = {
     init() {
@@ -40,6 +41,8 @@ export const appointmentProjections = {
             updatedAt: event.createdAt ?? new Date(),
         }).onConflictDoNothing();
 
+        await billingService.syncChargeForAppointment({ id, psychologistId, patientId, date: new Date(date), status });
+
         console.log(`📈 Read Model Projected: Appointment Scheduled -> (${id})`);
     },
 
@@ -71,12 +74,28 @@ export const appointmentProjections = {
             })
             .where(eq(appointment.id, id));
 
+        const [row] = await db
+            .select({ psychologistId: appointment.psychologistId })
+            .from(appointment)
+            .where(eq(appointment.id, id))
+            .limit(1);
+        if (row) {
+            await billingService.syncChargeForAppointment({
+                id,
+                psychologistId: row.psychologistId,
+                patientId,
+                date: new Date(date),
+                status,
+            });
+        }
+
         console.log(`📈 Read Model Projected: Appointment Rescheduled -> (${id})`);
     },
 
     async handleAppointmentCancelled(event: DomainEvent): Promise<void> {
         const id = event.aggregateId;
 
+        await billingService.removeOpenChargeForAppointment(id);
         await db.delete(appointment).where(eq(appointment.id, id));
 
         console.log(`📈 Read Model Projected: Appointment Deleted -> (${id})`);

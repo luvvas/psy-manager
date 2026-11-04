@@ -8,13 +8,22 @@ import { documentService } from "./document.service";
 import { financialService } from "./financial.service";
 import { appointmentQueries } from "../cqrs/appointment/appointment.queries";
 import type { WorkSchedule } from "../lib/work-schedule";
+import { billingService } from "./billing.service";
+import { decryptField, encryptField } from "../lib/encryption";
 
 export type Psychologist = typeof user.$inferSelect;
 export type ThemeConfig = { primary?: string; sidebar?: string; button?: string; tableHeader?: string };
-export type PsychologistUpdate = Partial<Pick<Psychologist, "name" | "phone" | "crp" | "city" | "image">> & {
+type AddressField = "addressZip" | "addressStreet" | "addressNumber" | "addressComplement" | "addressDistrict" | "state";
+
+export type PsychologistUpdate = Partial<Pick<Psychologist, "name" | "phone" | "crp" | "city" | "image" | "cpf" | AddressField>> & {
     themeConfig?: ThemeConfig | null;
     workSchedule?: WorkSchedule | null;
+    pixKey?: string | null;
 };
+
+function decryptPsychologist<T extends { cpf: string | null }>(row: T): T {
+    return { ...row, cpf: decryptField(row.cpf) };
+}
 
 export const psychologistService = {
     async getById(id: string) {
@@ -23,7 +32,7 @@ export const psychologistService = {
             .from(user)
             .where(eq(user.id, id))
             .limit(1);
-        return result ?? null;
+        return result ? decryptPsychologist(result) : null;
     },
 
     async getByEmail(email: string) {
@@ -32,7 +41,7 @@ export const psychologistService = {
             .from(user)
             .where(eq(user.email, email))
             .limit(1);
-        return result ?? null;
+        return result ? decryptPsychologist(result) : null;
     },
 
     async updateProfile(id: string, data: PsychologistUpdate) {
@@ -40,15 +49,16 @@ export const psychologistService = {
             .update(user)
             .set({
                 ...data,
+                ...(data.cpf !== undefined && { cpf: encryptField(data.cpf) }),
                 updatedAt: new Date(),
             })
             .where(eq(user.id, id))
             .returning();
-        return updated;
+        return updated ? decryptPsychologist(updated) : updated;
     },
 
     async exportData(id: string) {
-        const [psychologist, patients, clinicalRecords, allAppointments, financialTransactions, documents] =
+        const [psychologist, patients, clinicalRecords, allAppointments, financialTransactions, documents, billing] =
             await Promise.all([
                 this.getById(id),
                 patientQueries.list(id),
@@ -56,6 +66,7 @@ export const psychologistService = {
                 appointmentQueries.list(id),
                 financialService.list(id, {}),
                 documentService.list(id),
+                billingService.exportForPsychologist(id),
             ]);
 
         const appointments = allAppointments.filter((a) => a.isOwn);
@@ -68,6 +79,17 @@ export const psychologistService = {
                 name: psychologist?.name,
                 email: psychologist?.email,
                 crp: psychologist?.crp,
+                cpf: psychologist?.cpf,
+                address: psychologist
+                    ? {
+                          zip: psychologist.addressZip,
+                          street: psychologist.addressStreet,
+                          number: psychologist.addressNumber,
+                          complement: psychologist.addressComplement,
+                          district: psychologist.addressDistrict,
+                          state: psychologist.state,
+                      }
+                    : undefined,
                 phone: psychologist?.phone,
                 city: psychologist?.city,
             },
@@ -76,6 +98,8 @@ export const psychologistService = {
             documents: documentsWithoutContent,
             financialTransactions,
             appointments,
+            charges: billing.charges,
+            payments: billing.payments,
         };
     },
 

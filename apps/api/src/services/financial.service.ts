@@ -1,7 +1,26 @@
+import { TRPCError } from "@trpc/server";
 import { eq, and, between, desc } from "drizzle-orm";
 import { db } from "../db";
-import { financialTransaction, patient, type TransactionStatus, type TransactionType } from "../db/schema";
+import { financialTransaction, patient, payment, type TransactionStatus, type TransactionType } from "../db/schema";
 import { encryptField, decryptField } from "../lib/encryption";
+
+const LINKED_TO_PAYMENT =
+    "Esta receita veio de um pagamento de sessões. Para corrigir, desfaça o pagamento na aba Financeiro do paciente.";
+
+async function linkedTransaction(psychologistId: string, id: string) {
+    const [row] = await db
+        .select({
+            type: financialTransaction.type,
+            amount: financialTransaction.amount,
+            status: financialTransaction.status,
+            patientId: financialTransaction.patientId,
+        })
+        .from(financialTransaction)
+        .innerJoin(payment, eq(payment.financialTransactionId, financialTransaction.id))
+        .where(and(eq(financialTransaction.id, id), eq(financialTransaction.psychologistId, psychologistId)))
+        .limit(1);
+    return row ?? null;
+}
 
 export const financialService = {
     async list(psychologistId: string, filters: { startDate?: Date; endDate?: Date }) {
@@ -118,6 +137,17 @@ export const financialService = {
             status?: TransactionStatus;
         }
     ) {
+        const linked = await linkedTransaction(psychologistId, id);
+        if (
+            linked &&
+            ((data.type !== undefined && data.type !== linked.type) ||
+                (data.amount !== undefined && Number(data.amount) !== Number(linked.amount)) ||
+                (data.status !== undefined && data.status !== linked.status) ||
+                (data.patientId !== undefined && (data.patientId || null) !== linked.patientId))
+        ) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: LINKED_TO_PAYMENT });
+        }
+
         const [updatedTx] = await db
             .update(financialTransaction)
             .set({
@@ -139,6 +169,10 @@ export const financialService = {
     },
 
     async delete(psychologistId: string, id: string) {
+        if (await linkedTransaction(psychologistId, id)) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: LINKED_TO_PAYMENT });
+        }
+
         const [deletedTx] = await db
             .delete(financialTransaction)
             .where(
