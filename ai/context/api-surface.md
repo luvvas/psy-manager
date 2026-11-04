@@ -127,6 +127,36 @@ Services:
 - `apps/api/src/services/clinical-record.service.ts`
 - `apps/api/src/services/storage.service.ts`
 
+## `featureFlags`
+
+File: `apps/api/src/routes/feature-flags.ts`
+
+- `list`: protected query. Map of known flags (`FEATURE_FLAGS` in
+  `services/feature-flag.service.ts`) for the session: override → `enabled` →
+  stable bucket (`sha256(key:userId) % 100`) below `rollout_percent`.
+- `flaggedProcedure(key)` (`trpc/index.ts`) answers `FORBIDDEN` when off.
+
+## `billing` (flag `pagamentos`)
+
+File: `apps/api/src/routes/billing.ts`, service `services/billing.service.ts`
+
+- `summary`: to receive, overdue, received this month, patients with balance.
+- `receivables`: open charges grouped by patient.
+- `patientStatement`: charges + payments of one patient (NOT_FOUND if not owned).
+- `registerPayment`: in one transaction, locks the open charges (`FOR UPDATE`),
+  creates a paid income in `financial_transaction`, a `payment`, and marks the
+  charges paid. Any charge not open → BAD_REQUEST, nothing written.
+- `undoPayment`: reopens the charges (drops the ones whose appointment is no longer
+  `completed`), deletes the payment and its income. NOT_FOUND if not owned.
+- `waiveCharge`: open → `waived`.
+
+`financial.update/delete` refuse (BAD_REQUEST) to delete, or change type/amount/status/
+patient of, an income created by a payment; the fix is `undoPayment`.
+`psychologist.exportData` includes `charges` and `payments`.
+
+Charges are created/removed by the appointment projections
+(`billingService.syncChargeForAppointment`), not by the router.
+
 ## Non-tRPC HTTP Routes
 
 File: `apps/api/src/app.ts` (WebSocket `/ws/signaling/:sessionId` in `apps/api/src/index.ts`)

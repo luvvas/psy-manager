@@ -149,6 +149,31 @@ Business rule:
 - Finalized clinical records cannot be updated or deleted.
 - Finalizing sets `status` to `finalized` and `lockedAt` to the current time.
 
+## Charge And Payment (billing)
+
+Tables `charge` and `payment` (migration `0023`), behind the `pagamentos` flag.
+
+- A charge is created when an appointment becomes `completed` and the patient has
+  `valorSessao > 0`: one charge per appointment (unique `appointment_id`),
+  amount = `valorSessao`. Due date: `sessao_avulsa` → session day; `mensal` →
+  day 10 of the next month (America/Sao_Paulo).
+- Leaving `completed` or deleting the appointment removes the charge only while
+  it is `open`; paid charges stay (FK `appointment_id` set null).
+- Status `open | paid | waived`; "overdue" is derived from `due_date`.
+- A payment quits one or more open charges of the same patient and creates the
+  matching paid income in `financial_transaction` (description encrypted).
+- `user.pix_key` feeds the static Pix copy-and-paste generated in the web.
+- Receipt data on `user` (migration `0024`): `cpf` (encrypted, digits only), `address_zip`,
+  `address_street`, `address_number`, `address_complement`, `address_district`, `state`
+  (+ existing `city`, `crp`). The Receita Saúde receipt requires the professional's CPF and
+  council number; the address is printed on the in-app receipt.
+
+## Feature Flags
+
+Tables `feature_flag` (`key`, `enabled`, `rollout_percent`) and
+`feature_flag_override` (per psychologist). Flags turn features on without a
+deploy; release flags are removed from the code once on for everyone.
+
 ## Event Store
 
 Table: `event_store`

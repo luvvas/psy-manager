@@ -25,7 +25,7 @@ Leia só o que a tarefa pede:
 | Trabalho planejado | `ai/tasks/` (use a skill `executar-task`) |
 
 Skills do projeto em `.claude/skills/`: `nova-tela`, `react-best-practices`,
-`executar-task`, `security-audit`.
+`executar-task`, `security-audit`, `recriar-ambiente`.
 
 ## Regras
 
