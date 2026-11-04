@@ -149,6 +149,26 @@ Aggregate tests assert:
 - Business rule guards throw on invalid state transitions (double-create,
   update-after-delete, double-delete, invalid fields).
 
+### E2E suite (`apps/e2e/`)
+
+Playwright (Chromium only) against the built SPA (`vite preview` on 5174) and the
+real API (`apps/e2e/scripts/api-server.ts` on 3101), which recreates the
+`psy_manager_e2e` database on the test Postgres (5433), migrates it and imports
+`apps/api/src/index.ts` with test env. Run `bun run test:integration:db` once,
+`bun run --filter @psy-manager/e2e install:browsers` once, then
+`bun run test:e2e`. Report: `bun run --filter @psy-manager/e2e report`.
+
+- The Vite proxy (`apps/web/vite.config.ts`) mirrors nginx: `/trpc`, `/api` and
+  `/ws`, target from `API_PROXY_TARGET` (default `http://localhost:3001`).
+- `tests/fixtures.ts`: every test context gets a random `cf-connecting-ip`, so the
+  auth rate limits never trip and need no bypass in the API. The `psychologist`
+  fixture signs up through `context.request` (shares the cookie jar);
+  `newSession(browser, name)` gives a second, independent psychologist.
+  `trpc`/`trpcQuery` seed data through the API; the journey under test goes
+  through the UI. `window.confirm` dialogs are auto-accepted.
+- Selectors: `getByLabel`/`getByRole` and the existing `id`s; no `data-testid`.
+- Teleconsulta runs real WebRTC between two contexts with fake media devices.
+
 ### Integration suite (`apps/api/tests-integration/`)
 
 Real Postgres (migrations via drizzle `migrate`, not `db:push`, because the

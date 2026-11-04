@@ -46,7 +46,7 @@ Skills do projeto em `.claude/skills/`: `nova-tela`, `react-best-practices`,
 - Escrita de paciente e agendamento passa pelos comandos CQRS, nunca direto no banco.
 - Mudou o schema → gere a migration (`bun run db:generate`).
 - Depois de mutation no web, invalide/refetch as queries afetadas.
-- Rode as verificações relevantes (`bun run test:api`, `bun run test:integration`, `bun run test:web`,
+- Rode as verificações relevantes (`bun run test:api`, `bun run test:integration`, `bun run test:e2e`, `bun run test:web`,
   `bun run --filter @psy-manager/web lint`, `bun run build:web`) e diga o que rodou.
 - Se a arquitetura, o deploy ou uma premissa mudar, atualize o arquivo de `ai/`
   correspondente no mesmo trabalho.
