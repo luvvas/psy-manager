@@ -18,6 +18,7 @@
     "test:integration": "bun run --filter @psy-manager/api test:integration",
     "test:integration:db": "docker compose -f docker-compose.test.yml up -d --wait",
     "test:integration:db:down": "docker compose -f docker-compose.test.yml down",
+    "test:e2e": "bun run --filter @psy-manager/e2e test",
     "db:generate": "bun run --filter @psy-manager/api db:generate",
     "db:migrate": "bun run --filter @psy-manager/api db:migrate",
     "db:push": "bun run --filter @psy-manager/api db:push",
