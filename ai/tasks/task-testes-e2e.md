@@ -1,6 +1,43 @@
 # Task: Testes end-to-end do web (Playwright)
 
-Status: draft
+Status: review — branch `test/e2e`.
+
+## O que foi feito
+
+- `apps/e2e/` (workspace `@psy-manager/e2e`): Playwright + Chromium, 18 testes em 11 specs,
+  estáveis em 3 execuções seguidas (local e com `CI=1`). Script `test:e2e` na raiz.
+- `apps/e2e/scripts/api-server.ts`: recria o banco `psy_manager_e2e` no Postgres de teste,
+  migra e sobe a API real (com WebSocket) na porta 3101.
+- `apps/web/vite.config.ts`: proxy de dev/preview espelha o nginx (`/trpc`, `/api`, `/ws`) e
+  o alvo vem de `API_PROXY_TARGET`. Antes, upload/leitura de PDF local e a teleconsulta não
+  passavam pelo proxy do dev server.
+- Rate limit resolvido sem tocar na API: cada contexto do navegador usa um
+  `cf-connecting-ip` aleatório.
+- CI: job `e2e` no `deploy.yml` (Postgres de serviço, report/trace como artefato em falha) e
+  o `deploy` passa a depender dele.
+
+Jornadas cobertas: cadastro com validação, login com retorno à rota pedida, senha errada,
+guard de `/login`; paciente (validação, busca, edição, detalhe, exclusão); agenda (criar,
+visões dia/semana/mês, aviso de conflito com confirmação, reagendar, excluir, fim antes do
+início); prontuário (validação, PDF anexado e lido do storage, assinatura trava o registro,
+paciente inexistente); isolamento entre psicólogas; clínica (cadastro, sala, aviso de sala
+duplicada, convite aceito, agenda compartilhada sem dados do paciente, "só os meus");
+financeiro (receita, despesa, abas, edição, exclusão); documentos (PDF obrigatório, não-PDF,
+>10MB, modelo, abrir, excluir); importação CSV de pacientes com mapeamento; exportar dados e
+excluir conta; sair; sessão expirada → login; teleconsulta ponta a ponta com WebRTC real.
+
+## Pendentes
+
+- Redefinição de senha: sem SMTP de teste o link não sai da API; precisaria de um
+  transporte de e-mail capturável (ex.: Mailpit no compose de teste).
+- Configuração da agenda de trabalho pelo perfil e horários livres no formulário.
+- Google Calendar: só coberto na integração (OAuth/sync com fetch stubado).
+- Importação CSV do financeiro.
+
+## Follow-ups
+
+- Acessibilidade: o select "Tipo" do formulário financeiro não está ligado ao `<Label>`
+  (o teste usa o primeiro combobox).
 
 ## Goal
 

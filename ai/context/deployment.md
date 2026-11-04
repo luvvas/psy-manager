@@ -52,14 +52,17 @@ dispatch. Serialized by a `deploy-production` concurrency group.
 
 Jobs:
 
-- `quality-gate`: install dependencies, run the API test suite, build the API.
+- `quality-gate`: install dependencies, run unit tests (api + web) and the API
+  integration suite (Postgres as a service), build the API.
+- `e2e`: Postgres as a service, Playwright Chromium, `bun run test:e2e`; uploads
+  the Playwright report and traces as an artifact when it fails.
 - `build-api-image`: build `docker/Dockerfile.api` (target `production`), scan
   with Trivy, push to GHCR, output the immutable digest.
 - `build-web-image`: build the SPA (with Sentry secrets), package `dist/` +
   `docker/nginx.conf` into `docker/Dockerfile.web` from a dedicated build
   context (the root `.dockerignore` excludes `dist/` and `docker/`), scan, push,
   output the digest.
-- `deploy` (environment `production`): SSH through Cloudflare Access with a
+- `deploy` (environment `production`, needs `quality-gate`, `e2e` and both images): SSH through Cloudflare Access with a
   service token (`cloudflared access ssh` as ProxyCommand), upload the compose
   file, scripts and `.env.prod`, log the VPS in to GHCR with the job's
   `GITHUB_TOKEN` over stdin, run `scripts/deploy.sh <api-digest> <web-digest>`,
