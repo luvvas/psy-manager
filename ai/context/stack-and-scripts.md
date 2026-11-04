@@ -99,8 +99,19 @@ Important variables:
 ## Tests
 
 Test runner: Bun's built-in test runner (`bun test`).
-Run with coverage: `bun test --coverage`.
-CI script alias: `bun run test` (defined in the API package).
+
+- Unit: `bun run test:api` (`bun test ./tests` in the API package). Coverage:
+  `bun test ./tests --coverage` from `apps/api`.
+- Integration: `bun run test:integration:db` once (disposable Postgres from
+  `docker-compose.test.yml`, port 5433, tmpfs, user/password `psy_test`), then
+  `bun run test:integration`. Stop it with `bun run test:integration:db:down`.
+  Override the database with `TEST_DATABASE_URL`; `INTEGRATION_VERBOSE=1` keeps
+  `console.log`.
+- CI: the `quality-gate` job in `.github/workflows/deploy.yml` runs both, with
+  Postgres as a service.
+
+The two suites live in separate folders and run in separate `bun test`
+processes on purpose: the unit suite uses `mock.module`, which is process-wide.
 
 Test files live in `apps/api/tests/` with this structure:
 
@@ -137,4 +148,36 @@ Aggregate tests assert:
 - `loadFromHistory` reconstructs identical state from persisted events.
 - Business rule guards throw on invalid state transitions (double-create,
   update-after-delete, double-delete, invalid fields).
+
+### Integration suite (`apps/api/tests-integration/`)
+
+Real Postgres (migrations via drizzle `migrate`, not `db:push`, because the
+`event_store (aggregate_id, version)` unique index lives only in
+`drizzle/0009`), real Better Auth, real event store, column encryption, FK
+cascades and the local storage driver.
+
+```text
+apps/api/tests-integration/
+  setup/preload.ts   ← test env (fixed test keys, local storage in a temp dir,
+                       no S3/TURN/SMTP/Sentry), drops and re-migrates the schema
+  setup/helpers.ts   ← createApp() instance, signUp() via /api/auth, tRPC callers
+                       from the session cookie, factories, fetch stub, PDF upload
+  auth.test.ts                 ← sign-up/in/out, UNAUTHORIZED, rate limits (#39)
+  isolation-account.test.ts    ← psychologist A vs B on every module, exportData,
+                                 password reset e-mail, deleteAccount
+  patient.test.ts              ← event store + projection, encryption at rest,
+                                 concurrency, cascades
+  appointment.test.ts          ← conflicts, work schedule, São Paulo day,
+                                 freeSlots, rooms, shared-clinic visibility
+  google-calendar.test.ts      ← OAuth state, sync/dedupe, token refresh
+  clinic.test.ts, financial.test.ts, documents-storage.test.ts,
+  clinical-record.test.ts, video-session.test.ts
+```
+
+Conventions: each test signs up its own users (unique e-mail and IP), so tests
+don't depend on order and nothing is truncated between files. Patient and
+appointment writes go through procedures; raw SQL is used only to assert what
+is stored (ciphertext, versions) or to set up states with no route (an expired
+video session, an expired Google token). Tests named "lacuna conhecida" pin
+current behavior that is questionable; changing that rule is a separate task.
 

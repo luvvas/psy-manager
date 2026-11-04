@@ -129,7 +129,7 @@ Services:
 
 ## Non-tRPC HTTP Routes
 
-File: `apps/api/src/index.ts`
+File: `apps/api/src/app.ts` (WebSocket `/ws/signaling/:sessionId` in `apps/api/src/index.ts`)
 
 - `POST/GET /api/auth/*`: Better Auth handler.
 - `PUT /api/storage/local-upload/:token`: local PDF upload endpoint.
