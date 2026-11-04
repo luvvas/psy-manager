@@ -24,6 +24,20 @@ jobs:
   quality-gate:
     name: CI / API
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: psy_test
+          POSTGRES_PASSWORD: psy_test
+          POSTGRES_DB: psy_manager_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U psy_test -d psy_manager_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -45,6 +59,9 @@ jobs:
 
       - name: Run API Unit Tests
         run: bun run test
+
+      - name: Run API Integration Tests
+        run: bun run test:integration
 
       - name: Build API
         run: bun run build:api
