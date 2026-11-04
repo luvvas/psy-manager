@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const TIME_ZONE = "America/Sao_Paulo";
+process.env.TZ = TIME_ZONE;
+
 const WEB_PORT = 5174;
 const API_PORT = 3101;
 const webUrl = `http://localhost:${WEB_PORT}`;
@@ -16,7 +19,7 @@ export default defineConfig({
     use: {
         baseURL: webUrl,
         locale: "pt-BR",
-        timezoneId: "America/Sao_Paulo",
+        timezoneId: TIME_ZONE,
         trace: "retain-on-failure",
         video: "retain-on-failure",
         screenshot: "only-on-failure",
