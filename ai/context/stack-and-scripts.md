@@ -168,6 +168,9 @@ real API (`apps/e2e/scripts/api-server.ts` on 3101), which recreates the
   through the UI. `window.confirm` dialogs are auto-accepted.
 - Selectors: `getByLabel`/`getByRole` and the existing `id`s; no `data-testid`.
 - Teleconsulta runs real WebRTC between two contexts with fake media devices.
+- `playwright.config.ts` pins `TZ=America/Sao_Paulo` for the test process (the
+  browser uses the same `timezoneId` and the API sets its own `TZ`). Tests build
+  dates with `new Date()`; on a UTC runner they would land on another day or time.
 
 ### Integration suite (`apps/api/tests-integration/`)
 
