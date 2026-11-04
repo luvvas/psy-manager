@@ -4,6 +4,13 @@ import tailwindcss from "@tailwindcss/vite";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 import path from "path";
 
+const apiTarget = process.env.API_PROXY_TARGET ?? "http://localhost:3001";
+const apiProxy = {
+    "/trpc": { target: apiTarget, changeOrigin: true },
+    "/api": { target: apiTarget, changeOrigin: true },
+    "/ws": { target: apiTarget, changeOrigin: true, ws: true },
+};
+
 export default defineConfig({
     plugins: [
         react(),
@@ -45,16 +52,6 @@ export default defineConfig({
             "@": path.resolve(__dirname, "./src"),
         },
     },
-    server: {
-        proxy: {
-            "/trpc": {
-                target: "http://localhost:3001",
-                changeOrigin: true,
-            },
-            "/api/auth": {
-                target: "http://localhost:3001",
-                changeOrigin: true,
-            },
-        },
-    },
+    server: { proxy: apiProxy },
+    preview: { proxy: apiProxy },
 });
