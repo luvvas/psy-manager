@@ -62,7 +62,7 @@ export const appointmentProjections = {
                 isRecurring,
                 notes: encryptField(notes ?? null),
                 meetingUrl: meetingUrl ?? null,
-                googleEventId: googleEventId ?? null,
+                ...(googleEventId ? { googleEventId } : {}),
                 clinicId: clinicId ?? null,
                 roomId: roomId ?? null,
                 reminderEnabled: reminderEnabled ?? false,

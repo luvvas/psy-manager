@@ -10,7 +10,7 @@ Generated on: 2026-09-02 · updated 2026-11-03 (AWS exit, security fixes)
   as a dependency by api and web but nothing imported it.
 - `apps/desktop` (Electron) was removed. Distribution is web-only for now.
 - Bun lockfile is present. Local `node_modules` is present.
-- Drizzle migrations run through `0018_clever_ghost_rider.sql` (19 files).
+- Drizzle migrations run through `0022_clinic_rooms.sql` (23 files).
 - Versions: all three `package.json` at `1.0.1`. Tags `v1.0.0` and `v1.0.1`.
 
 ## Release Process
@@ -37,16 +37,34 @@ user work in progress and do not commit it without being asked.
 
 ## Test Coverage
 
-52 tests passing across 11 files. Route coverage is 100% lines on all route
-files. Run with `bun test --coverage`.
+- Unit: 105 tests across 18 files (`bun run test:api`, all mocked).
+- Integration: 93 tests across 10 files against a real Postgres
+  (`bun run test:integration`, see `ai/context/stack-and-scripts.md`). Runs in CI.
+- E2E: planned in `ai/tasks/task-testes-e2e.md` (Playwright), not started.
 
-Key gaps that still require integration tests (DB not exercised by any test):
-- Drizzle queries, migrations, and transactions.
-- CQRS event store persistence and optimistic concurrency (`lib/cqrs/index.ts`).
-- Encryption/decryption helpers (`lib/encryption.ts`).
-- Pagination and complex filter combinations on list endpoints.
-- **Rate limiting.** Issue #39 exists precisely because no test exercised the
-  real auth routes, so two limiters sat inert for months.
+Fixed with the integration suite: rescheduling no longer clears `googleEventId`
+in the read model (the next Google sync used to re-import a duplicate).
+
+Behaviors pinned by "lacuna conhecida" tests (current behavior, questionable;
+changing them is product work, not a "fix" to slip in):
+- A non-numeric `patient.valorSessao` passes validation; the event is stored, the
+  projection insert fails, the EventBus swallows it and the API answers success.
+  The patient never shows up. Same family: `financial.amount` non-numeric is a 500.
+- Deleting a patient cascades appointments in the read model, but their aggregates
+  stay alive in the event store.
+- A removed clinic member's room sessions stay visible (without patient data) to
+  the remaining members and keep blocking the room.
+- Room names can repeat in the API; only the web checks duplicates.
+- A clinical record accepts an `appointmentId` of another patient of the same
+  psychologist.
+- `videoSession.end` and `financial.update/delete` on someone else's row answer
+  success/null instead of NOT_FOUND (nothing is changed).
+
+Not covered yet (needs concurrency tests that are hard to make deterministic):
+- The clinical-record lock is check-then-write (UPDATE/DELETE don't filter by
+  `status`); FK cascades from patient/account deletion also remove finalized records.
+- No unique index on `psychologist_clinic (clinic_id, psychologist_id)`; concurrent
+  invites can duplicate.
 
 ## Security Findings
 

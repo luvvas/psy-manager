@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "test": "bun test",
+    "test": "bun test ./tests",
+    "test:integration": "TZ=America/Sao_Paulo bun test --preload ./tests-integration/setup/preload.ts ./tests-integration",
     "start": "node dist/index.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun src/db/migrate.ts",

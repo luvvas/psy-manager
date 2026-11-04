@@ -1,0 +1,96 @@
+import * as Sentry from "@sentry/hono/node";
+import { sentry } from "@sentry/hono/node";
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { logger } from "hono/logger";
+import { trpcServer } from "@hono/trpc-server";
+import { appRouter } from "./routes/router";
+import { createContext } from "./trpc/context";
+import { auth } from "./lib/auth";
+import { registerAuthRateLimiters } from "./lib/rate-limit";
+import { patientProjections } from "./cqrs/patient/patient.projections";
+import { appointmentProjections } from "./cqrs/appointment/appointment.projections";
+import { storageService } from "./services/storage.service";
+import { eventBus } from "./lib/cqrs";
+
+let projectionsReady = false;
+
+export function initProjections() {
+    if (projectionsReady) return;
+    patientProjections.init();
+    appointmentProjections.init();
+    projectionsReady = true;
+}
+
+export function createApp() {
+    initProjections();
+
+    const app = new Hono();
+
+    app.use(sentry(app));
+
+    if (process.env.NODE_ENV !== "production" && process.env.REQUEST_LOG !== "off") app.use("*", logger());
+    const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "http://localhost:5173")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+    app.use(
+        "*",
+        cors({
+            origin: allowedOrigins,
+            allowHeaders: ["Content-Type", "Authorization"],
+            allowMethods: ["POST", "GET", "OPTIONS", "PUT", "DELETE"],
+            credentials: true,
+        })
+    );
+
+    registerAuthRateLimiters(app);
+
+    app.on(["POST", "GET"], "/api/auth/*", (c) => {
+        return auth.handler(c.req.raw);
+    });
+
+    app.get("/api/health", (c) => {
+        const deadLetters = eventBus.getDeadLetters();
+        const healthy = deadLetters.length === 0;
+        return c.json(
+            { status: healthy ? "ok" : "degraded", deadLetterCount: deadLetters.length },
+            healthy ? 200 : 503
+        );
+    });
+
+    app.put("/api/storage/local-upload/:token", (c) => {
+        return storageService.saveLocalUpload(c.req.param("token"), c.req.raw);
+    });
+
+    app.get("/api/storage/local-download/:token", (c) => {
+        return storageService.readLocalFile(c.req.param("token"));
+    });
+
+    app.use(
+        "/trpc/*",
+        trpcServer({
+            router: appRouter,
+            createContext: (_opts, c) =>
+                createContext({ headers: c.req.raw.headers }),
+            onError: ({ error, ctx }) => {
+                if (error.code === "INTERNAL_SERVER_ERROR") {
+                    Sentry.withScope((scope) => {
+                        if (ctx?.session) {
+                            scope.setUser({ id: ctx.session.user.id });
+                        }
+                        Sentry.captureException(error.cause ?? error);
+                    });
+                }
+            },
+        })
+    );
+
+    app.onError((err, c) => {
+        Sentry.captureException(err);
+        return c.json({ error: "Internal Server Error" }, 500);
+    });
+
+    return app;
+}

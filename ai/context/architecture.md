@@ -14,7 +14,8 @@
 
 Main files:
 
-- Entry point: `apps/api/src/index.ts`
+- Entry point: `apps/api/src/index.ts` (env check, Sentry, `serve`, WebSocket upgrade)
+- App factory: `apps/api/src/app.ts` (`createApp()` builds the Hono app; tests use it via `app.fetch`)
 - Context: `apps/api/src/trpc/context.ts`
 - tRPC helpers: `apps/api/src/trpc/index.ts`
 - Root router: `apps/api/src/routes/router.ts`
@@ -47,7 +48,7 @@ Patients and appointments use a CQRS/event-sourcing pattern.
 - Patient command side: `apps/api/src/cqrs/patient/`
 - Appointment command side: `apps/api/src/cqrs/appointment/`
 - Query side reads projection tables directly.
-- Projections subscribe to events on API startup in `apps/api/src/index.ts`.
+- Projections subscribe to events once, in `initProjections()` called by `createApp()` (`apps/api/src/app.ts`).
 
 For patient or appointment writes, prefer the existing command APIs instead of
 writing directly to the projection tables. For reads, use the query side.
