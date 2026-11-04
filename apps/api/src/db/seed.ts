@@ -10,9 +10,13 @@ import {
     clinicRoom,
     psychologistClinic,
     clinicalRecord,
+    appointment,
+    charge,
+    featureFlagOverride,
 } from "./schema";
 import { encryptField } from "../lib/encryption";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
+import { billingService } from "../services/billing.service";
 import { auth } from "../lib/auth";
 import { patientCommands } from "../cqrs/patient/patient.commands";
 import { patientProjections } from "../cqrs/patient/patient.projections";
@@ -37,7 +41,7 @@ const COLLEAGUE_CLINIC_NAME = "Espaço Bem-Estar (seed)";
 const NO_ROOMS_CLINIC_NAME = "Consultório Centro (seed)";
 
 const PAYMENT_FORMS = ["pix", "cartao", "transferencia", "dinheiro"];
-const BILLING_MODELS = ["sessao_avulsa", "pacote_mensal", "pacote_fechado"];
+const BILLING_MODELS = ["sessao_avulsa", "sessao_avulsa", "mensal"];
 const SESSION_TYPES = ["presencial", "online"];
 const ORIGEM_CONTATO = ["indicacao", "redes", "encaminhamento", "outro"];
 const DOC_TYPES = ["contrato", "atestado", "laudo", "outro"];
@@ -343,6 +347,85 @@ async function ensureClinic(opts: {
     return { id: found.id, rooms };
 }
 
+const PAID_AFTER_DAYS = 7;
+
+async function seedBilling(psychologistIds: string[], emailsById: Record<string, string>, now: Date) {
+    for (const id of psychologistIds) {
+        await db
+            .insert(featureFlagOverride)
+            .values({ id: randomUUID(), flagKey: "pagamentos", psychologistId: id, enabled: true })
+            .onConflictDoUpdate({
+                target: [featureFlagOverride.flagKey, featureFlagOverride.psychologistId],
+                set: { enabled: true },
+            });
+        await db
+            .update(user)
+            .set({ pixKey: emailsById[id] })
+            .where(and(eq(user.id, id), isNull(user.pixKey)));
+        await db
+            .update(user)
+            .set({
+                cpf: encryptField(generateCpf()),
+                addressZip: "01310-100",
+                addressStreet: "Av. Paulista",
+                addressNumber: String(faker.number.int({ min: 100, max: 2000 })),
+                addressComplement: `Sala ${faker.number.int({ min: 1, max: 40 })}`,
+                addressDistrict: "Bela Vista",
+                state: "SP",
+            })
+            .where(and(eq(user.id, id), isNull(user.cpf)));
+    }
+
+    const completed = await db
+        .select({
+            id: appointment.id,
+            psychologistId: appointment.psychologistId,
+            patientId: appointment.patientId,
+            date: appointment.date,
+            status: appointment.status,
+        })
+        .from(appointment)
+        .leftJoin(charge, eq(charge.appointmentId, appointment.id))
+        .where(and(inArray(appointment.psychologistId, psychologistIds), eq(appointment.status, "completed"), isNull(charge.id)));
+    for (const appt of completed) await billingService.syncChargeForAppointment(appt);
+
+    const open = await db
+        .select({ id: charge.id, psychologistId: charge.psychologistId, patientId: charge.patientId, sessionDate: charge.sessionDate })
+        .from(charge)
+        .where(and(inArray(charge.psychologistId, psychologistIds), eq(charge.status, "open")));
+
+    const cutoff = new Date(now.getTime() - PAID_AFTER_DAYS * 24 * 60 * 60 * 1000);
+    const oldByPatient = new Map<string, typeof open>();
+    for (const c of open) {
+        if (c.sessionDate >= cutoff) continue;
+        const key = `${c.psychologistId}|${c.patientId}`;
+        oldByPatient.set(key, [...(oldByPatient.get(key) ?? []), c]);
+    }
+
+    let payments = 0;
+    for (const charges of oldByPatient.values()) {
+        if (!faker.datatype.boolean({ probability: 0.7 })) continue;
+        const last = Math.max(...charges.map((c) => c.sessionDate.getTime()));
+        const paidAt = new Date(Math.min(now.getTime(), last + faker.number.int({ min: 0, max: 3 }) * 24 * 60 * 60 * 1000));
+        await billingService.registerPayment(charges[0].psychologistId, {
+            patientId: charges[0].patientId,
+            chargeIds: charges.map((c) => c.id),
+            paidAt,
+            method: faker.helpers.arrayElement(["pix", "pix", "cartao", "transferencia", "dinheiro"] as const),
+        });
+        payments++;
+    }
+
+    const [toWaive] = await db
+        .select({ id: charge.id, psychologistId: charge.psychologistId })
+        .from(charge)
+        .where(and(eq(charge.psychologistId, psychologistIds[0]), eq(charge.status, "open")))
+        .limit(1);
+    if (toWaive) await billingService.waiveCharge(toWaive.psychologistId, toWaive.id);
+
+    return { backfilled: completed.length, payments, waived: toWaive ? 1 : 0 };
+}
+
 async function seed() {
     if (process.env.NODE_ENV === "production") {
         console.error("Seed bloqueado em produção (NODE_ENV=production).");
@@ -466,6 +549,14 @@ async function seed() {
         }
     }
     console.log(`  ✓ ${appointmentCount} appointments (${inRoomCount} in a clinic room)`);
+
+    console.log("Creating charges and payments (flag pagamentos ligada para as contas do seed)...");
+    const emailsById: Record<string, string> = { [psychologistId]: MAIN_USER.email };
+    for (const spec of COLLEAGUES) emailsById[colleagueIds[spec.key]] = spec.email;
+    const billing = await seedBilling([psychologistId, ...COLLEAGUES.map((c) => colleagueIds[c.key])], emailsById, now);
+    console.log(
+        `  ✓ ${billing.backfilled} completed sessions charged, ${billing.payments} payments registered, ${billing.waived} charge waived`
+    );
 
     console.log("Creating financial transactions...");
     const mainTx = await seedTransactions(psychologistId, patientsByPsy[psychologistId], TRANSACTIONS_COUNT);
