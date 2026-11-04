@@ -29,6 +29,7 @@ export function PacientesPage() {
         utils.patient.invalidate();
         utils.appointment.invalidate();
         utils.financial.invalidate();
+        utils.billing.invalidate();
     };
 
     const createPatientMutation = trpc.patient.create.useMutation({

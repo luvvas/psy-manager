@@ -2,10 +2,8 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { PageLoader } from "@/components/page-loader";
 import { RouteError } from "@/components/route-error";
 import { AuthGuard, PublicOnlyGuard } from "@/features/auth/auth-guard";
-import { ComingSoonPage } from "@/pages/coming-soon";
 import { NotFoundPage } from "@/pages/not-found";
 import { pages } from "@/route-modules";
-import { CreditCard } from "lucide-react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
 const appRoutes = [
@@ -77,13 +75,7 @@ const appRoutes = [
                     },
                     {
                         path: "pagamentos",
-                        element: (
-                            <ComingSoonPage
-                                title="Pagamentos"
-                                description="Gerencie pagamentos de sessões, emita recibos e controle parcelas."
-                                icon={CreditCard}
-                            />
-                        ),
+                        element: <Navigate to="/financeiro?aba=receber" replace />,
                     },
                     {
                         path: "contratos",

@@ -7,14 +7,30 @@ import { PatientTimeline } from "./components/patient-timeline";
 import { trpc } from "@/lib/trpc";
 import { uploadFileToTarget } from "@/utils/upload";
 import { ArrowLeft, ClipboardList, Plus } from "lucide-react";
-import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { lazy, Suspense, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useFeatureFlag } from "@/lib/feature-flags";
 import { toast } from "sonner";
+
+const PatientBilling = lazy(() =>
+    import("./components/patient-billing").then((m) => ({ default: m.PatientBilling }))
+);
+const PatientBillingActions = lazy(() =>
+    import("./components/patient-billing").then((m) => ({ default: m.PatientBillingActions }))
+);
 
 export function PatientDetailsPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [isSheetOpen, setSheetOpen] = useState(false);
+    const [searchParams] = useSearchParams();
+    const [activeTab, setActiveTab] = useState(() =>
+        searchParams.get("aba") === "financeiro" ? "financeiro" : "prontuario"
+    );
+    const paymentsEnabled = useFeatureFlag("pagamentos");
+    const currentTab = paymentsEnabled ? activeTab : "prontuario";
+    const [isPaying, setIsPaying] = useState(false);
 
     const utils = trpc.useUtils();
 
@@ -93,18 +109,43 @@ export function PatientDetailsPage() {
                         <Button variant="outline" size="sm" onClick={() => navigate("/pacientes")} className="gap-2">
                             <ArrowLeft className="w-4 h-4" /> Voltar
                         </Button>
-                        <Button size="sm" onClick={() => setSheetOpen(true)} className="gap-1.5">
-                            <Plus className="size-4" />
-                            Novo Registro
-                        </Button>
+                        {currentTab === "prontuario" ? (
+                            <Button size="sm" onClick={() => setSheetOpen(true)} className="gap-1.5">
+                                <Plus className="size-4" />
+                                Novo Registro
+                            </Button>
+                        ) : (
+                            <Suspense fallback={null}>
+                                <PatientBillingActions patientId={patient.id} onRegister={() => setIsPaying(true)} />
+                            </Suspense>
+                        )}
                     </div>
                 }
             />
 
             <div className="flex flex-col flex-1 min-h-0 gap-4 p-4 lg:p-6 overflow-hidden">
-                <div className="flex-1 min-h-0 overflow-hidden">
-                    <PatientTimeline patientId={patient.id} />
-                </div>
+                {paymentsEnabled ? (
+                    <Tabs value={currentTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0 gap-4">
+                        <TabsList className="grid w-full max-w-xs grid-cols-2">
+                            <TabsTrigger value="prontuario">Prontuário</TabsTrigger>
+                            <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="prontuario" className="flex-1 min-h-0 overflow-hidden outline-none">
+                            <PatientTimeline patientId={patient.id} />
+                        </TabsContent>
+                        <TabsContent value="financeiro" className="flex-1 min-h-0 overflow-auto outline-none">
+                            {currentTab === "financeiro" && (
+                                <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+                                    <PatientBilling patientId={patient.id} isPaying={isPaying} onPayingChange={setIsPaying} />
+                                </Suspense>
+                            )}
+                        </TabsContent>
+                    </Tabs>
+                ) : (
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                        <PatientTimeline patientId={patient.id} />
+                    </div>
+                )}
             </div>
 
             <AppSheet
