@@ -342,6 +342,23 @@ export function NewPatientForm({ onSave, onCancel, initialData }: NewPatientForm
                     </div>
 
                     <div className="space-y-1.5">
+                        <Label>Modelo de Cobrança</Label>
+                        <Controller
+                            name="modeloCobranca"
+                            control={control}
+                            render={({ field }) => (
+                                <Select value={field.value || "sessao_avulsa"} onValueChange={field.onChange}>
+                                    <SelectTrigger aria-label="Modelo de Cobrança"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="sessao_avulsa">Por sessão (vence no dia da sessão)</SelectItem>
+                                        <SelectItem value="mensal">Mensal (vence dia 10 do mês seguinte)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                    </div>
+
+                    <div className="space-y-1.5">
                         <Label>Forma de Pagamento Principal</Label>
                         <Controller
                             name="formaPagamento"

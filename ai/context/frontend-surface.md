@@ -43,7 +43,9 @@ Feature path: `apps/web/src/features/agendamento/`
 Feature path: `apps/web/src/features/pacientes/`
 
 - `page.tsx`: patient list, create/edit/delete, open patient details.
-- `page-detalhes.tsx`: patient overview, prontuario tab, financial placeholder.
+- `page-detalhes.tsx`: patient overview; tabs Prontuário / Financeiro (`?aba=financeiro`,
+  only with the `pagamentos` flag; lazy `components/patient-billing.tsx` with the
+  statement, waive, receipts and header actions).
 - `components/patient-form.tsx`: patient registration/edit form.
 - `components/patients-table.tsx`: patient table.
 - `components/patient-timeline.tsx`: clinical record timeline and PDF viewing.
@@ -65,6 +67,17 @@ Feature path: `apps/web/src/features/financeiro/`
 - `components/csv-importer.tsx`: CSV mapping/import UI.
 
 CSV helpers live in `apps/web/src/utils/csv.ts`.
+
+Payments (flag `pagamentos`, `useFeatureFlag` from `lib/feature-flags.ts`):
+
+- Tab "A receber" in `page.tsx` (`?aba=receber`), lazy `components/receivables-tab.tsx`:
+  `billing.summary` KPIs and `billing.receivables` per patient (register payment,
+  WhatsApp charge, statement link). `/pagamentos` redirects here.
+- Shared pieces in `apps/web/src/components/billing/`: `register-payment-form.tsx`,
+  `use-send-charge.ts` + `charge-message.ts` (wa.me link with the static Pix
+  copy-and-paste from `utils/pix.ts`), `receipt.ts` (printable receipt, escaped HTML).
+- Invalidate `billing` after appointment and patient mutations (status `completed`
+  creates charges; value/model changes affect them).
 
 ## Documents
 

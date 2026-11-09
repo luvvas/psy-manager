@@ -32,12 +32,11 @@ patients, clinics, finance, documents, and clinical records.
 
 ## Planned Or Placeholder Modules
 
-- Pagamentos: currently a coming-soon page.
 - Exames: currently a coming-soon page.
 - Buscar Psicologos: currently a coming-soon page.
 - Configuracoes: currently a coming-soon page.
-- Patient-specific financial tab exists as a placeholder on the patient details
-  page.
+- Pagamentos (contas a receber por paciente): implemented behind the
+  `pagamentos` feature flag, off by default; see `ai/tasks/task-pagamentos-mvp.md`.
 
 ## Product Principles
 

@@ -1,4 +1,7 @@
 import { test as base, expect, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import postgres from "postgres";
+
+const E2E_DATABASE_URL = process.env.E2E_DATABASE_URL ?? "postgres://psy_test:psy_test@127.0.0.1:5433/psy_manager_e2e";
 
 export const PASSWORD = "Senha@Teste123";
 
@@ -49,6 +52,18 @@ export async function trpcQuery<T = unknown>(page: Page, procedure: string, inpu
     expect(response.ok(), await response.text()).toBe(true);
     const body = await response.json();
     return body.result.data.json as T;
+}
+
+export async function enableFlagFor(page: Page, flag: string) {
+    const me = await trpcQuery<{ id: string }>(page, "psychologist.me");
+    const sql = postgres(E2E_DATABASE_URL, { max: 1, onnotice: () => {} });
+    try {
+        await sql`insert into feature_flag_override (id, flag_key, psychologist_id, enabled)
+                  values (${crypto.randomUUID()}, ${flag}, ${me.id}, true)
+                  on conflict (flag_key, psychologist_id) do update set enabled = true`;
+    } finally {
+        await sql.end();
+    }
 }
 
 type Fixtures = {

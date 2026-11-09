@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { applyTheme, type ThemeConfig } from "@/lib/theme";
 import { trpc, type RouterOutputs } from "@/lib/trpc";
 import { validateWorkSchedule, type WorkSchedule } from "@/lib/work-schedule";
-import { formatCRP, formatPhone } from "@/utils/format";
+import { formatCEP, formatCPF, formatCRP, formatPhone } from "@/utils/format";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Clock, Loader2, Palette, Shield, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -21,6 +21,22 @@ const profileSchema = z.object({
     phone: z.string().optional().nullable(),
     crp: z.string().optional().nullable(),
     city: z.string().optional().nullable(),
+    pixKey: z.string().max(77, "A chave Pix tem no máximo 77 caracteres").optional().nullable(),
+    cpf: z
+        .string()
+        .optional()
+        .nullable()
+        .refine((v) => !v || v.replace(/\D/g, "").length === 11, "CPF inválido"),
+    addressZip: z.string().optional().nullable(),
+    addressStreet: z.string().max(120).optional().nullable(),
+    addressNumber: z.string().max(20).optional().nullable(),
+    addressComplement: z.string().max(60).optional().nullable(),
+    addressDistrict: z.string().max(60).optional().nullable(),
+    state: z
+        .string()
+        .optional()
+        .nullable()
+        .refine((v) => !v || /^[A-Za-z]{2}$/.test(v), "Use a sigla com 2 letras"),
 });
 
 type ProfileValues = z.infer<typeof profileSchema>;
@@ -38,6 +54,14 @@ function fromProfile(profile: Profile): ProfileValues {
         phone: formatPhone(profile.phone || ""),
         crp: formatCRP(profile.crp || ""),
         city: profile.city || "",
+        pixKey: profile.pixKey || "",
+        cpf: formatCPF(profile.cpf || ""),
+        addressZip: formatCEP(profile.addressZip || ""),
+        addressStreet: profile.addressStreet || "",
+        addressNumber: profile.addressNumber || "",
+        addressComplement: profile.addressComplement || "",
+        addressDistrict: profile.addressDistrict || "",
+        state: profile.state || "",
     };
 }
 
@@ -124,6 +148,14 @@ function ProfileFormFields({ profile, onSuccess, onCancel }: ProfileFormProps & 
             phone: data.phone || undefined,
             crp: data.crp || undefined,
             city: data.city || undefined,
+            pixKey: data.pixKey?.trim() ?? "",
+            cpf: data.cpf ?? "",
+            addressZip: data.addressZip ?? "",
+            addressStreet: data.addressStreet ?? "",
+            addressNumber: data.addressNumber ?? "",
+            addressComplement: data.addressComplement ?? "",
+            addressDistrict: data.addressDistrict ?? "",
+            state: data.state ?? "",
             themeConfig: {
                 primary: validHex(themeConfig.primary),
                 sidebar: validHex(themeConfig.sidebar),
@@ -204,6 +236,90 @@ function ProfileFormFields({ profile, onSuccess, onCancel }: ProfileFormProps & 
                             <Label htmlFor="city">Cidade</Label>
                             <Input id="city" {...register("city")} placeholder="Sua Cidade" />
                         </div>
+                    </div>
+
+                    <div className="space-y-4 border-t pt-4">
+                        <div>
+                            <p className="text-sm font-medium">Dados para recibos</p>
+                            <p className="text-xs text-muted-foreground">
+                                Saem no recibo de pagamento. O CPF também é exigido no recibo do Receita Saúde.
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="cpf">CPF</Label>
+                                <Controller
+                                    control={control}
+                                    name="cpf"
+                                    render={({ field }) => (
+                                        <Input
+                                            id="cpf"
+                                            ref={field.ref}
+                                            name={field.name}
+                                            onBlur={field.onBlur}
+                                            value={field.value ?? ""}
+                                            onChange={(e) => field.onChange(formatCPF(e.target.value))}
+                                            inputMode="numeric"
+                                            placeholder="000.000.000-00"
+                                        />
+                                    )}
+                                />
+                                {errors.cpf && <p className="text-xs text-destructive">{errors.cpf.message}</p>}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="addressZip">CEP</Label>
+                                <Controller
+                                    control={control}
+                                    name="addressZip"
+                                    render={({ field }) => (
+                                        <Input
+                                            id="addressZip"
+                                            ref={field.ref}
+                                            name={field.name}
+                                            onBlur={field.onBlur}
+                                            value={field.value ?? ""}
+                                            onChange={(e) => field.onChange(formatCEP(e.target.value))}
+                                            inputMode="numeric"
+                                            placeholder="00000-000"
+                                        />
+                                    )}
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-2 col-span-2">
+                                <Label htmlFor="addressStreet">Endereço do consultório</Label>
+                                <Input id="addressStreet" {...register("addressStreet")} placeholder="Rua, avenida..." />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="addressNumber">Número</Label>
+                                <Input id="addressNumber" {...register("addressNumber")} />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="addressComplement">Complemento</Label>
+                                <Input id="addressComplement" {...register("addressComplement")} placeholder="Sala, andar" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="addressDistrict">Bairro</Label>
+                                <Input id="addressDistrict" {...register("addressDistrict")} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="state">UF</Label>
+                                <Input id="state" {...register("state")} maxLength={2} placeholder="SP" className="uppercase" />
+                                {errors.state && <p className="text-xs text-destructive">{errors.state.message}</p>}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="pixKey">Chave Pix</Label>
+                        <Input id="pixKey" {...register("pixKey")} placeholder="CPF, e-mail, telefone ou chave aleatória" />
+                        <p className="text-xs text-muted-foreground">
+                            Usada para gerar o Pix copia-e-cola nas cobranças enviadas aos pacientes.
+                        </p>
+                        {errors.pixKey && <p className="text-xs text-destructive">{errors.pixKey.message}</p>}
                     </div>
                 </TabsContent>
 

@@ -10,6 +10,7 @@ export function useAppointmentMutations() {
         onSuccess: () => {
             toast.success("Agendamento criado com sucesso!");
             utils.appointment.invalidate();
+            utils.billing.invalidate();
         },
         onError: (err) => {
             toast.error(`Erro ao criar: ${err.message}`);
@@ -20,6 +21,7 @@ export function useAppointmentMutations() {
         onSuccess: () => {
             toast.success("Agendamento atualizado com sucesso!");
             utils.appointment.invalidate();
+            utils.billing.invalidate();
         },
         onError: (err) => {
             toast.error(`Erro ao atualizar: ${err.message}`);
@@ -30,6 +32,7 @@ export function useAppointmentMutations() {
         onSuccess: () => {
             toast.success("Agendamento excluído com sucesso!");
             utils.appointment.invalidate();
+            utils.billing.invalidate();
         },
         onError: (err) => {
             toast.error(`Erro ao excluir: ${err.message}`);
@@ -58,6 +61,7 @@ export function useSyncGoogleCalendar() {
         onSuccess: (data) => {
             toast.success(`Google Agenda sincronizado! Importados: ${data.imported}, Ignorados: ${data.skipped}`);
             utils.appointment.invalidate();
+            utils.billing.invalidate();
         },
         onError: (err) => {
             toast.error(`Erro ao sincronizar: ${err.message}`);

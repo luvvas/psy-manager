@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { lazy, Suspense, useState, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { DollarSign, Plus, UploadCloud, ArrowRight, Loader2 } from "lucide-react";
 import { AppHeader } from "@/components/layout/app-header";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,12 @@ import { startOfMonth, endOfMonth } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { getErrorMessage } from "@/utils/format";
 import type { Transaction, TransactionInput } from "./types";
+import { useFeatureFlag } from "@/lib/feature-flags";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const ReceivablesTab = lazy(() =>
+    import("./components/receivables-tab").then((m) => ({ default: m.ReceivablesTab }))
+);
 
 export function FinanceiroPage() {
     const [dateRange, setDateRange] = useState<DateRange | undefined>(() => ({
@@ -38,7 +45,10 @@ export function FinanceiroPage() {
     };
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
-    const [activeTab, setActiveTab] = useState("resumo");
+    const [searchParams] = useSearchParams();
+    const [activeTab, setActiveTab] = useState(() => (searchParams.get("aba") === "receber" ? "receber" : "resumo"));
+    const paymentsEnabled = useFeatureFlag("pagamentos");
+    const currentTab = activeTab === "receber" && !paymentsEnabled ? "resumo" : activeTab;
 
     const csv = useCsvImport(TRANSACTION_CSV_FIELDS);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -146,7 +156,7 @@ export function FinanceiroPage() {
         if (tx.type === "income") incomes.push(tx);
         else if (tx.type === "expense") expenses.push(tx);
     }
-    const defaultType = activeTab === "despesas" ? "expense" : "income";
+    const defaultType = currentTab === "despesas" ? "expense" : "income";
 
     return (
         <>
@@ -189,18 +199,23 @@ export function FinanceiroPage() {
             />
 
             <div className="flex flex-1 flex-col gap-4 p-4 lg:p-6">
-                <StatsCards transactions={allTransactions} isLoading={isLoadingTransactions} />
+                {currentTab !== "receber" && (
+                    <StatsCards transactions={allTransactions} isLoading={isLoadingTransactions} />
+                )}
 
                 <Tabs
-                    value={activeTab}
+                    value={currentTab}
                     onValueChange={setActiveTab}
                     className="flex flex-col flex-1 space-y-4 mt-2"
                 >
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <TabsList className="grid w-full max-w-xl grid-cols-4">
+                        <TabsList
+                            className={`w-full ${paymentsEnabled ? "flex justify-start overflow-x-auto sm:grid sm:max-w-2xl sm:grid-cols-5" : "grid max-w-xl grid-cols-4"}`}
+                        >
                             <TabsTrigger value="resumo">Resumo</TabsTrigger>
                             <TabsTrigger value="receitas">Receitas</TabsTrigger>
                             <TabsTrigger value="despesas">Despesas</TabsTrigger>
+                            {paymentsEnabled && <TabsTrigger value="receber">A receber</TabsTrigger>}
                             <TabsTrigger value="importacao" className="relative">
                                 Importação
                                 {csv.csvData && (
@@ -209,7 +224,7 @@ export function FinanceiroPage() {
                             </TabsTrigger>
                         </TabsList>
 
-                        {activeTab === "importacao" && csv.csvData && (
+                        {currentTab === "importacao" && csv.csvData && (
                             <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4">
                                 <Button
                                     variant="outline"
@@ -268,6 +283,16 @@ export function FinanceiroPage() {
                             onDelete={handleDelete}
                         />
                     </TabsContent>
+
+                    {paymentsEnabled && (
+                        <TabsContent value="receber" className="space-y-4 outline-none">
+                            {currentTab === "receber" && (
+                                <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+                                    <ReceivablesTab />
+                                </Suspense>
+                            )}
+                        </TabsContent>
+                    )}
 
                     <TabsContent value="importacao" className="flex-1 flex flex-col space-y-4 outline-none">
                         <CsvColumnMapper

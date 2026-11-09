@@ -8,6 +8,8 @@ import { documentRouter } from "./document";
 import { clinicalRecordRouter } from "./clinical-record";
 import { videoSessionRouter } from "./video-session";
 import { feedbackRouter } from "./feedback";
+import { billingRouter } from "./billing";
+import { featureFlagsRouter } from "./feature-flags";
 
 export const appRouter = router({
     psychologist: psychologistRouter,
@@ -19,6 +21,8 @@ export const appRouter = router({
     clinicalRecord: clinicalRecordRouter,
     videoSession: videoSessionRouter,
     feedback: feedbackRouter,
+    billing: billingRouter,
+    featureFlags: featureFlagsRouter,
 });
 
 export type AppRouter = typeof appRouter;

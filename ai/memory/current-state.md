@@ -40,7 +40,11 @@ user work in progress and do not commit it without being asked.
 - Unit: 105 tests across 18 files (`bun run test:api`, all mocked).
 - Integration: 93 tests across 10 files against a real Postgres
   (`bun run test:integration`, see `ai/context/stack-and-scripts.md`). Runs in CI.
-- E2E: 18 Playwright tests in `apps/e2e` (`bun run test:e2e`), gate the deploy in CI.
+- E2E: 20 Playwright tests in `apps/e2e` (`bun run test:e2e`), gate the deploy in CI.
+- Integration: billing and feature flags add 14 tests (107 total). Web unit: 15.
+
+Feature flags exist (`feature_flag` tables). `pagamentos` ships **off**; turn it on
+per account with a row in `feature_flag_override` (see `ai/tasks/task-feature-flags.md`).
 
 Fixed with the integration suite: rescheduling no longer clears `googleEventId`
 in the read model (the next Google sync used to re-import a duplicate).

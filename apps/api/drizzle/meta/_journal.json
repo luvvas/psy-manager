@@ -162,6 +162,20 @@
       "when": 1793643657816,
       "tag": "0022_clinic_rooms",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793764650484,
+      "tag": "0023_pagamentos_e_feature_flags",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793769114556,
+      "tag": "0024_dados_profissionais_recibo",
+      "breakpoints": true
     }
   ]
 }
