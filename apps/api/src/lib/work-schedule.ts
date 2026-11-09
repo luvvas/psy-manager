@@ -59,6 +59,10 @@ export function nowLocalMinutes(now: Date = new Date()): number {
     return get("hour") * 60 + get("minute");
 }
 
+export function localTime(date: Date): string {
+    return toHHMM(nowLocalMinutes(date));
+}
+
 function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
     return aStart < bEnd && bStart < aEnd;
 }

@@ -145,7 +145,10 @@ export const storageService = {
 
 export const googleCalendarService = {
     isConnected: mock(async () => true),
-    syncEvents: mock(async () => ({ imported: 1, skipped: 0 })),
+    syncEvents: mock(async () => ({ imported: 1, updated: 0, pending: [] })),
+    resolveEvents: mock(async () => ({ imported: 2, updated: 0, pending: [] })),
+    connect: mock(async () => {}),
+    disconnect: mock(async () => {}),
 };
 
 export const videoSessionService = {

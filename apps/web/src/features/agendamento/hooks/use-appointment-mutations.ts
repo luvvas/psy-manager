@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { trpc } from "@/lib/trpc";
+import { trpc, type RouterOutputs } from "@/lib/trpc";
 import type { AppointmentFormValues } from "../appointment-schema";
 import { toAppointmentPayload } from "../mappers";
 
@@ -55,16 +55,60 @@ export function useAppointmentMutations() {
     return { saveAppointment, deleteAppointment };
 }
 
-export function useSyncGoogleCalendar() {
+type GoogleSyncResult = RouterOutputs["appointment"]["syncGoogle"];
+
+function syncSummary({ imported, updated }: GoogleSyncResult): string {
+    const parts: string[] = [];
+    if (imported > 0) parts.push(`${imported} ${imported === 1 ? "sessão importada" : "sessões importadas"}`);
+    if (updated > 0) parts.push(`${updated} ${updated === 1 ? "sessão atualizada" : "sessões atualizadas"}`);
+    return parts.length > 0 ? parts.join(" e ") : "nenhuma sessão nova";
+}
+
+export function useSyncGoogleCalendar(onPending: (result: GoogleSyncResult) => void) {
     const utils = trpc.useUtils();
     return trpc.appointment.syncGoogle.useMutation({
         onSuccess: (data) => {
-            toast.success(`Google Agenda sincronizado! Importados: ${data.imported}, Ignorados: ${data.skipped}`);
-            utils.appointment.invalidate();
-            utils.billing.invalidate();
+            if (data.imported > 0 || data.updated > 0) {
+                utils.appointment.invalidate();
+                utils.billing.invalidate();
+            }
+            if (data.pending.length > 0) {
+                onPending(data);
+                return;
+            }
+            toast.success(`Google Agenda sincronizado: ${syncSummary(data)}.`);
         },
         onError: (err) => {
             toast.error(`Erro ao sincronizar: ${err.message}`);
+        },
+    });
+}
+
+export function useResolveGoogleEvents(onDone: (result: GoogleSyncResult) => void) {
+    const utils = trpc.useUtils();
+    return trpc.appointment.resolveGoogleEvents.useMutation({
+        onSuccess: (data) => {
+            utils.appointment.invalidate();
+            utils.billing.invalidate();
+            utils.patient.invalidate();
+            toast.success(`Google Agenda sincronizado: ${syncSummary(data)}.`);
+            onDone(data);
+        },
+        onError: (err) => {
+            toast.error(`Erro ao importar: ${err.message}`);
+        },
+    });
+}
+
+export function useDisconnectGoogle() {
+    const utils = trpc.useUtils();
+    return trpc.appointment.disconnectGoogle.useMutation({
+        onSuccess: () => {
+            utils.appointment.isConnectedGoogle.invalidate();
+            toast.success("Agenda do Google desconectada.");
+        },
+        onError: (err) => {
+            toast.error(`Erro ao desconectar: ${err.message}`);
         },
     });
 }

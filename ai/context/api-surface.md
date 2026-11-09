@@ -50,10 +50,17 @@ File: `apps/api/src/routes/appointment.ts`
 - `update`: protected mutation. Reschedules through CQRS.
 - `delete`: protected mutation. Cancels through CQRS.
 - `isConnectedGoogle`: protected query. Checks for linked Google account.
-- `syncGoogle`: protected mutation. Imports Google Calendar events.
+- `syncGoogle`: protected mutation. Reads Google events, reschedules imported
+  ones that moved, imports events whose series is already linked to a patient and
+  returns `{ imported, updated, pending }`. `pending` groups undecided events by
+  series (`recurringEventId ?? id`) with a name-based patient suggestion.
+- `resolveGoogleEvents`: protected mutation. Saves decisions per series (patient,
+  new patient by name, or ignore with `patientId: null`), then runs the sync.
+- `disconnectGoogle`: protected mutation. Revokes the token at Google (best
+  effort), deletes the `account` row and the series links.
 - `getGoogleAuthUrl`: protected query. Builds OAuth URL.
 - `connectGoogleCalendar`: protected mutation. Exchanges OAuth code and stores
-  Google account tokens.
+  Google account tokens (encrypted).
 
 CQRS files:
 

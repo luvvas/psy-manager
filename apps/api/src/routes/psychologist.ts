@@ -33,6 +33,8 @@ export const psychologistRouter = router({
                     tableHeader: z.string().optional(),
                 }).optional().nullable(),
                 workSchedule: workScheduleSchema.optional().nullable(),
+                googleSyncDaysBack: z.number().int().min(0).max(365).optional(),
+                googleSyncDaysAhead: z.number().int().min(1).max(365).optional(),
                 pixKey: optionalText(77),
                 cpf: optionalCpf,
                 addressZip: optionalText(9),
