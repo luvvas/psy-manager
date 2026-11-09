@@ -6,6 +6,7 @@ import {
     freeSlots,
     isWithinSchedule,
     localDay,
+    localTime,
     workScheduleSchema,
     type WorkSchedule,
 } from "../../src/lib/work-schedule";
@@ -66,5 +67,11 @@ describe("work schedule", () => {
         const slots = freeSlots(schedule(), MON, [], 15 * 60);
         expect(slots[0]).toEqual({ start: "15:00", end: "15:50" });
         expect(freeSlots(schedule(), MON, [], Infinity)).toEqual([]);
+    });
+
+    test("localTime usa o fuso de São Paulo, não o do servidor", () => {
+        expect(localTime(new Date("2026-11-10T17:00:00Z"))).toBe("14:00");
+        expect(localTime(new Date("2026-11-10T14:00:00-03:00"))).toBe("14:00");
+        expect(localTime(new Date("2026-11-11T02:30:00Z"))).toBe("23:30");
     });
 });

@@ -22,6 +22,8 @@ export const user = pgTable("user", {
     city: text("city"),
     themeConfig: jsonb("theme_config").$type<{ primary?: string; sidebar?: string; button?: string; tableHeader?: string }>(),
     workSchedule: jsonb("work_schedule").$type<WorkSchedule>(),
+    googleSyncDaysBack: integer("google_sync_days_back").notNull().default(30),
+    googleSyncDaysAhead: integer("google_sync_days_ahead").notNull().default(90),
     pixKey: text("pix_key"),
     cpf: text("cpf"),
     addressZip: text("address_zip"),
@@ -369,4 +371,18 @@ export const charge = pgTable(
         uniqueIndex("charge_appointment_unique").on(t.appointmentId),
         index("idx_charge_psychologist_status").on(t.psychologistId, t.status),
     ]
+);
+
+export const googleEventLink = pgTable(
+    "google_event_link",
+    {
+        id: text("id").primaryKey(),
+        psychologistId: text("psychologist_id")
+            .notNull()
+            .references(() => user.id, { onDelete: "cascade" }),
+        googleKey: text("google_key").notNull(),
+        patientId: text("patient_id").references(() => patient.id, { onDelete: "cascade" }),
+        createdAt: timestamp("created_at").notNull().defaultNow(),
+    },
+    (t) => [uniqueIndex("google_event_link_psychologist_key_unique").on(t.psychologistId, t.googleKey)]
 );

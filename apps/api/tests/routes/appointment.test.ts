@@ -9,12 +9,9 @@ import {
     callArg,
     caller,
     callerWithId,
-    dbInsertValues,
-    dbUpdateSet,
     googleCalendarService,
     resetRouterTestState,
     state,
-    tokenFetch,
 } from "../utils/router-test-utils";
 
 beforeEach(resetRouterTestState);
@@ -161,7 +158,7 @@ describe("appointment API", () => {
 
     test("handles Google Calendar helpers", async () => {
         await expect(caller().appointment.isConnectedGoogle()).resolves.toBe(true);
-        await expect(caller().appointment.syncGoogle()).resolves.toEqual({ imported: 1, skipped: 0 });
+        await expect(caller().appointment.syncGoogle()).resolves.toEqual({ imported: 1, updated: 0, pending: [] });
 
         const { url } = await caller().appointment.getGoogleAuthUrl();
         const parsed = new URL(url);
@@ -173,17 +170,20 @@ describe("appointment API", () => {
         expect(googleCalendarService.syncEvents).toHaveBeenCalledWith(USER_ID);
     });
 
-    test("connects Google Calendar by inserting a new account", async () => {
+    test("conecta o Google delegando a troca do código ao serviço", async () => {
         await expect(caller().appointment.connectGoogleCalendar({ code: "oauth-code", state: await googleState() })).resolves.toEqual({
             success: true,
         });
+        expect(googleCalendarService.connect).toHaveBeenCalledWith(USER_ID, "oauth-code");
+    });
 
-        expect(tokenFetch).toHaveBeenCalled();
-        const inserted = callArg(dbInsertValues) as any;
-        expect(inserted.userId).toBe(USER_ID);
-        expect(inserted.providerId).toBe("google");
-        expect(inserted.accessToken).toBe("access-token");
-        expect(inserted.refreshToken).toBe("refresh-token");
+    test("revisão e desconexão do Google usam o id da sessão", async () => {
+        const decisions = [{ key: "serie-1", patientId: "patient-1" }, { key: "dentista", patientId: null }];
+        await expect(caller().appointment.resolveGoogleEvents({ decisions })).resolves.toMatchObject({ imported: 2 });
+        expect(googleCalendarService.resolveEvents).toHaveBeenCalledWith(USER_ID, decisions);
+
+        await expect(caller().appointment.disconnectGoogle()).resolves.toEqual({ success: true });
+        expect(googleCalendarService.disconnect).toHaveBeenCalledWith(USER_ID);
     });
 
     describe("cross-user appointment isolation", () => {
@@ -208,28 +208,6 @@ describe("appointment API", () => {
                 psychologistId: "user-456",
             });
         });
-    });
-
-    test("connects Google Calendar by updating an existing account", async () => {
-        state.googleAccountRows = [{ id: "account-1", refreshToken: "old-refresh-token" }];
-        tokenFetch.mockImplementationOnce(async () =>
-            new Response(
-                JSON.stringify({
-                    access_token: "new-access-token",
-                    expires_in: 3600,
-                }),
-                { status: 200, headers: { "Content-Type": "application/json" } }
-            )
-        );
-
-        await expect(caller().appointment.connectGoogleCalendar({ code: "oauth-code", state: await googleState() })).resolves.toEqual({
-            success: true,
-        });
-
-        const updated = callArg(dbUpdateSet) as any;
-        expect(updated.accessToken).toBe("new-access-token");
-        expect(updated.refreshToken).toBe("old-refresh-token");
-        expect(dbInsertValues).not.toHaveBeenCalled();
     });
 
     describe("state do OAuth do Google (auditoria F3)", () => {

@@ -37,6 +37,16 @@ const profileSchema = z.object({
         .optional()
         .nullable()
         .refine((v) => !v || /^[A-Za-z]{2}$/.test(v), "Use a sigla com 2 letras"),
+    googleSyncDaysBack: z
+        .number({ invalid_type_error: "Informe um número de dias" })
+        .int("Use um número inteiro")
+        .min(0, "Mínimo de 0 dias")
+        .max(365, "Máximo de 365 dias"),
+    googleSyncDaysAhead: z
+        .number({ invalid_type_error: "Informe um número de dias" })
+        .int("Use um número inteiro")
+        .min(1, "Mínimo de 1 dia")
+        .max(365, "Máximo de 365 dias"),
 });
 
 type ProfileValues = z.infer<typeof profileSchema>;
@@ -62,6 +72,8 @@ function fromProfile(profile: Profile): ProfileValues {
         addressComplement: profile.addressComplement || "",
         addressDistrict: profile.addressDistrict || "",
         state: profile.state || "",
+        googleSyncDaysBack: profile.googleSyncDaysBack,
+        googleSyncDaysAhead: profile.googleSyncDaysAhead,
     };
 }
 
@@ -117,6 +129,10 @@ function ProfileFormFields({ profile, onSuccess, onCancel }: ProfileFormProps & 
     });
     const isSubmitting = updateMutation.isPending;
 
+    const onInvalid = (fieldErrors: Partial<Record<keyof ProfileValues, unknown>>) => {
+        if (fieldErrors.googleSyncDaysBack || fieldErrors.googleSyncDaysAhead) setActiveTab("expediente");
+    };
+
     const { register, control, handleSubmit, formState: { errors } } = useForm<ProfileValues>({
         resolver: zodResolver(profileSchema),
         defaultValues: fromProfile(profile),
@@ -163,11 +179,13 @@ function ProfileFormFields({ profile, onSuccess, onCancel }: ProfileFormProps & 
                 tableHeader: validHex(themeConfig.tableHeader),
             },
             workSchedule,
+            googleSyncDaysBack: data.googleSyncDaysBack,
+            googleSyncDaysAhead: data.googleSyncDaysAhead,
         });
     };
 
     return (
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full">
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="flex flex-col h-full">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col w-full space-y-4">
                 <TabsList className="grid w-full grid-cols-4 h-auto p-1 bg-muted/50">
                     <TabsTrigger value="perfil" className="flex-col gap-1 py-2 text-[10px] xs:text-xs">
@@ -325,6 +343,45 @@ function ProfileFormFields({ profile, onSuccess, onCancel }: ProfileFormProps & 
 
                 <TabsContent value="expediente" className="flex-1 space-y-4 overflow-y-auto px-1 pt-4">
                     <WorkScheduleEditor value={workSchedule} onChange={setWorkSchedule} />
+
+                    <div className="space-y-4 border-t pt-4">
+                        <div>
+                            <p className="text-sm font-medium">Sincronização com o Google Agenda</p>
+                            <p className="text-xs text-muted-foreground">
+                                Período lido do Google ao clicar em Sincronizar Agenda, contado a partir de hoje.
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="googleSyncDaysBack">Dias anteriores</Label>
+                                <Input
+                                    id="googleSyncDaysBack"
+                                    type="number"
+                                    inputMode="numeric"
+                                    min={0}
+                                    max={365}
+                                    {...register("googleSyncDaysBack", { valueAsNumber: true })}
+                                />
+                                {errors.googleSyncDaysBack && (
+                                    <p className="text-xs text-destructive">{errors.googleSyncDaysBack.message}</p>
+                                )}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="googleSyncDaysAhead">Dias seguintes</Label>
+                                <Input
+                                    id="googleSyncDaysAhead"
+                                    type="number"
+                                    inputMode="numeric"
+                                    min={1}
+                                    max={365}
+                                    {...register("googleSyncDaysAhead", { valueAsNumber: true })}
+                                />
+                                {errors.googleSyncDaysAhead && (
+                                    <p className="text-xs text-destructive">{errors.googleSyncDaysAhead.message}</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </TabsContent>
 
                 <TabsContent value="customizacao" className="flex-1 space-y-4 overflow-y-auto px-1 pt-4">

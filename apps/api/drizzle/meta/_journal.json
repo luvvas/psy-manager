@@ -176,6 +176,20 @@
       "when": 1793769114556,
       "tag": "0024_dados_profissionais_recibo",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794246378165,
+      "tag": "0025_google_event_link",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1794248659594,
+      "tag": "0026_google_sync_window",
+      "breakpoints": true
     }
   ]
 }

@@ -3,9 +3,7 @@ import { router, protectedProcedure } from "../trpc/index";
 import { appointmentCommands } from "../cqrs/appointment/appointment.commands";
 import { appointmentQueries } from "../cqrs/appointment/appointment.queries";
 import { googleCalendarService } from "../services/google-calendar.service";
-import { db } from "../db";
-import { account, APPOINTMENT_SESSION_TYPES, APPOINTMENT_TYPES } from "../db/schema";
-import { eq, and } from "drizzle-orm";
+import { APPOINTMENT_SESSION_TYPES, APPOINTMENT_TYPES } from "../db/schema";
 import { assertClinicMembership, assertPatientOwnership, assertRoomAccess } from "../lib/ownership";
 import { optionalHttpUrl } from "../utils/url.utils";
 import { consumeOAuthState, issueOAuthState } from "../lib/oauth-state";
@@ -217,6 +215,30 @@ export const appointmentRouter = router({
         return googleCalendarService.syncEvents(ctx.session.user.id);
     }),
 
+    resolveGoogleEvents: protectedProcedure
+        .input(
+            z.object({
+                decisions: z
+                    .array(
+                        z.object({
+                            key: z.string().min(1).max(1024),
+                            patientId: z.string().min(1).optional().nullable(),
+                            newPatientName: z.string().trim().min(1).max(200).optional(),
+                        })
+                    )
+                    .min(1)
+                    .max(500),
+            })
+        )
+        .mutation(async ({ ctx, input }) => {
+            return googleCalendarService.resolveEvents(ctx.session.user.id, input.decisions);
+        }),
+
+    disconnectGoogle: protectedProcedure.mutation(async ({ ctx }) => {
+        await googleCalendarService.disconnect(ctx.session.user.id);
+        return { success: true };
+    }),
+
     getGoogleAuthUrl: protectedProcedure.query(async ({ ctx }) => {
         const clientId = process.env.GOOGLE_CLIENT_ID || "";
         const redirectUri = process.env.GOOGLE_REDIRECT_URI || "http://localhost:5173/google-callback";
@@ -242,64 +264,7 @@ export const appointmentRouter = router({
                     message: "Link de conexão inválido ou expirado. Clique em conectar novamente.",
                 });
             }
-            const now = new Date();
-            const response = await fetch("https://oauth2.googleapis.com/token", {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: new URLSearchParams({
-                    client_id: process.env.GOOGLE_CLIENT_ID || "",
-                    client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
-                    code: input.code,
-                    redirect_uri: process.env.GOOGLE_REDIRECT_URI || "http://localhost:5173/google-callback",
-                    grant_type: "authorization_code",
-                }),
-            });
-
-            if (!response.ok) {
-                console.error("Google OAuth exchange failed, status:", response.status);
-                throw new Error("Falha ao conectar com o Google Calendar. Tente novamente.");
-            }
-
-            const data = await response.json();
-            const accessToken = data.access_token;
-            const refreshToken = data.refresh_token;
-            const expiresIn = data.expires_in;
-            const expiresAt = new Date(now.getTime() + expiresIn * 1000);
-
-            const [existing] = await db
-                .select()
-                .from(account)
-                .where(
-                    and(
-                        eq(account.userId, ctx.session.user.id),
-                        eq(account.providerId, "google")
-                    )
-                );
-
-            if (existing) {
-                await db
-                    .update(account)
-                    .set({
-                        accessToken,
-                        refreshToken: refreshToken || existing.refreshToken,
-                        accessTokenExpiresAt: expiresAt,
-                        updatedAt: now,
-                    })
-                    .where(eq(account.id, existing.id));
-            } else {
-                await db.insert(account).values({
-                    id: crypto.randomUUID(),
-                    accountId: ctx.session.user.id,
-                    providerId: "google",
-                    userId: ctx.session.user.id,
-                    accessToken,
-                    refreshToken,
-                    accessTokenExpiresAt: expiresAt,
-                    createdAt: now,
-                    updatedAt: now,
-                });
-            }
-
+            await googleCalendarService.connect(ctx.session.user.id, input.code);
             return { success: true };
         }),
 });
