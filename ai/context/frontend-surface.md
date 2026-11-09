@@ -28,6 +28,8 @@ Feature path: `apps/web/src/features/auth/`
 Feature path: `apps/web/src/features/agendamento/`
 
 - `page.tsx`: scheduling dashboard, appointment CRUD, Google connect/sync.
+- `components/google-calendar-actions.tsx`: connect, sync, menu with disconnect;
+  opens `google-review-sheet.tsx` when the sync returns pending events.
 - `components/calendar-dashboard.tsx`: calendar view shell.
 - `components/daily-view.tsx`: day view.
 - `components/weekly-view.tsx`: week view.

@@ -71,6 +71,14 @@ The frontend maps them to Portuguese display states such as `pendente`,
 Appointment list queries include appointments from psychologists who share a
 clinic with the logged-in psychologist.
 
+## Google Event Link
+
+`google_event_link` stores one decision per psychologist and Google series
+(`googleKey` = `recurringEventId` or event id): `patientId` set means import
+every occurrence for that patient; `patientId` null means ignored. Deleting the
+patient deletes the link (the series goes back to review); disconnecting Google
+deletes all links. Imported appointments keep `googleEventId`.
+
 ## Clinic
 
 Tables:

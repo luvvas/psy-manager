@@ -67,9 +67,17 @@ Google Calendar support lives in:
 - `apps/web/src/pages/google-callback.tsx`
 - `apps/web/src/features/agendamento/page.tsx`
 
-The current sync imports events from the last 30 days through the next 90 days,
-matches patient names from event title/description, and creates a placeholder
-patient named `Google Calendar Import` when no match exists.
+The sync reads the primary calendar over a per-psychologist window
+(`user.googleSyncDaysBack`/`googleSyncDaysAhead`, default 30/90, set in the
+profile's Expediente tab) and never imports on its own guess. Each series (`recurringEventId`, or the
+event id for single events) gets one decision in `google_event_link`: a patient
+(imports every occurrence, now and in later syncs) or `patientId: null`
+(ignored, never shown again). Undecided series come back as `pending` for the
+review sheet; the name match is only a suggestion. All-day and cancelled events
+are skipped. Times are converted with `localTime` (`America/Sao_Paulo`), never
+with the server's timezone (production containers run in UTC). Google tokens in
+`account` are encrypted with `encryptField`; `decryptField` still reads old
+plaintext rows.
 
 ## Error Handling
 

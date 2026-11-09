@@ -192,7 +192,10 @@ apps/api/tests-integration/
                                  concurrency, cascades
   appointment.test.ts          ← conflicts, work schedule, São Paulo day,
                                  freeSlots, rooms, shared-clinic visibility
-  google-calendar.test.ts      ← OAuth state, sync/dedupe, token refresh
+  google-calendar.test.ts      ← OAuth state, encrypted tokens, disconnect,
+                                 review flow (series links, ignore, new
+                                 patient), São Paulo times, sync window,
+                                 token refresh
   clinic.test.ts, financial.test.ts, documents-storage.test.ts,
   clinical-record.test.ts, video-session.test.ts
 ```
