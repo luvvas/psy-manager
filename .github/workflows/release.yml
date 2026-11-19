@@ -20,7 +20,7 @@ jobs:
       # fetch-depth: 0 e obrigatorio — o gerador precisa do historico
       # completo e das tags para calcular o intervalo da versao anterior.
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
