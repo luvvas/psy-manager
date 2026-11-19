@@ -24,7 +24,8 @@ Leia só o que a tarefa pede:
 | Trabalho planejado | `ai/tasks/` (use a skill `executar-task`) |
 
 Skills do projeto em `.claude/skills/`: `nova-tela`, `react-best-practices`,
-`executar-task`, `security-audit`, `cloudflare-security-audit`, `recriar-ambiente`.
+`executar-task`, `entregar-task`, `abrir-pr`, `atualizar-branch`, `security-audit`,
+`cloudflare-security-audit`, `recriar-ambiente`.
 
 ## Regras
 
@@ -49,6 +50,13 @@ Skills do projeto em `.claude/skills/`: `nova-tela`, `react-best-practices`,
   `bun run --filter @psy-manager/web lint`, `bun run build:web`) e diga o que rodou.
 - Se a arquitetura, o deploy ou uma premissa mudar, atualize o arquivo de `ai/`
   correspondente no mesmo trabalho.
+
+## Fluxo de entrega
+
+Um assunto por branch, a partir do `origin/master`, com um commit. Antes do PR: teste
+unitário da lógica nova, teste manual no navegador quando a mudança é visível, e
+`/code-review` com os achados corrigidos ou justificados no PR. O merge é sempre da
+usuária humana. Skills: `entregar-task` (ponta a ponta), `abrir-pr`, `atualizar-branch`.
 
 ## Ao investigar um bug
 
