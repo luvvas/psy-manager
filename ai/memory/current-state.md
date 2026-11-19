@@ -1,56 +1,32 @@
 # Current State
 
-Generated on: 2026-09-02 · updated 2026-11-03 (AWS exit, security fixes)
-
-## Repo Snapshot
-
-- Bun workspace monorepo: `apps/api` and `apps/web` are the workspace members.
-  `apps/lambda` was removed with the AWS exit.
-- `packages/` no longer exists. `packages/shared` was removed — it was declared
-  as a dependency by api and web but nothing imported it.
-- `apps/desktop` (Electron) was removed. Distribution is web-only for now.
-- Bun lockfile is present. Local `node_modules` is present.
-- Drizzle migrations run through `0022_clinic_rooms.sql` (23 files).
-- Versions: all three `package.json` at `1.0.1`. Tags `v1.0.0` and `v1.0.1`.
+Updated 2026-11-19. Only what the code and `git log` do not tell: known gaps,
+behaviors that look wrong but are pinned on purpose, and things verified as correct
+that should not be "fixed". Snapshot facts (migration count, test counts, versions)
+live in the repo itself.
 
 ## Release Process
 
-The **commit history is the source of truth** for release notes. There is no
-hand-maintained changelog — `apps/web/src/data/changelog.ts` and the
-`/atualizacoes` page were removed.
+The **commit history is the source of truth** for release notes; there is no
+hand-maintained changelog. `CONTRIBUTING.md` has the format and release steps,
+`.githooks/commit-msg` validates (each clone runs `git config core.hooksPath .githooks`
+once), `scripts/release-notes.sh` generates notes, `.github/workflows/release.yml`
+publishes on `v*` tags. The `v1.0.0` release body lists features that no longer exist
+(Redis cache, Electron app): historical noise.
 
-- `CONTRIBUTING.md` — Conventional Commits format, types, canonical scopes,
-  breaking changes, and the release steps.
-- `.githooks/commit-msg` — dependency-free validator. Each clone must run
-  `git config core.hooksPath .githooks` once.
-- `scripts/release-notes.sh` — generates Markdown notes between two refs.
-- `.github/workflows/release.yml` — publishes a GitHub Release on `v*` tags.
+## Feature Flags
 
-Note: the `v1.0.0` release body was generated from the full history, so it lists
-features that no longer exist (Redis cache, Electron app). Treat it as historical
-noise, not a description of the product.
+`pagamentos` is merged in `master` but ships **off**: it only appears for an account
+with a row in `feature_flag_override` (`flag_key = 'pagamentos'`, `psychologist_id`,
+`enabled = true`), or after `feature_flag.enabled`/`rollout_percent` is raised.
+Decision order: override → `enabled` → stable 0–99 bucket of `key:userId` below
+`rollout_percent`.
 
-## Git State At Scan Time
+## Pinned "Lacuna Conhecida" Behaviors
 
-`.gitignore` has uncommitted user changes (adds `docs` and `.venv/`). Treat it as
-user work in progress and do not commit it without being asked.
+Current behavior, questionable, pinned by integration tests. Changing them is product
+work, not a "fix" to slip in:
 
-## Test Coverage
-
-- Unit: 105 tests across 18 files (`bun run test:api`, all mocked).
-- Integration: 93 tests across 10 files against a real Postgres
-  (`bun run test:integration`, see `ai/context/stack-and-scripts.md`). Runs in CI.
-- E2E: 20 Playwright tests in `apps/e2e` (`bun run test:e2e`), gate the deploy in CI.
-- Integration: billing and feature flags add 14 tests (107 total). Web unit: 15.
-
-Feature flags exist (`feature_flag` tables). `pagamentos` ships **off**; turn it on
-per account with a row in `feature_flag_override` (see `ai/tasks/task-feature-flags.md`).
-
-Fixed with the integration suite: rescheduling no longer clears `googleEventId`
-in the read model (the next Google sync used to re-import a duplicate).
-
-Behaviors pinned by "lacuna conhecida" tests (current behavior, questionable;
-changing them is product work, not a "fix" to slip in):
 - A non-numeric `patient.valorSessao` passes validation; the event is stored, the
   projection insert fails, the EventBus swallows it and the API answers success.
   The patient never shows up. Same family: `financial.amount` non-numeric is a 500.
@@ -65,53 +41,36 @@ changing them is product work, not a "fix" to slip in):
   success/null instead of NOT_FOUND (nothing is changed).
 
 Not covered yet (needs concurrency tests that are hard to make deterministic):
+
 - The clinical-record lock is check-then-write (UPDATE/DELETE don't filter by
   `status`); FK cascades from patient/account deletion also remove finalized records.
 - No unique index on `psychologist_clinic (clinic_id, psychologist_id)`; concurrent
   invites can duplicate.
 
-## Security Findings
+## Security
 
-The September 2026 audit (`docs/security-audit/`, local only) opened issues
-#35–#41. Their fix branches (`fix/36-ownership-ids`, `fix/37-psychologist-list`,
-`fix/38-storage-key-ownership`, `fix/39-auth-rate-limiters`,
-`fix/40-env-validation`, `fix/url-scheme-validation`) and the November follow-up
-`fix/audit-2026-11` (F1–F7: clinic invites with acceptance, OAuth state, CSP in
-Report-Only, refusal to boot with a leaked `BETTER_AUTH_SECRET`) are all merged
-into `master`. `.env.prod` is covered by `.gitignore` (#35). Re-run the
-`security-audit` skill before trusting this list as complete.
+Audit findings from September and November 2026 (issues #35–#41, `fix/audit-2026-11`
+F1–F7) are all merged. Re-run the `security-audit` or `cloudflare-security-audit`
+skill before trusting this as complete.
 
-Verified as correct during the same audit, so do not "fix" these: all 40 tRPC
-procedures require a session except `videoSession.validateToken`; CQRS aggregates
-enforce ownership; patient/document/clinical-record/financial/clinic reads are
-scoped by `psychologistId`; clinic-shared appointments strip patient PII.
+Verified as correct, do not "fix": every tRPC procedure requires a session except
+`videoSession.validateToken`; CQRS aggregates enforce ownership; patient, document,
+clinical-record, financial and clinic reads are scoped by `psychologistId`;
+clinic-shared appointments strip patient PII.
+
+Missing (product work, not bugs): two-factor auth, an access log for clinical records.
 
 ## Known Gaps And Watchpoints
 
-- `better-auth` is pinned to `~1.6.30`. Do not move to 1.7.x casually: it
-  requires an `Account.issuer` column that the schema does not have, plus a
-  Drizzle schema regeneration.
-- The API image's `bun install` rewrites the lockfile at build time, because the
-  deps stage does not copy `apps/web/package.json`. The image's dependency tree
-  is therefore not guaranteed to match what CI tested.
-- Patient and appointment writes use CQRS; direct DB writes can bypass event
-  history and projections.
-- Clinical records have finalization rules; finalized records should stay locked.
-- Document and clinical PDF access should go through storage read URLs.
-- Clinic membership actions should be reviewed carefully for authorization
-  boundaries.
-- The documents page currently calls `document.list` with an empty filter; verify
-  intended generic-vs-patient filtering before changing document library behavior.
-- **AWS exit done** (PR #45, Nov 2026): production runs on a Hostinger VPS +
-  Cloudflare (Tunnel, Access, R2, TURN) with images in GHCR. The WhatsApp reminder
-  feature (EventBridge + Lambda) was removed. `docs/progress/00–14` describe the
-  AWS era and are historical.
-- **Web refactor (Nov 2026, phases 0–7, see `ai/tasks/task-web-fase-*.md`):** routes are
-  lazy and imported per page file (no feature barrels); vendor chunks (`vendor-react`,
-  `vendor-data`) are split from app code; source maps go only to Sentry. Types come from
-  `RouterOutputs`/`RouterInputs`; query defaults live in `lib/query-client.ts` (retry
-  policy, 401 → /login, 30 s staleTime) and mutations invalidate every affected router.
-  ESLint is at 0 problems and the source code has no comments by design.
-- `appointment.reminderEnabled`/`reminderMinutesBefore`/`reminderSentAt` columns
-  are kept (and still accepted by the API) so reminders can come back without a
-  migration; the UI no longer exposes them.
+- `better-auth` is pinned to `~1.6.30`. Do not move to 1.7.x casually: it requires an
+  `Account.issuer` column the schema does not have, plus a Drizzle schema regeneration.
+- The API image's `bun install` rewrites the lockfile at build time, because the deps
+  stage does not copy `apps/web/package.json`. The image's dependency tree is not
+  guaranteed to match what CI tested.
+- The documents page calls `document.list` with an empty filter; verify intended
+  generic-vs-patient filtering before changing document library behavior.
+- Appointment reminders are **not sent**. The old WhatsApp reminder (EventBridge +
+  Lambda) left with the AWS exit and there is no scheduler on the VPS. The columns
+  `appointment.reminderEnabled`/`reminderMinutesBefore`/`reminderSentAt` stay (and the
+  API still accepts them) so reminders can return without a migration; the UI hides them.
+- The source code has no comments by design and ESLint is at 0 problems.
