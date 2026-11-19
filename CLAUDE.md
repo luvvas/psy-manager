@@ -55,8 +55,8 @@ Skills do projeto em `.claude/skills/`: `nova-tela`, `react-best-practices`,
 
 Um assunto por branch, a partir do `origin/master`, com um commit. Antes do PR: teste
 unitário da lógica nova, teste manual no navegador quando a mudança é visível, e
-`/code-review` com os achados corrigidos ou justificados no PR. O merge é sempre da
-usuária humana. Skills: `entregar-task` (ponta a ponta), `abrir-pr`, `atualizar-branch`.
+`/code-review` com os achados corrigidos ou justificados no PR. O merge é sempre
+feito por uma pessoa. Skills: `entregar-task` (ponta a ponta), `abrir-pr`, `atualizar-branch`.
 
 ## Ao investigar um bug
 
