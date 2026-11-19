@@ -121,6 +121,4 @@ new top-level directory holding anything sensitive, add it to `.dockerignore`.
 
 ## Related Docs
 
-  Entries 00–14 describe the AWS era and are historical;
-  `15-saida-aws-cloudflare.md` is the current setup and its manual runbook.
 - `CONTRIBUTING.md` — commit convention, versioning, and the release process.
