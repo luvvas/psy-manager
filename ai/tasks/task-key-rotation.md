@@ -46,7 +46,7 @@ conseguir rotacionar `ENCRYPTION_KEY` sem perder dados nem derrubar o app.
 
 ### Fase 1 — Procedimentos (documentação)
 
-- Transformar a tabela acima em runbook em `docs/progress/` (passo a passo de cada linha),
+- Transformar a tabela acima em runbook em `ai/context/deployment.md` (passo a passo de cada linha),
   validando cada comando contra a VPS real.
 - Registrar a data da última rotação de cada segredo (no runbook, sem os valores).
 
@@ -73,7 +73,7 @@ conseguir rotacionar `ENCRYPTION_KEY` sem perder dados nem derrubar o app.
 
 ## Acceptance Criteria
 
-- [ ] Runbook de rotação em `docs/progress/` cobre todas as linhas do inventário.
+- [ ] Runbook de rotação em `ai/context/deployment.md` cobre todas as linhas do inventário.
 - [ ] `ENCRYPTION_KEYS` com duas chaves decripta dados das duas; testes cobrindo isso.
 - [ ] `db:reencrypt` testado num dump restaurado localmente antes de rodar em produção.
 

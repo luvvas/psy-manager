@@ -15,9 +15,8 @@ Leia só o que a tarefa pede:
 | Visão do produto e dos módulos | `ai/context/project-brief.md` |
 | Comandos, env vars, estrutura de testes | `ai/context/stack-and-scripts.md` |
 | Camadas, fluxo de dados, storage | `ai/context/architecture.md` |
+| Procedures tRPC e rotas do web | o próprio código: `apps/api/src/routes/`, `apps/web/src/app.tsx` e `route-modules.ts` |
 | Entidades, regras de posse e de negócio | `ai/context/domain-model.md` |
-| Procedures tRPC por router | `ai/context/api-surface.md` |
-| Rotas e telas do web | `ai/context/frontend-surface.md` |
 | Padrões de UI, dados e formulários no web | `ai/context/frontend-guidelines.md` |
 | Padrões de routers, services e CQRS | `ai/context/backend-guidelines.md` |
 | Deploy, Docker, CI, Cloudflare | `ai/context/deployment.md` |
@@ -25,7 +24,8 @@ Leia só o que a tarefa pede:
 | Trabalho planejado | `ai/tasks/` (use a skill `executar-task`) |
 
 Skills do projeto em `.claude/skills/`: `nova-tela`, `react-best-practices`,
-`executar-task`, `security-audit`, `recriar-ambiente`.
+`executar-task`, `entregar-task`, `abrir-pr`, `atualizar-branch`, `security-audit`,
+`cloudflare-security-audit`, `recriar-ambiente`.
 
 ## Regras
 
@@ -50,6 +50,13 @@ Skills do projeto em `.claude/skills/`: `nova-tela`, `react-best-practices`,
   `bun run --filter @psy-manager/web lint`, `bun run build:web`) e diga o que rodou.
 - Se a arquitetura, o deploy ou uma premissa mudar, atualize o arquivo de `ai/`
   correspondente no mesmo trabalho.
+
+## Fluxo de entrega
+
+Um assunto por branch, a partir do `origin/master`, com um commit. Antes do PR: teste
+unitário da lógica nova, teste manual no navegador quando a mudança é visível, e
+`/code-review` com os achados corrigidos ou justificados no PR. O merge é sempre
+feito por uma pessoa. Skills: `entregar-task` (ponta a ponta), `abrir-pr`, `atualizar-branch`.
 
 ## Ao investigar um bug
 

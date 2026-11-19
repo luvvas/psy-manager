@@ -36,7 +36,7 @@ patients, clinics, finance, documents, and clinical records.
 - Buscar Psicologos: currently a coming-soon page.
 - Configuracoes: currently a coming-soon page.
 - Pagamentos (contas a receber por paciente): implemented behind the
-  `pagamentos` feature flag, off by default; see `ai/tasks/task-pagamentos-mvp.md`.
+  `pagamentos` feature flag, off by default; see `ai/memory/current-state.md`.
 
 ## Product Principles
 
@@ -57,5 +57,5 @@ patients, clinics, finance, documents, and clinical records.
 - Database schema: `apps/api/src/db/schema.ts`
 - CQRS/event sourcing: `apps/api/src/lib/cqrs/` and `apps/api/src/cqrs/`
 - Storage service: `apps/api/src/services/storage.service.ts`
-- Deployment notes: `ai/context/deployment.md`, `docs/progress/15-saida-aws-cloudflare.md`, `.github/workflows/deploy.yml`
+- Deployment notes: `ai/context/deployment.md`, `.github/workflows/deploy.yml`
 

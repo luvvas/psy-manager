@@ -11,7 +11,7 @@ Hoje o botão "Cobrar no WhatsApp" só abre um link `wa.me` com a mensagem pront
 ## Context
 
 - Cobranças: `charge` / `payment`, `apps/api/src/services/billing.service.ts`, flag `pagamentos`
-  (`ai/tasks/task-pagamentos-mvp.md`).
+  (`ai/context/domain-model.md`).
 - Mensagem e Pix atuais: `apps/web/src/components/billing/charge-message.ts`,
   `apps/web/src/utils/pix.ts` (BR Code estático a partir de `user.pixKey`).
 - Lembretes antigos de agendamento (EventBridge + Lambda) saíram com a saída da AWS; as colunas

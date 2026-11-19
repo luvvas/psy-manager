@@ -9,7 +9,7 @@ workflows live as skills in `.claude/skills/`, not as prompts here.
 ## Folder Map
 
 - `context/` — durable knowledge that stays true across many tasks (architecture,
-  domain, API/screen maps, guidelines, deployment). Read on demand.
+  domain, guidelines, deployment). Read on demand.
 - `memory/current-state.md` — what is true *right now*: open findings, known gaps,
   things verified as correct that should not be "fixed". Changes often.
 - `tasks/` — planned work orders. `_template.md` is the starting point; the
@@ -23,7 +23,12 @@ workflows live as skills in `.claude/skills/`, not as prompts here.
 | `nova-tela` | New screen/CRUD in `apps/web` following the existing pattern |
 | `react-best-practices` | Writing, reviewing or refactoring React code in `apps/web` |
 | `executar-task` | Running or writing a file in `ai/tasks/` |
-| `security-audit` | Full-codebase security audit with PDF report |
+| `entregar-task` | Task to open PR in one go: branch, tests, manual check, review, commit, PR |
+| `abrir-pr` | Rebase, checks, push and `gh pr create` for the current branch |
+| `atualizar-branch` | Rebase on `origin/master` and resolve mechanical conflicts |
+| `security-audit` | Full-codebase security audit with PDF report (5 categories) |
+| `cloudflare-security-audit` | Cloudflare's six-phase audit with independent verification (upstream, MIT) |
+| `recriar-ambiente` | Reset the dev database, migrate and seed |
 
 Code review and debugging use Claude Code's built-in `/code-review` and normal
 investigation; the project-specific checklist for both is in `CLAUDE.md`.

@@ -17,8 +17,8 @@ bun run dev
 
 ## Production Shape
 
-> Production left AWS in November 2026 (PR #45, runbook:
-> `docs/progress/15-saida-aws-cloudflare.md`). Nothing runs on AWS anymore.
+> Production left AWS in November 2026 (PR #45; runbook in the maintainer's local notes,
+> outside git). Nothing runs on AWS anymore.
 
 - One VPS (Hostinger KVM 1, São Paulo, Ubuntu 24.04) running Docker Compose:
   `db` (`postgres:17-alpine`), `api` and `web` (nginx serving the Vite build and
@@ -121,7 +121,4 @@ new top-level directory holding anything sensitive, add it to `.dockerignore`.
 
 ## Related Docs
 
-- `docs/progress/` — numbered write-ups of each infrastructure milestone.
-  Entries 00–14 describe the AWS era and are historical;
-  `15-saida-aws-cloudflare.md` is the current setup and its manual runbook.
 - `CONTRIBUTING.md` — commit convention, versioning, and the release process.

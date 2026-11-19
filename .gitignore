@@ -45,6 +45,6 @@ step-by-step.md
 next-step.md
 
 # Relatório de auditoria de segurança: só local (repositório público)
-docs/security-audit/
+docs/
 
 .claude/worktrees/
