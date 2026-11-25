@@ -9,6 +9,7 @@ import { IncomeChart } from "./components/income-chart";
 import { CategoryPieChart } from "./components/category-pie-chart";
 import { RecentTransactions } from "./components/recent-transactions";
 import { DateRangePicker } from "./components/date-range-picker";
+import { ExportButton } from "./components/export-button";
 import { TransactionForm } from "./components/transaction-form";
 import { TransactionsTable } from "./components/transactions-table";
 import { mapCsvRowsToTransactions, TRANSACTION_CSV_FIELDS } from "./csv-import";
@@ -185,6 +186,8 @@ export function FinanceiroPage() {
                             <UploadCloud className="size-4" />
                             Importar .csv
                         </Button>
+
+                        <ExportButton />
 
                         <Button
                             size="sm"

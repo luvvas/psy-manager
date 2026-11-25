@@ -24,7 +24,7 @@ patients, clinics, finance, documents, and clinical records.
 - Prontuario: patient-specific clinical records with draft/finalized status and
   PDF attachments.
 - Financeiro: cash flow, income/expense transactions, stats, charts, date range
-  filters, and CSV import.
+  filters, CSV import, and monthly CSV export.
 - Documentos: generic document/model library with PDF upload, viewing, download,
   metadata edits, and deletion.
 - Clinicas: clinic CRUD and linking/unlinking psychologists by email.

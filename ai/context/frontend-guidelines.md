@@ -78,7 +78,7 @@ See the `react-best-practices` skill.
 - `AgendamentoPage`: calendar views, stats, appointment CRUD, Google connect/sync.
 - `PacientesPage`: patient table, create/edit/delete, navigation to details.
 - `PatientDetailsPage`: overview, clinical timeline, new clinical record.
-- `FinanceiroPage`: stats, charts, transaction CRUD, CSV import.
+- `FinanceiroPage`: stats, charts, transaction CRUD, CSV import, monthly CSV export (`csv-export.ts`).
 - `DocumentosPage`: generic PDF library, view/download/edit/delete.
 - `ClinicasPage`: clinic CRUD and professional linking.
 - `AuthPage`: login/register.
