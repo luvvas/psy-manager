@@ -7,7 +7,7 @@
 # raiz do repo (o .dockerignore de lá exclui dist/ e docker/): o CI monta um
 # diretório com `dist/` e `nginx.conf` e usa ele como contexto.
 
-FROM nginx:1.30-alpine
+FROM nginx:1.31-alpine
 # A tag da imagem oficial demora a ser republicada quando sai correção de
 # segurança num pacote do Alpine (ex.: brotli-libs, CVE-2026-111497); o
 # upgrade aplica as correções já disponíveis no repositório.
