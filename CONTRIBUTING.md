@@ -74,6 +74,36 @@ ci: publica imagem por digest em vez de tag mutável
 chore(deps): atualiza drizzle-orm para 0.44.2
 ```
 
+## Pull requests e o quality gate
+
+Nada entra no `master` sem PR. Todo PR roda `.github/workflows/ci.yml`, e o check
+obrigatório `gate` só fica verde se todos passarem:
+
+| Gate | O que roda |
+|---|---|
+| Estático | ESLint (web), `tsc` de web, api e e2e |
+| Testes | unitários de api e web (com cobertura) e integração da API |
+| E2E | Playwright |
+| Anti-trapaça | falha se o PR apaga arquivo de teste ou adiciona `.skip(`, `.only(`, `.todo(` ou `.fixme(` |
+| Supply chain | `bun audit` (critical bloqueia) e revisão das dependências novas |
+
+Antes de abrir o PR, rode localmente:
+
+```bash
+bun run --filter @psy-manager/web lint
+bun run build:web && bun run build:api
+bun run test && bun run test:integration
+bash scripts/ci-guard.sh
+```
+
+Um skip que é intencional precisa da label `allow-skip` no PR. PRs que mexem em
+CI, Docker, scripts, dependências, migrations ou auth recebem a label
+`caminho-protegido` e são revisados à mão; os demais podem usar auto-merge:
+
+```bash
+gh pr merge --auto --merge
+```
+
 ## Ative o hook de validação
 
 Uma vez por clone:
@@ -113,5 +143,5 @@ O push da tag dispara `.github/workflows/release.yml`, que roda o gerador e
 publica a GitHub Release com as notas.
 
 **A tag não faz deploy.** O deploy continua sendo disparado pelo push em `master`
-(`.github/workflows/deploy-ec2.yml`). Tagueie depois que o CI passar, para que a
+(`.github/workflows/deploy.yml`). Tagueie depois que o CI passar, para que a
 tag nunca aponte para um build quebrado.

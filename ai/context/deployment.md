@@ -45,6 +45,54 @@ bun run dev
 
 ## GitHub Actions
 
+### `.github/workflows/ci.yml` (quality gate)
+
+Trigger: every pull request into `master`, and `workflow_call` from
+`deploy.yml` (so the same checks run again on `master` before a deploy). On PRs,
+a new push cancels the previous run. Bun is pinned (`BUN_VERSION`); bump it here,
+in `deploy.yml` and in `dependabot-lockfile.yml` together.
+
+Jobs run in parallel:
+
+- `static`: ESLint (web), `tsc -b` (web), `build:api` (API `tsc`), e2e typecheck.
+- `test`: unit tests of api and web with `--coverage` (report only, no
+  threshold yet), then the API integration suite (Postgres as a service).
+- `e2e`: Postgres as a service, Playwright Chromium, `bun run test:e2e`. The
+  browser lives in an `actions/cache` keyed by the Playwright version; on a hit
+  only the apt deps are installed (`playwright install-deps`). Uploads the report
+  and traces when it fails.
+- `guard` (PRs only): `scripts/ci-guard.sh` fails when the PR deletes a test file
+  or adds `.skip(`/`.only(`/`.todo(`/`.fixme(` to a test file (only added lines
+  count, so the existing conditional skip in `teleconsulta.spec.ts` is fine). The
+  PR label `allow-skip` downgrades a new skip to a warning. It also labels the PR
+  `caminho-protegido` when it touches CI, Docker, scripts, hooks, manifests, the
+  lockfile, migrations, `auth.ts` or the Playwright config: those PRs get a
+  manual review instead of auto-merge.
+- `supply-chain`: `bun audit --audit-level=critical` (blocking, minus the IDs in
+  `.bun-audit-ignore`), a non-blocking `high` report, and
+  `actions/dependency-review-action` on PRs (fails on new `high`+ advisories).
+  `.bun-audit-ignore` holds advisories that only reach dev tooling (`concurrently`
+  → `shell-quote`, `shadcn` CLI → `proxy-addr`), never the production images.
+- `gate`: needs all of the above, fails unless each one is `success` or
+  `skipped`. **This is the only required status check** on `master`, so jobs can
+  be added or renamed without touching the ruleset.
+
+Not in the gate yet: Prettier (formatting the whole repo is its own PR) and
+mutation testing (Stryker has no `bun test` runner; a weekly report-only run is
+the plan).
+
+### Branch protection (GitHub settings, not in the repo)
+
+Ruleset on `master`: require a pull request, require the `gate` status check
+with the branch up to date, block force pushes and deletions. "Allow auto-merge"
+is on; `gh pr merge --auto --merge` merges when `gate` is green. PRs labeled
+`caminho-protegido` are reviewed and merged by hand.
+
+Known gap: `dependabot-lockfile.yml` pushes the regenerated `bun.lock` with
+`GITHUB_TOKEN`, and pushes made with that token do not start workflows, so the
+`gate` does not run on that last commit. Close and reopen the PR (or push an
+empty commit) to trigger it.
+
 ### `.github/workflows/deploy.yml`
 
 Trigger: push to `master` (excluding `docs/**`, `**.md`, `ai/**`) or manual
@@ -52,17 +100,15 @@ dispatch. Serialized by a `deploy-production` concurrency group.
 
 Jobs:
 
-- `quality-gate`: install dependencies, run unit tests (api + web) and the API
-  integration suite (Postgres as a service), build the API.
-- `e2e`: Postgres as a service, Playwright Chromium, `bun run test:e2e`; uploads
-  the Playwright report and traces as an artifact when it fails.
+- `ci`: calls `ci.yml` (all the gates above; `guard` and dependency review are
+  skipped outside PRs).
 - `build-api-image`: build `docker/Dockerfile.api` (target `production`), scan
   with Trivy, push to GHCR, output the immutable digest.
 - `build-web-image`: build the SPA (with Sentry secrets), package `dist/` +
   `docker/nginx.conf` into `docker/Dockerfile.web` from a dedicated build
   context (the root `.dockerignore` excludes `dist/` and `docker/`), scan, push,
   output the digest.
-- `deploy` (environment `production`, needs `quality-gate`, `e2e` and both images): SSH through Cloudflare Access with a
+- `deploy` (environment `production`, needs `ci` and both images): SSH through Cloudflare Access with a
   service token (`cloudflared access ssh` as ProxyCommand), upload the compose
   file, scripts and `.env.prod`, log the VPS in to GHCR with the job's
   `GITHUB_TOKEN` over stdin, run `scripts/deploy.sh <api-digest> <web-digest>`,

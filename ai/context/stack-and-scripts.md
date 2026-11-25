@@ -107,8 +107,8 @@ Test runner: Bun's built-in test runner (`bun test`).
   `bun run test:integration`. Stop it with `bun run test:integration:db:down`.
   Override the database with `TEST_DATABASE_URL`; `INTEGRATION_VERBOSE=1` keeps
   `console.log`.
-- CI: the `quality-gate` job in `.github/workflows/deploy.yml` runs both, with
-  Postgres as a service.
+- CI: the `test` job in `.github/workflows/ci.yml` runs both (unit with
+  `--coverage`), with Postgres as a service, on every PR and before each deploy.
 
 The two suites live in separate folders and run in separate `bun test`
 processes on purpose: the unit suite uses `mock.module`, which is process-wide.
