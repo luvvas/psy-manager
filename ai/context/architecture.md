@@ -112,7 +112,7 @@ The app uses:
 - `/pacientes`: patient list and CRUD.
 - `/pacientes/:id`: patient details, overview, clinical timeline.
 - `/clinicas`: clinic CRUD and linked psychologists.
-- `/financeiro`: financial dashboard, transactions, CSV import.
+- `/financeiro`: financial dashboard, transactions, CSV import, monthly CSV export.
 - `/documentos`: document/model library.
 - `/pagamentos`: coming soon.
 - `/contratos`: redirects to `/documentos`.
