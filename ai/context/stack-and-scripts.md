@@ -43,6 +43,9 @@ ai/
 - `bun run db:migrate`: run Drizzle migrations through the API package.
 - `bun run db:push`: push schema changes through the API package.
 - `bun run db:studio`: open Drizzle Studio.
+- `bun run beta:convidar <email...>` / `beta:desconvidar <email...>` / `beta:convidados`:
+  manage the beta invite list (`beta_invite`). In production run them inside the API
+  container: `docker compose -f docker-compose.prod.yml exec api bun src/db/beta-invite.ts add <email>`.
 - `bun run docker:db`: start only the local Postgres container.
 - `bun run docker:up`: start local Docker Compose services.
 - `bun run docker:down`: stop local Docker Compose services.

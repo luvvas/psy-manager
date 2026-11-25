@@ -24,7 +24,8 @@ NOME DO APP  (decisão de produto)
 ## Checklist (em ordem de dependência)
 
 ### 0. Decidir o nome do app 🔑
-- [ ] Escolher o nome definitivo
+- [ ] Escolher o nome definitivo **com os psicólogos do beta** (sugestões e
+      votação no grupo do beta). O form sai sem nome; o domínio espera a votação.
 - [ ] Verificar domínio (`.com.br` / `.com`) e conflito de marca antes de fechar
 
 ### 1. Domínio
@@ -50,6 +51,19 @@ O app já roda em `app.<dominio>` via Tunnel (domínio da migração; ver
 - [ ] Criar o form com nome, URL e e-mail de suporte (rascunho em
       `docs/go-to-market/beta-form.md`)
 - [ ] Perguntas de triagem (CRP, especialidade, volume de pacientes)
+
+### 4a. Liberação do beta por convite
+- [x] Cadastro só para e-mails na tabela `beta_invite` (`BETA_INVITE_ONLY`, ligado por
+      padrão em produção). Convidar: `bun src/db/beta-invite.ts add <email>` no
+      container da API.
+- [ ] Configurar SMTP em produção (o "esqueci minha senha" depende dele)
+
+### 4b. Promessas do formulário sobre dados
+- [ ] "Exportar meus dados" incluir os arquivos dos documentos (hoje
+      `psychologistService.exportData` devolve só os metadados)
+- [ ] Política de privacidade com o aviso de 90 dias antes de encerrar o projeto
+- [ ] Testar a restauração de um backup do banco
+- [ ] Gravações para o YouTube usam só dados do seed
 
 ### 5. Renomear `psy-manager` no que é user-facing
 - [ ] Títulos de página, `index.html`, e-mails, landing, termos e política de privacidade

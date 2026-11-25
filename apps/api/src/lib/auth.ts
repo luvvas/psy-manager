@@ -1,8 +1,10 @@
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { emailService } from "../services/email.service";
+import { betaInviteService } from "../services/beta-invite.service";
 
 export const auth = betterAuth({
     database: drizzleAdapter(db, {
@@ -15,6 +17,21 @@ export const auth = betterAuth({
         enabled: true,
         sendResetPassword: async ({ user, url }) => {
             await emailService.sendPasswordReset(user.email, url);
+        },
+    },
+    databaseHooks: {
+        user: {
+            create: {
+                before: async (user) => {
+                    if (betaInviteService.isRequired() && !(await betaInviteService.isInvited(user.email))) {
+                        throw new APIError("FORBIDDEN", {
+                            code: "BETA_INVITE_REQUIRED",
+                            message:
+                                "O cadastro está liberado só para convidados do beta. Use o mesmo e-mail que você informou no formulário de inscrição.",
+                        });
+                    }
+                },
+            },
         },
     },
     user: {
