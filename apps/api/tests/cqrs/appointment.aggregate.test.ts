@@ -142,3 +142,72 @@ describe("AppointmentAggregate", () => {
         expect(replayed.state.date).toBeInstanceOf(Date);
     });
 });
+
+describe("AppointmentAggregate: lembrete", () => {
+    const slot = { date: baseData().date, startTime: "09:00" };
+
+    function withReminder() {
+        const agg = new AppointmentAggregate();
+        agg.schedule({ ...baseData(), reminderEnabled: true, reminderMinutesBefore: 60 });
+        agg.clearUncommittedEvents();
+        return agg;
+    }
+
+    test("markReminderSent registra o envio e não aceita um segundo", () => {
+        const agg = withReminder();
+        const sentAt = new Date("2026-06-01T08:00:00Z");
+        agg.markReminderSent({ sentAt, ...slot });
+
+        expect(agg.uncommittedEvents[0].type).toBe("APPOINTMENT_REMINDER_SENT");
+        expect(agg.state.reminderSentAt?.toISOString()).toBe(sentAt.toISOString());
+        expect(() => agg.markReminderSent({ sentAt, ...slot })).toThrow("already sent");
+    });
+
+    test("markReminderSent recusa outro horário, lembrete desligado e agendamento cancelado", () => {
+        const agg = withReminder();
+        expect(() => agg.markReminderSent({ sentAt: new Date(), ...slot, startTime: "08:00" })).toThrow("rescheduled");
+
+        const off = new AppointmentAggregate();
+        off.schedule(baseData());
+        expect(() => off.markReminderSent({ sentAt: new Date(), ...slot })).toThrow("disabled");
+
+        agg.cancel();
+        expect(() => agg.markReminderSent({ sentAt: new Date(), ...slot })).toThrow("deleted");
+    });
+
+    test("remarcar para outro horário zera o envio; mudar só o fim mantém", () => {
+        const agg = withReminder();
+        agg.markReminderSent({ sentAt: new Date(), ...slot });
+
+        agg.reschedule({ ...baseData(), endTime: "10:30", reminderEnabled: true, reminderMinutesBefore: 60 });
+        expect(agg.uncommittedEvents.at(-1)!.data.resetReminder).toBe(false);
+        expect(agg.state.reminderSentAt).not.toBeNull();
+
+        agg.reschedule({ ...baseData(), startTime: "11:00", endTime: "12:00", reminderEnabled: true, reminderMinutesBefore: 60 });
+        expect(agg.uncommittedEvents.at(-1)!.data.resetReminder).toBe(true);
+        expect(agg.state.reminderSentAt).toBeNull();
+    });
+
+    test("trocar o paciente zera o envio e status cancelado bloqueia o lembrete", () => {
+        const agg = withReminder();
+        agg.markReminderSent({ sentAt: new Date(), ...slot });
+
+        agg.reschedule({ ...baseData(), patientId: "patient-2", reminderEnabled: true, reminderMinutesBefore: 60 });
+        expect(agg.state.reminderSentAt).toBeNull();
+
+        agg.reschedule({ ...baseData(), patientId: "patient-2", status: "cancelled", reminderEnabled: true });
+        expect(() => agg.assertReminderSendable(slot)).toThrow("deleted or cancelled");
+    });
+
+    test("loadFromHistory reconstrói o envio do lembrete", () => {
+        const source = new AppointmentAggregate();
+        source.schedule({ ...baseData(), reminderEnabled: true, reminderMinutesBefore: 60 });
+        source.markReminderSent({ sentAt: new Date("2026-06-01T08:00:00Z"), ...slot });
+
+        const replayed = new AppointmentAggregate();
+        replayed.loadFromHistory(source.uncommittedEvents);
+
+        expect(replayed.state.reminderSentAt?.toISOString()).toBe("2026-06-01T08:00:00.000Z");
+        expect(replayed.version).toBe(2);
+    });
+});

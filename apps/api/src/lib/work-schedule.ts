@@ -63,6 +63,28 @@ export function localTime(date: Date): string {
     return toHHMM(nowLocalMinutes(date));
 }
 
+function zoneOffsetMinutes(at: Date): number {
+    const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: APP_TIME_ZONE,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+    }).formatToParts(at);
+    const get = (type: string) => Number(parts.find((p) => p.type === type)!.value);
+    const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"));
+    return Math.round((asUtc - at.getTime()) / 60000);
+}
+
+export function localDateTime(day: Date, hhmm: string): Date {
+    const [year, month, date] = localDay(day).key.split("-").map(Number);
+    const [hour, minute] = hhmm.split(":").map(Number);
+    const guess = Date.UTC(year, month - 1, date, hour, minute);
+    return new Date(guess - zoneOffsetMinutes(new Date(guess)) * 60000);
+}
+
 function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
     return aStart < bEnd && bStart < aEnd;
 }

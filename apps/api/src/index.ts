@@ -7,6 +7,7 @@ import { WebSocketServer } from "ws";
 import { URL } from "url";
 import { createApp } from "./app";
 import { handleSignaling } from "./ws/signaling";
+import { sessionReminderService } from "./services/session-reminder.service";
 
 const app = createApp();
 
@@ -18,6 +19,8 @@ console.log(`🔐 Auth endpoint: http://localhost:${port}/api/auth`);
 console.log(`🎥 WS signaling: ws://localhost:${port}/ws/signaling/:sessionId`);
 
 const server = serve({ fetch: app.fetch, port });
+
+sessionReminderService.start();
 
 const wss = new WebSocketServer({ noServer: true });
 

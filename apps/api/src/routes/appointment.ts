@@ -10,6 +10,7 @@ import { consumeOAuthState, issueOAuthState } from "../lib/oauth-state";
 import { TRPCError } from "@trpc/server";
 import { availabilityService } from "../services/availability.service";
 import { TIME_HHMM } from "../lib/work-schedule";
+import { MAX_REMINDER_MINUTES } from "../lib/reminder";
 
 const dateInput = z.string().or(z.date()).transform((val) => new Date(val));
 const timeInput = z.string().regex(TIME_HHMM, "Use o formato HH:MM");
@@ -90,7 +91,7 @@ async function resolveRoomScope(psychologistId: string, input: { roomId?: string
 
 const reminderFields = {
     reminderEnabled: z.boolean().optional().default(false),
-    reminderMinutesBefore: z.number().int().positive().optional(),
+    reminderMinutesBefore: z.number().int().positive().max(MAX_REMINDER_MINUTES).optional(),
 };
 
 export const appointmentRouter = router({

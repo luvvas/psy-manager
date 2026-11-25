@@ -14,6 +14,8 @@ Represents an authenticated psychologist. Important fields:
 - `phone`
 - `crp`
 - `city`
+- `reminderDefaultEnabled`, `reminderDefaultMinutesBefore` (default 1440): the
+  reminder values a new appointment starts with in the form (Expediente tab)
 - `createdAt`
 - `updatedAt`
 
@@ -63,6 +65,21 @@ Appointments belong to a psychologist and patient. Important fields:
 - `isRecurring`
 - `notes`
 - `googleEventId`
+- `reminderEnabled`, `reminderMinutesBefore` (max 7 days), `reminderSentAt`
+
+Session reminder (e-mail): the in-process scheduler
+(`apps/api/src/services/session-reminder.service.ts`) sends one e-mail per
+appointment when `reminderEnabled`, `reminderSentAt` is null, the status is not
+`cancelled`, and now is between `start - reminderMinutesBefore` and the start
+(start = São Paulo day of `date` + `startTime`). The e-mail carries only the
+psychologist's name, date, time, modality and the meeting link; never notes or
+clinical data. `reminderSentAt` is written only by the `APPOINTMENT_REMINDER_SENT`
+event, after the SMTP server accepted the message. Before sending, the scheduler
+re-checks the aggregate (not cancelled, still enabled, not already sent, same slot),
+so a stale projection or a just-moved session never gets a duplicate or wrong-time
+e-mail. Rescheduling to another day, start time or patient raises `APPOINTMENT_RESCHEDULED` with `resetReminder: true`, which clears
+`reminderSentAt` so the new time gets its own reminder. Patients without e-mail are
+skipped.
 
 Backend statuses include `pending`, `confirmed`, `cancelled`, `completed`.
 The frontend maps them to Portuguese display states such as `pendente`,

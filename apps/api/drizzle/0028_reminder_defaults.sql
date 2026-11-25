@@ -1,0 +1,2 @@
+ALTER TABLE "user" ADD COLUMN "reminder_default_enabled" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "user" ADD COLUMN "reminder_default_minutes_before" integer DEFAULT 1440 NOT NULL;

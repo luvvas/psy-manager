@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { logger } from "@/lib/logger";
@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { ReminderSettings } from "@/components/reminder-settings";
+import { reminderLabel } from "@/lib/reminder";
 import {
     appointmentSchema,
     SESSION_TYPE_OPTIONS,
@@ -17,6 +19,7 @@ import {
     TYPE_OPTIONS,
     type AppointmentFormInitialData,
     type AppointmentFormValues,
+    type ReminderDefaults,
 } from "../appointment-schema";
 import { useSlotAvailability } from "../hooks/use-slot-availability";
 import { defaultTimeRange, isVideoCallAvailable } from "../lib/time";
@@ -37,6 +40,21 @@ interface NewAppointmentFormProps {
 
 type SlotError = { key: string; kind: "room" | "confirm" };
 
+function formatSentAt(value: Date | string): string {
+    return new Intl.DateTimeFormat("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+    }).format(new Date(value));
+}
+
+function reminderStatus(initialData: AppointmentFormInitialData): string {
+    if (initialData.reminderSentAt) return `Lembrete enviado por e-mail em ${formatSentAt(initialData.reminderSentAt)}`;
+    const minutes = initialData.reminderMinutesBefore;
+    return minutes ? `Lembrete por e-mail agendado (${reminderLabel(minutes)})` : "Lembrete por e-mail agendado";
+}
+
 function videoCallAppointmentId(initialData: AppointmentFormInitialData | undefined): string | null {
     if (!initialData?.id || initialData.sessionType !== "online" || !initialData.isMine) return null;
     if (!initialData.date || !initialData.startTime || !initialData.endTime) return null;
@@ -44,7 +62,32 @@ function videoCallAppointmentId(initialData: AppointmentFormInitialData | undefi
     return available ? initialData.id : null;
 }
 
-export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, readOnly = false }: NewAppointmentFormProps) {
+export function NewAppointmentForm(props: NewAppointmentFormProps) {
+    const isNew = !props.initialData?.id;
+    const { data: me, isPending } = trpc.psychologist.me.useQuery(undefined, { enabled: isNew });
+
+    if (isNew && isPending) {
+        return (
+            <div className="flex justify-center py-12">
+                <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            </div>
+        );
+    }
+
+    const reminderDefaults = me
+        ? { enabled: me.reminderDefaultEnabled, minutesBefore: me.reminderDefaultMinutesBefore }
+        : undefined;
+    return <AppointmentFormFields {...props} reminderDefaults={reminderDefaults} />;
+}
+
+function AppointmentFormFields({
+    onSave,
+    onCancel,
+    initialData,
+    onDelete,
+    readOnly = false,
+    reminderDefaults,
+}: NewAppointmentFormProps & { reminderDefaults?: ReminderDefaults }) {
     const videoAppointmentId = videoCallAppointmentId(initialData);
 
     const { data: patients } = trpc.patient.list.useQuery();
@@ -53,7 +96,13 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
         [patients]
     );
 
-    const [defaultValues] = useState(() => toFormDefaultValues(initialData, defaultTimeRange()));
+    const [defaultValues] = useState(() =>
+        toFormDefaultValues(
+            initialData,
+            defaultTimeRange(),
+            reminderDefaults
+        )
+    );
     const {
         register,
         handleSubmit,
@@ -65,6 +114,13 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
         resolver: zodResolver(appointmentSchema),
         defaultValues,
     });
+
+    const [reminderEnabled, reminderMinutesBefore, patientId] = useWatch({
+        control,
+        name: ["reminderEnabled", "reminderMinutesBefore", "patientId"],
+    });
+    const patientWithoutEmail =
+        !!patientId && !!patients && !patients.find((p) => p.id === patientId)?.email;
 
     const slot = useSlotAvailability({ control, setValue, getValues, appointmentId: initialData?.id, readOnly });
     const { startTime, endTime, status, sessionType, activeCheck, hasWarning, roomBlocked, needsRoom, slotKey } = slot;
@@ -216,6 +272,32 @@ export function NewAppointmentForm({ onSave, onCancel, initialData, onDelete, re
                         )}
                     />
                 </div>
+
+                {!readOnly && (
+                    <ReminderSettings
+                        idPrefix="reminder"
+                        title="Lembrete por e-mail"
+                        description="O paciente recebe um e-mail antes da sessão"
+                        enabled={reminderEnabled}
+                        minutesBefore={reminderMinutesBefore}
+                        onEnabledChange={(v) => setValue("reminderEnabled", v, { shouldDirty: true })}
+                        onMinutesBeforeChange={(v) => setValue("reminderMinutesBefore", v, { shouldDirty: true })}
+                        disabled={disabled}
+                    >
+                        {reminderEnabled && patientWithoutEmail && (
+                            <p className="text-xs text-amber-600">
+                                Este paciente não tem e-mail cadastrado. O lembrete não será enviado.
+                            </p>
+                        )}
+                        {reminderEnabled && initialData?.reminderSentAt && (
+                            <p className="text-xs text-muted-foreground">{reminderStatus(initialData)}</p>
+                        )}
+                    </ReminderSettings>
+                )}
+
+                {readOnly && initialData?.reminderEnabled && (
+                    <p className="rounded-lg border p-3 text-sm text-muted-foreground">{reminderStatus(initialData)}</p>
+                )}
 
                 <div className="grid gap-2">
                     <Label htmlFor="notes">Observações</Label>

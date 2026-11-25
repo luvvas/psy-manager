@@ -9,9 +9,10 @@ import { formatCEP, formatCPF, formatCRP, formatPhone } from "@/utils/format";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Clock, Loader2, Palette, Shield, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod/v3";
+import { ReminderSettings } from "@/components/reminder-settings";
 import { ProfileSecuritySection } from "./profile-security-section";
 import { HEX_RE, ProfileThemeFields } from "./profile-theme-fields";
 import { WorkScheduleEditor } from "./work-schedule-editor";
@@ -47,6 +48,8 @@ const profileSchema = z.object({
         .int("Use um número inteiro")
         .min(1, "Mínimo de 1 dia")
         .max(365, "Máximo de 365 dias"),
+    reminderDefaultEnabled: z.boolean(),
+    reminderDefaultMinutesBefore: z.number().int().positive(),
 });
 
 type ProfileValues = z.infer<typeof profileSchema>;
@@ -74,6 +77,8 @@ function fromProfile(profile: Profile): ProfileValues {
         state: profile.state || "",
         googleSyncDaysBack: profile.googleSyncDaysBack,
         googleSyncDaysAhead: profile.googleSyncDaysAhead,
+        reminderDefaultEnabled: profile.reminderDefaultEnabled,
+        reminderDefaultMinutesBefore: profile.reminderDefaultMinutesBefore,
     };
 }
 
@@ -133,9 +138,13 @@ function ProfileFormFields({ profile, onSuccess, onCancel }: ProfileFormProps & 
         if (fieldErrors.googleSyncDaysBack || fieldErrors.googleSyncDaysAhead) setActiveTab("expediente");
     };
 
-    const { register, control, handleSubmit, formState: { errors } } = useForm<ProfileValues>({
+    const { register, control, handleSubmit, setValue, formState: { errors } } = useForm<ProfileValues>({
         resolver: zodResolver(profileSchema),
         defaultValues: fromProfile(profile),
+    });
+    const [reminderDefaultEnabled, reminderDefaultMinutesBefore] = useWatch({
+        control,
+        name: ["reminderDefaultEnabled", "reminderDefaultMinutesBefore"],
     });
 
     useEffect(
@@ -181,6 +190,8 @@ function ProfileFormFields({ profile, onSuccess, onCancel }: ProfileFormProps & 
             workSchedule,
             googleSyncDaysBack: data.googleSyncDaysBack,
             googleSyncDaysAhead: data.googleSyncDaysAhead,
+            reminderDefaultEnabled: data.reminderDefaultEnabled,
+            reminderDefaultMinutesBefore: data.reminderDefaultMinutesBefore,
         });
     };
 
@@ -381,6 +392,21 @@ function ProfileFormFields({ profile, onSuccess, onCancel }: ProfileFormProps & 
                                 )}
                             </div>
                         </div>
+                    </div>
+
+                    <div className="border-t pt-4">
+                        <ReminderSettings
+                            idPrefix="reminderDefault"
+                            title="Lembrete por e-mail em novos agendamentos"
+                            description="Valor inicial ao criar uma sessão. Dá para mudar em cada agendamento."
+                            enabled={reminderDefaultEnabled}
+                            minutesBefore={reminderDefaultMinutesBefore}
+                            onEnabledChange={(v) => setValue("reminderDefaultEnabled", v, { shouldDirty: true })}
+                            onMinutesBeforeChange={(v) =>
+                                setValue("reminderDefaultMinutesBefore", v, { shouldDirty: true })
+                            }
+                            disabled={isSubmitting}
+                        />
                     </div>
                 </TabsContent>
 
