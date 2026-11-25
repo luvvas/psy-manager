@@ -1,4 +1,5 @@
 import { createHash } from "crypto";
+import { checkEncryptionKeys } from "./encryption";
 
 const KNOWN_DEFAULTS = new Set([
     "postgres",
@@ -41,12 +42,7 @@ export function checkServerEnv(env: Env): string[] {
         }
     }
 
-    const encryptionKey = env.ENCRYPTION_KEY;
-    if (!encryptionKey) {
-        errors.push("ENCRYPTION_KEY não definida.");
-    } else if (Buffer.from(encryptionKey, "base64").length !== 32) {
-        errors.push("ENCRYPTION_KEY deve ter 32 bytes depois de decodificada de base64.");
-    }
+    errors.push(...checkEncryptionKeys(env));
 
     const authSecret = env.BETTER_AUTH_SECRET;
     if (!authSecret) {

@@ -60,6 +60,11 @@ clinic-shared appointments strip patient PII.
 
 Missing (product work, not bugs): two-factor auth, an access log for clinical records.
 
+`ENCRYPTION_KEY` rotation: key ring (`ENCRYPTION_KEYS`) and `db:reencrypt` exist; the
+script writes projections and `event_store` directly on purpose (see
+`backend-guidelines.md`). Do not "fix" it into CQRS commands. Procedure in
+`deployment.md` ("Secret Rotation"); never rotated in production yet.
+
 ## Known Gaps And Watchpoints
 
 - `better-auth` is pinned to `~1.6.30`. Do not move to 1.7.x casually: it requires an

@@ -46,6 +46,9 @@ ai/
 - `bun run beta:convidar <email...>` / `beta:desconvidar <email...>` / `beta:convidados`:
   manage the beta invite list (`beta_invite`). In production run them inside the API
   container: `docker compose -f docker-compose.prod.yml exec api bun src/db/beta-invite.ts add <email>`.
+- `bun run db:reencrypt [--dry-run]`: rewrite every encrypted column (projections and
+  `event_store`) with the first key of `ENCRYPTION_KEYS`. Only as part of the key
+  rotation procedure in `deployment.md` ("Secret Rotation").
 - `bun run docker:db`: start only the local Postgres container.
 - `bun run docker:up`: start local Docker Compose services.
 - `bun run docker:down`: stop local Docker Compose services.

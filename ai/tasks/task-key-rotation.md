@@ -1,6 +1,6 @@
 # Task: Rotação de segredos (VPS + Cloudflare)
 
-Status: ready
+Status: ready — Fase 2 em review (PR), Fase 1 pendente
 
 > Reescrita em 2026-11-03 após a saída da AWS. A versão anterior (SSM, OIDC, IAM,
 > Secrets Manager, KMS) está no histórico do git e não se aplica mais.
@@ -29,7 +29,7 @@ conseguir rotacionar `ENCRYPTION_KEY` sem perder dados nem derrubar o app.
 |---|---|---|---|
 | `POSTGRES_PASSWORD` / `DATABASE_URL` | `PROD_ENV_FILE` | Curto downtime da API | `ALTER USER` no container `db` → atualizar os dois valores → deploy |
 | `BETTER_AUTH_SECRET` | `PROD_ENV_FILE` | Derruba todas as sessões | Gerar novo → deploy fora do horário de atendimento |
-| `ENCRYPTION_KEY` | `PROD_ENV_FILE` | **Perde todo PII** se trocado direto | Ver fase 2 (key ring + re-encriptação) |
+| `ENCRYPTION_KEY` | `PROD_ENV_FILE` | **Perde todo PII** se trocado direto | Feito na fase 2: procedimento em `ai/context/deployment.md` ("Secret Rotation") |
 | `S3_ACCESS_KEY_ID`/`SECRET` (docs) | `PROD_ENV_FILE` | Nenhum, se feito em ordem | Criar token R2 novo (escopo: só o bucket) → deploy → revogar o antigo |
 | `BACKUP_S3_*` | `PROD_ENV_FILE` | Nenhum | Igual ao de cima; testar `scripts/backup-db.sh` manual |
 | Chave privada `age` | VPS / cofre pessoal | Backups antigos só abrem com a antiga | Nova chave → novo recipient; **guardar a antiga** até os backups dela expirarem (90 dias) |
@@ -51,6 +51,10 @@ conseguir rotacionar `ENCRYPTION_KEY` sem perder dados nem derrubar o app.
 - Registrar a data da última rotação de cada segredo (no runbook, sem os valores).
 
 ### Fase 2 — `ENCRYPTION_KEY` com key ring
+
+> Feita (branch `feat/encryption-key-ring`). Projeção **e** eventos são regravados, além
+> de todas as outras colunas cifradas; o porquê está em `ai/context/deployment.md`.
+> Falta só ensaiar num dump restaurado e rodar em produção (o usuário, com acesso à VPS).
 
 `apps/api/src/lib/encryption.ts` só aceita uma chave (`ENCRYPTION_KEY`), e
 `apps/api/src/lib/env-check.ts` valida esse formato no boot.
@@ -74,7 +78,7 @@ conseguir rotacionar `ENCRYPTION_KEY` sem perder dados nem derrubar o app.
 ## Acceptance Criteria
 
 - [ ] Runbook de rotação em `ai/context/deployment.md` cobre todas as linhas do inventário.
-- [ ] `ENCRYPTION_KEYS` com duas chaves decripta dados das duas; testes cobrindo isso.
+- [x] `ENCRYPTION_KEYS` com duas chaves decripta dados das duas; testes cobrindo isso.
 - [ ] `db:reencrypt` testado num dump restaurado localmente antes de rodar em produção.
 
 ## Suggested Verification
