@@ -79,6 +79,13 @@ with the server's timezone (production containers run in UTC). Google tokens in
 `account` are encrypted with `encryptField`; `decryptField` still reads old
 plaintext rows.
 
+A new encrypted column must also be added to `REENCRYPT_TARGETS` in
+`src/lib/reencrypt.ts`, or `db:reencrypt` leaves it on the old key and that key
+can never be removed. `db:reencrypt` is the one sanctioned exception to "patient
+and appointment writes go through CQRS commands": it rewrites the ciphertext
+envelope of projections and `event_store` in place (same plaintext, ids and
+versions), which is storage maintenance, not a domain change.
+
 ## Error Handling
 
 - Use `TRPCError` when the client should receive a specific tRPC error code.

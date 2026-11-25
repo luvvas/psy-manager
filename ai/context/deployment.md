@@ -49,6 +49,86 @@ bun run dev
 - Backups: `scripts/backup-db.sh` (cron, 03:00) → `pg_dump | gzip [| age]` →
   separate R2 bucket with a 90-day lifecycle rule.
 
+## Secret Rotation
+
+The runbook for every secret is still pending (phase 1 of
+`ai/tasks/task-key-rotation.md`, to be validated against the VPS). Only
+`ENCRYPTION_KEY` is covered so far.
+
+### `ENCRYPTION_KEY` (key ring + `db:reencrypt`)
+
+`apps/api/src/lib/encryption.ts` reads `ENCRYPTION_KEYS` (comma-separated,
+newest first) or, when it is empty, the single `ENCRYPTION_KEY`. Setting both is
+a boot error (`env-check.ts`), so an old key can never be silently shadowed.
+`encrypt()` always uses the first key; `decrypt()` tries each key in order (the
+AES-GCM tag rejects a wrong key). The ciphertext format did not change (`v1:`,
+no key id).
+
+`bun run db:reencrypt` (`apps/api/src/db/reencrypt.ts`, logic in
+`src/lib/reencrypt.ts`) rewrites every encrypted value that is not on the first
+key. What it covers — every column the app encrypts, not only patient and
+appointment, because any value left on the old key blocks its removal:
+
+- `patient` (all PII columns), `appointment.notes`;
+- `event_store.data.__enc` (the whole event payload is one ciphertext);
+- `user.cpf`, `document.title/content`, `clinical_record.title/text_content`,
+  `financial_transaction.description`, `account.access_token/refresh_token`.
+
+**Projection and events are both rewritten.** Aggregates are rehydrated by
+decrypting every past event on each command (`cqrsEventStore.getEvents`), so
+events left on the old key would make that key permanent: removing it would
+break every patient/appointment command. The rewrite only replaces the
+`__enc` envelope (same plaintext JSON, same id, version, type, metadata and
+`created_at`), so the events still record the same facts and replay gives the
+same state. It is a storage-level operation, not a domain write, which is why it
+bypasses the CQRS commands; projections are re-encrypted in place, not rebuilt
+by replay.
+
+Safety: one transaction that takes `SHARE ROW EXCLUSIVE` locks on those tables
+(`lock_timeout` 10s), counts rows and values per
+key, aborts without writing if any value that looks encrypted decrypts with no
+key, rewrites, verifies each new ciphertext round-trips on key 1, recounts
+(same rows, same encrypted/plaintext counts, all on key 1) and only then
+commits. Any problem rolls everything back. It is idempotent (values already on
+key 1 are skipped). `--dry-run` runs the same scan in a read-only transaction.
+Values that do not look encrypted (legacy plaintext) are counted and left
+alone (only `v1:` values, or legacy 3-part values with a 12-byte IV and 16-byte
+tag, count as ciphertext). Output never prints values, only table, column, row
+id and an 8-hex `sha256` fingerprint of each key, so the operator can confirm
+key 1 is the new one.
+
+While the transaction runs, writes to those tables wait, and enough waiting
+writes can exhaust the API's connection pool (postgres-js default 10) and stall
+reads too. Run it outside office hours; with today's volume it takes seconds.
+
+Procedure (never swap the key in one step):
+
+1. Generate the new key: `openssl rand -base64 32`. Keep it, and later the old
+   one, in the personal vault — never in the repo or CI logs.
+2. In `PROD_ENV_FILE`, **replace** the `ENCRYPTION_KEY=` line with
+   `ENCRYPTION_KEYS=<new>,<old>` and deploy. From now on new writes use the new
+   key and both decrypt.
+3. Backup: `bash ~/psy-manager/scripts/backup-db.sh` and confirm the object in R2.
+4. On the VPS:
+   `docker compose -f docker-compose.prod.yml exec api bun src/db/reencrypt.ts --dry-run`
+   — expect zero failures and the counts on key 2. Check that the printed
+   fingerprint of key 1 matches the new key:
+   `printf %s '<new>' | base64 -d | sha256sum | cut -c1-8`. If it shows the old
+   one, the order is wrong: stop and fix `ENCRYPTION_KEYS`.
+5. Outside office hours, the same command without `--dry-run`. Expect "Conferência ok" and everything on key 1.
+6. Run `--dry-run` again: "Valores a regravar: 0".
+7. In `PROD_ENV_FILE`, set `ENCRYPTION_KEYS=<new>` (or go back to
+   `ENCRYPTION_KEY=<new>`), deploy, and open a patient, an appointment, a
+   clinical record and a document to confirm they read.
+8. Keep the old key in the vault for 90 days: backups taken before step 5 (R2
+   lifecycle) only restore with it.
+
+Before the first production run, rehearse on a restored dump locally:
+`ENCRYPTION_KEY= ENCRYPTION_KEYS=<new>,<old> DATABASE_URL=<local> bun run db:reencrypt --dry-run`,
+then without the flag, then `--dry-run` with only `<new>`. The empty
+`ENCRYPTION_KEY=` matters locally: the script loads the root `.env`, and dotenv
+does not override a variable that is already set, even to empty.
+
 ## GitHub Actions
 
 ### `.github/workflows/ci.yml` (quality gate)

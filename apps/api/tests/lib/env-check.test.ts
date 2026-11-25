@@ -26,12 +26,19 @@ describe("checkServerEnv (issue #40)", () => {
     });
 
     test("recusa ENCRYPTION_KEY ausente, inválida ou de tamanho errado", () => {
-        expect(checkServerEnv(validEnv({ ENCRYPTION_KEY: undefined }))).toEqual(["ENCRYPTION_KEY não definida."]);
+        expect(checkServerEnv(validEnv({ ENCRYPTION_KEY: undefined }))).toEqual(["ENCRYPTION_KEY (ou ENCRYPTION_KEYS) não definida."]);
         for (const bad of [randomBytes(16).toString("base64"), randomBytes(48).toString("base64"), "não-é-base64"]) {
             expect(checkServerEnv(validEnv({ ENCRYPTION_KEY: bad }))).toEqual([
                 "ENCRYPTION_KEY deve ter 32 bytes depois de decodificada de base64.",
             ]);
         }
+    });
+
+    test("aceita ENCRYPTION_KEYS no lugar de ENCRYPTION_KEY e recusa as duas juntas", () => {
+        const nova = randomBytes(32).toString("base64");
+        expect(checkServerEnv(validEnv({ ENCRYPTION_KEY: undefined, ENCRYPTION_KEYS: `${nova},${KEY}` }))).toEqual([]);
+        expect(checkServerEnv(validEnv({ ENCRYPTION_KEY: "", ENCRYPTION_KEYS: nova }))).toEqual([]);
+        expect(checkServerEnv(validEnv({ ENCRYPTION_KEYS: nova }))).toHaveLength(1);
     });
 
     test("recusa DATABASE_URL e BETTER_AUTH_SECRET ausentes ou fracos", () => {
