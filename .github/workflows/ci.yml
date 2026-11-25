@@ -1,0 +1,244 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - master
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  BUN_VERSION: 1.3.14
+
+jobs:
+  static:
+    name: Gate / Estático
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: ${{ runner.os }}-bun-
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: ESLint (web)
+        run: bun run --filter @psy-manager/web lint
+
+      - name: Typecheck (web)
+        working-directory: apps/web
+        run: bunx tsc -b
+
+      - name: Typecheck + build (api)
+        run: bun run build:api
+
+      - name: Typecheck (e2e)
+        run: bun run --filter @psy-manager/e2e typecheck
+
+  test:
+    name: Gate / Testes
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: psy_test
+          POSTGRES_PASSWORD: psy_test
+          POSTGRES_DB: psy_manager_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U psy_test -d psy_manager_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: ${{ runner.os }}-bun-
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Unit tests (api) com cobertura
+        working-directory: apps/api
+        run: bun test ./tests --coverage
+
+      - name: Unit tests (web) com cobertura
+        working-directory: apps/web
+        run: bun test --coverage
+
+      - name: Integration tests (api)
+        run: bun run test:integration
+
+  e2e:
+    name: Gate / E2E
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: psy_test
+          POSTGRES_PASSWORD: psy_test
+          POSTGRES_DB: psy_manager_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U psy_test -d psy_manager_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: ${{ runner.os }}-bun-
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Playwright version
+        id: playwright
+        working-directory: apps/e2e
+        run: echo "version=$(bunx playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright.outputs.version }}
+
+      - name: Install Playwright Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        working-directory: apps/e2e
+        run: bunx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        working-directory: apps/e2e
+        run: bunx playwright install-deps chromium
+
+      - name: Run E2E Tests
+        run: bun run test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/e2e/playwright-report
+            apps/e2e/test-results
+          retention-days: 7
+
+  guard:
+    name: Gate / Anti-trapaça
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Testes apagados, skips novos e caminhos protegidos
+        id: guard
+        env:
+          ALLOW_SKIP: ${{ contains(github.event.pull_request.labels.*.name, 'allow-skip') }}
+        run: bash scripts/ci-guard.sh "origin/${{ github.base_ref }}"
+
+      - name: Marcar PR que mexe em caminho protegido
+        if: always() && steps.guard.outputs.protected != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [ "${{ steps.guard.outputs.protected }}" = "true" ]; then
+            gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --add-label caminho-protegido
+          else
+            gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label caminho-protegido || true
+          fi
+
+  supply-chain:
+    name: Gate / Supply chain
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: ${{ runner.os }}-bun-
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: bun audit (bloqueia critical)
+        run: |
+          mapfile -t ignores < <(grep -Ev '^\s*$' .bun-audit-ignore | sed 's/^/--ignore=/')
+          bun audit --audit-level=critical "${ignores[@]}"
+
+      - name: bun audit (relatório high, não bloqueia)
+        run: bun audit --audit-level=high || true
+
+      - name: Dependency review
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+
+  gate:
+    name: gate
+    if: always()
+    needs: [static, test, e2e, guard, supply-chain]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Todos os gates verdes
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Resultados: $RESULTS"
+          for r in $RESULTS; do
+            case "$r" in
+              success|skipped) ;;
+              *) echo "::error::Algum gate falhou ($r)."; exit 1 ;;
+            esac
+          done
