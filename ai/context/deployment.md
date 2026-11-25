@@ -40,6 +40,12 @@ bun run dev
 - Secrets: one GitHub environment secret, `PROD_ENV_FILE` (template:
   `.env.prod.example`), written to `~/psy-manager/.env.prod` (mode 600) on each
   deploy.
+- Sign-up is invite-only in production (`BETA_INVITE_ONLY`, default `true` in
+  `docker-compose.prod.yml`). Invite with
+  `docker compose -f docker-compose.prod.yml exec api bun src/db/beta-invite.ts add <email>`.
+- E-mail: forgot-password needs the `SMTP_*` variables in `PROD_ENV_FILE`; without
+  `SMTP_HOST` the API only logs `[email] SMTP não configurado` and the user still
+  sees the success message.
 - Backups: `scripts/backup-db.sh` (cron, 03:00) → `pg_dump | gzip [| age]` →
   separate R2 bucket with a 90-day lifecycle rule.
 

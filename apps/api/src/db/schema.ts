@@ -296,6 +296,11 @@ export const clinicalRecord = pgTable("clinical_record", {
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const betaInvite = pgTable("beta_invite", {
+    email: text("email").primaryKey(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const featureFlag = pgTable("feature_flag", {
     key: text("key").primaryKey(),
     enabled: boolean("enabled").notNull().default(false),

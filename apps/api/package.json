@@ -13,7 +13,10 @@
     "db:migrate": "bun src/db/migrate.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "bun src/db/seed.ts"
+    "db:seed": "bun src/db/seed.ts",
+    "beta:convidar": "bun src/db/beta-invite.ts add",
+    "beta:desconvidar": "bun src/db/beta-invite.ts remove",
+    "beta:convidados": "bun src/db/beta-invite.ts list"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.958.0",

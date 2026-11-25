@@ -182,6 +182,15 @@ Tables `feature_flag` (`key`, `enabled`, `rollout_percent`) and
 `feature_flag_override` (per psychologist). Flags turn features on without a
 deploy; release flags are removed from the code once on for everyone.
 
+## Beta Invites
+
+Table `beta_invite` (`email` lowercased, `created_at`). With `BETA_INVITE_ONLY=true`
+(production default in `docker-compose.prod.yml`), the Better Auth
+`databaseHooks.user.create.before` hook in `apps/api/src/lib/auth.ts` refuses sign-up
+for e-mails not on the list (403, code `BETA_INVITE_REQUIRED`, message in pt-BR shown
+by the register form). Existing accounts are not affected. Dev, tests and e2e leave
+it off.
+
 ## Event Store
 
 Table: `event_store`
