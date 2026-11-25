@@ -69,8 +69,10 @@ Missing (product work, not bugs): two-factor auth, an access log for clinical re
   guaranteed to match what CI tested.
 - The documents page calls `document.list` with an empty filter; verify intended
   generic-vs-patient filtering before changing document library behavior.
-- Appointment reminders are **not sent**. The old WhatsApp reminder (EventBridge +
-  Lambda) left with the AWS exit and there is no scheduler on the VPS. The columns
-  `appointment.reminderEnabled`/`reminderMinutesBefore`/`reminderSentAt` stay (and the
-  API still accepts them) so reminders can return without a migration; the UI hides them.
+- Session reminders by e-mail are implemented (in-process scheduler, see
+  `ai/context/architecture.md`) but **not delivered in production**: SMTP is not
+  configured there and the final domain (SPF/DKIM/DMARC) does not exist yet. Steps in
+  `ai/context/deployment.md` ("Activating E-mail In Production"). Without SMTP nothing
+  is marked as sent. When SMTP is turned on, future appointments that still have
+  `reminderEnabled = true` from the old WhatsApp era will also get an e-mail.
 - The source code has no comments by design and ESLint is at 0 problems.

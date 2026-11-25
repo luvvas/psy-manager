@@ -11,6 +11,7 @@ export const appointmentProjections = {
         eventBus.subscribe("APPOINTMENT_SCHEDULED", this.handleAppointmentScheduled);
         eventBus.subscribe("APPOINTMENT_RESCHEDULED", this.handleAppointmentRescheduled);
         eventBus.subscribe("APPOINTMENT_CANCELLED", this.handleAppointmentCancelled);
+        eventBus.subscribe("APPOINTMENT_REMINDER_SENT", this.handleAppointmentReminderSent);
         console.log("📈 Appointment Projections subscribed to EventBus");
     },
 
@@ -50,7 +51,7 @@ export const appointmentProjections = {
         const { patientId, date, startTime, endTime, status, sessionType, type, isRecurring, notes, meetingUrl, googleEventId } = event.data;
         const id = event.aggregateId;
 
-        const { reminderEnabled, reminderMinutesBefore, clinicId, roomId } = event.data;
+        const { reminderEnabled, reminderMinutesBefore, clinicId, roomId, resetReminder } = event.data;
 
         await db
             .update(appointment)
@@ -70,6 +71,7 @@ export const appointmentProjections = {
                 roomId: roomId ?? null,
                 reminderEnabled: reminderEnabled ?? false,
                 reminderMinutesBefore: reminderMinutesBefore ?? null,
+                ...(resetReminder ? { reminderSentAt: null } : {}),
                 updatedAt: event.createdAt ?? new Date(),
             })
             .where(eq(appointment.id, id));
@@ -90,6 +92,13 @@ export const appointmentProjections = {
         }
 
         console.log(`📈 Read Model Projected: Appointment Rescheduled -> (${id})`);
+    },
+
+    async handleAppointmentReminderSent(event: DomainEvent): Promise<void> {
+        await db
+            .update(appointment)
+            .set({ reminderSentAt: new Date(event.data.sentAt) })
+            .where(eq(appointment.id, event.aggregateId));
     },
 
     async handleAppointmentCancelled(event: DomainEvent): Promise<void> {

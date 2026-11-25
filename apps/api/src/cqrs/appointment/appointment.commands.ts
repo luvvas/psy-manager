@@ -43,6 +43,26 @@ export interface RescheduleAppointmentCommand {
     reminderMinutesBefore?: number;
 }
 
+export interface ReminderSlot {
+    id: string;
+    date: Date;
+    startTime: string;
+}
+
+export interface MarkReminderSentCommand extends ReminderSlot {
+    sentAt: Date;
+}
+
+async function loadAggregate(id: string): Promise<AppointmentAggregate> {
+    const history = await cqrsEventStore.getEvents(id);
+    if (history.length === 0) {
+        throw notFound();
+    }
+    const aggregate = new AppointmentAggregate();
+    aggregate.loadFromHistory(history);
+    return aggregate;
+}
+
 export interface CancelAppointmentCommand {
     id: string;
     psychologistId: string;
@@ -112,6 +132,23 @@ export const appointmentCommands = {
             reminderEnabled: command.reminderEnabled,
             reminderMinutesBefore: command.reminderMinutesBefore,
         });
+
+        await cqrsEventStore.saveEvents(command.id, expectedVersion, aggregate.uncommittedEvents);
+        await eventBus.publishAll(aggregate.uncommittedEvents);
+        aggregate.clearUncommittedEvents();
+    },
+
+    async assertReminderSendable(slot: ReminderSlot): Promise<void> {
+        const aggregate = await loadAggregate(slot.id);
+        aggregate.assertReminderSendable({ date: slot.date, startTime: slot.startTime });
+    },
+
+    async markReminderSent(command: MarkReminderSentCommand): Promise<void> {
+        const aggregate = await loadAggregate(command.id);
+
+        const expectedVersion = aggregate.version;
+
+        aggregate.markReminderSent({ sentAt: command.sentAt, date: command.date, startTime: command.startTime });
 
         await cqrsEventStore.saveEvents(command.id, expectedVersion, aggregate.uncommittedEvents);
         await eventBus.publishAll(aggregate.uncommittedEvents);

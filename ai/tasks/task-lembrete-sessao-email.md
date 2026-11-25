@@ -1,6 +1,6 @@
 # Task: Agendador de tarefas e lembrete de sessão por e-mail
 
-Status: ready
+Status: review
 
 ## Goal
 
@@ -53,3 +53,11 @@ bun run test:api
 bun run test:integration
 bun run test:e2e
 ```
+
+## Follow-ups
+
+- Ativação em produção bloqueada: SMTP nunca configurado e domínio definitivo ainda não
+  existe (`task-go-to-market.md`). Passos em `ai/context/deployment.md`
+  ("Activating E-mail In Production").
+- Agendamentos criados pela sincronização do Google Agenda não herdam a preferência
+  padrão de lembrete (só o formulário usa).

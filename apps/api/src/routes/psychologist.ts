@@ -2,6 +2,7 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../trpc/index";
 import { psychologistService } from "../services/psychologist.service";
 import { workScheduleSchema } from "../lib/work-schedule";
+import { MAX_REMINDER_MINUTES } from "../lib/reminder";
 
 const optionalText = (max: number) =>
     z.string().trim().max(max).optional().nullable().transform((v) => (v === undefined ? undefined : v || null));
@@ -35,6 +36,8 @@ export const psychologistRouter = router({
                 workSchedule: workScheduleSchema.optional().nullable(),
                 googleSyncDaysBack: z.number().int().min(0).max(365).optional(),
                 googleSyncDaysAhead: z.number().int().min(1).max(365).optional(),
+                reminderDefaultEnabled: z.boolean().optional(),
+                reminderDefaultMinutesBefore: z.number().int().positive().max(MAX_REMINDER_MINUTES).optional(),
                 pixKey: optionalText(77),
                 cpf: optionalCpf,
                 addressZip: optionalText(9),

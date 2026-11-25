@@ -1,6 +1,7 @@
 import * as z from "zod/v3";
 import { TIME_24H_REGEX } from "@/components/time-input";
 import { isHttpUrl } from "@/utils/safe-url";
+import { DEFAULT_REMINDER_MINUTES } from "@/lib/reminder";
 
 export const NO_CLINIC = "none";
 export const ANY_ROOM = "any";
@@ -71,10 +72,17 @@ export type AppointmentFormInitialData = Omit<Partial<AppointmentFormValues>, "c
     reminderSentAt?: Date | string | null;
 };
 
+export interface ReminderDefaults {
+    enabled: boolean;
+    minutesBefore: number;
+}
+
 export function toFormDefaultValues(
     initialData: AppointmentFormInitialData | undefined,
-    defaultTimes: { startTime: string; endTime: string }
+    defaultTimes: { startTime: string; endTime: string },
+    reminderDefaults?: ReminderDefaults
 ): AppointmentFormValues {
+    const isNew = !initialData?.id;
     return {
         patientId: initialData?.patientId || "",
         date: initialData?.date ? new Date(initialData.date) : new Date(),
@@ -86,8 +94,9 @@ export function toFormDefaultValues(
         isRecurring: initialData?.isRecurring || false,
         notes: initialData?.notes || "",
         meetingUrl: initialData?.meetingUrl || "",
-        reminderEnabled: initialData?.reminderEnabled ?? false,
-        reminderMinutesBefore: initialData?.reminderMinutesBefore ?? 60,
+        reminderEnabled: initialData?.reminderEnabled ?? (isNew ? reminderDefaults?.enabled ?? false : false),
+        reminderMinutesBefore:
+            initialData?.reminderMinutesBefore ?? reminderDefaults?.minutesBefore ?? DEFAULT_REMINDER_MINUTES,
         clinicId: initialData?.clinicId || NO_CLINIC,
         roomId: initialData?.roomId || ANY_ROOM,
     };

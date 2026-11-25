@@ -1,5 +1,6 @@
 import { AggregateRoot } from "../../lib/cqrs";
 import type { DomainEvent } from "../../lib/cqrs";
+import { localDay } from "../../lib/work-schedule";
 
 export interface AppointmentState {
     id: string;
@@ -19,6 +20,7 @@ export interface AppointmentState {
     roomId: string | null;
     reminderEnabled: boolean;
     reminderMinutesBefore: number | null;
+    reminderSentAt: Date | null;
     isDeleted: boolean;
     createdAt: Date | null;
     updatedAt: Date | null;
@@ -46,6 +48,7 @@ export class AppointmentAggregate extends AggregateRoot<AppointmentState> {
             roomId: null,
             reminderEnabled: false,
             reminderMinutesBefore: null,
+            reminderSentAt: null,
             isDeleted: false,
             createdAt: null,
             updatedAt: null,
@@ -98,7 +101,33 @@ export class AppointmentAggregate extends AggregateRoot<AppointmentState> {
         if (this._state.isDeleted) {
             throw new Error("Cannot modify a deleted appointment");
         }
-        this.raise("APPOINTMENT_RESCHEDULED", data);
+        const resetReminder = !this.isSameSlot(data.date, data.startTime) || data.patientId !== this._state.patientId;
+        this.raise("APPOINTMENT_RESCHEDULED", { ...data, resetReminder });
+    }
+
+    public markReminderSent(data: { sentAt: Date; date: Date; startTime: string }): void {
+        this.assertReminderSendable(data);
+        this.raise("APPOINTMENT_REMINDER_SENT", data);
+    }
+
+    public assertReminderSendable(data: { date: Date; startTime: string }): void {
+        if (this._state.isDeleted || this._state.status === "cancelled") {
+            throw new Error("Cannot send a reminder for a deleted or cancelled appointment");
+        }
+        if (!this._state.reminderEnabled) {
+            throw new Error("Reminder is disabled for this appointment");
+        }
+        if (this._state.reminderSentAt) {
+            throw new Error("Reminder already sent");
+        }
+        if (!this.isSameSlot(data.date, data.startTime)) {
+            throw new Error("Appointment was rescheduled after the reminder was picked");
+        }
+    }
+
+    private isSameSlot(date: Date, startTime: string): boolean {
+        if (!this._state.date) return false;
+        return this._state.startTime === startTime && localDay(this._state.date).key === localDay(new Date(date)).key;
     }
 
     public cancel(): void {
@@ -130,6 +159,7 @@ export class AppointmentAggregate extends AggregateRoot<AppointmentState> {
                     roomId: event.data.roomId ?? null,
                     reminderEnabled: event.data.reminderEnabled ?? false,
                     reminderMinutesBefore: event.data.reminderMinutesBefore ?? null,
+                    reminderSentAt: null,
                     isDeleted: false,
                     createdAt: event.createdAt ?? new Date(),
                     updatedAt: event.createdAt ?? new Date(),
@@ -153,7 +183,14 @@ export class AppointmentAggregate extends AggregateRoot<AppointmentState> {
                     roomId: event.data.roomId ?? null,
                     reminderEnabled: event.data.reminderEnabled ?? false,
                     reminderMinutesBefore: event.data.reminderMinutesBefore ?? null,
+                    reminderSentAt: event.data.resetReminder ? null : state.reminderSentAt,
                     updatedAt: event.createdAt ?? new Date(),
+                };
+
+            case "APPOINTMENT_REMINDER_SENT":
+                return {
+                    ...state,
+                    reminderSentAt: new Date(event.data.sentAt),
                 };
 
             case "APPOINTMENT_CANCELLED":

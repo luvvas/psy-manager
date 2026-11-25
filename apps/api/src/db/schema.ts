@@ -24,6 +24,8 @@ export const user = pgTable("user", {
     workSchedule: jsonb("work_schedule").$type<WorkSchedule>(),
     googleSyncDaysBack: integer("google_sync_days_back").notNull().default(30),
     googleSyncDaysAhead: integer("google_sync_days_ahead").notNull().default(90),
+    reminderDefaultEnabled: boolean("reminder_default_enabled").notNull().default(false),
+    reminderDefaultMinutesBefore: integer("reminder_default_minutes_before").notNull().default(1440),
     pixKey: text("pix_key"),
     cpf: text("cpf"),
     addressZip: text("address_zip"),

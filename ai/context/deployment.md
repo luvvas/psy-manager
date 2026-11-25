@@ -43,11 +43,42 @@ bun run dev
 - Sign-up is invite-only in production (`BETA_INVITE_ONLY`, default `true` in
   `docker-compose.prod.yml`). Invite with
   `docker compose -f docker-compose.prod.yml exec api bun src/db/beta-invite.ts add <email>`.
-- E-mail: forgot-password needs the `SMTP_*` variables in `PROD_ENV_FILE`; without
-  `SMTP_HOST` the API only logs `[email] SMTP não configurado` and the user still
-  sees the success message.
+- E-mail: forgot-password and session reminders need the `SMTP_*` variables in
+  `PROD_ENV_FILE`. **SMTP is not configured in production yet**, so neither is sent
+  today. Without `SMTP_HOST` the forgot-password flow only logs
+  `[email] SMTP não configurado` (the user still sees the success message), and the
+  reminder scheduler logs `[lembrete] SMTP não configurado` once at startup and
+  `[email] SMTP não configurado. Lembrete do agendamento <id> ...` once per
+  appointment, never marks `reminderSentAt` and keeps retrying until the session
+  starts. See "Activating e-mail in production" below.
 - Backups: `scripts/backup-db.sh` (cron, 03:00) → `pg_dump | gzip [| age]` →
   separate R2 bucket with a 90-day lifecycle rule.
+
+## Activating E-mail In Production
+
+Pending: it depends on the final domain, which depends on the app name
+(`ai/tasks/task-go-to-market.md`). No value below is decided yet.
+
+1. Pick an SMTP provider with no new paid service (the task's constraint: a free
+   tier or a mailbox the project already has).
+2. Fill in `PROD_ENV_FILE` (template `.env.prod.example`): `SMTP_HOST`,
+   `SMTP_PORT`, `SMTP_SECURE` (`true` only for implicit TLS, usually port 465),
+   `SMTP_USER`, `SMTP_PASS` and `SMTP_FROM` with an address on the final domain.
+   `docker-compose.prod.yml` already passes them to the API; the next deploy picks
+   them up.
+3. Once the domain exists, in the Cloudflare DNS for it:
+   - SPF: a `TXT` on the sending domain with the `include:` the provider documents,
+     ending in `~all` or `-all`. One SPF record per name.
+   - DKIM: the `TXT`/`CNAME` selector records the provider generates.
+   - DMARC: a `TXT` at `_dmarc.<domain>`, starting with `p=none` and an `rua=`
+     mailbox to read reports, then moving to `quarantine`/`reject`.
+   - DNS only (grey cloud) on those records; they are not proxied.
+4. Check: request a password reset for your own account and turn a reminder on for a
+   test patient with your own e-mail; look at the API logs
+   (`docker compose -f docker-compose.prod.yml logs api`) and at the headers of the
+   received message (SPF/DKIM/DMARC `pass`).
+
+Until then the scheduler runs harmlessly: it only reads due appointments and logs.
 
 ## GitHub Actions
 

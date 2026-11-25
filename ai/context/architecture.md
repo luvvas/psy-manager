@@ -53,6 +53,18 @@ Patients and appointments use a CQRS/event-sourcing pattern.
 For patient or appointment writes, prefer the existing command APIs instead of
 writing directly to the projection tables. For reads, use the query side.
 
+## Background Jobs
+
+`apps/api/src/index.ts` starts `sessionReminderService.start()` after `serve`: a
+`setInterval` of one minute inside the API process (no external scheduler, no
+queue). Each cycle reserves one pooled connection and takes the session-level
+`pg_try_advisory_lock(REMINDER_LOCK_KEY)` on it (no open transaction while SMTP
+talks); if another process holds it, the cycle does nothing, so a second replica
+would not double-send. The lock is released with `pg_advisory_unlock` at the end. `createApp()` does
+not start it, so the integration tests drive `runCycle(now)` by hand. Follow-up
+jobs (WhatsApp reminders, recurring instruments) should reuse this loop and lock
+pattern.
+
 ## Service-Based Modules
 
 These modules use a thinner service approach:
